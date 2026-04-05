@@ -1,7 +1,10 @@
 import type { InvocationContext } from '@azure/functions'
 import { strict as assert } from 'node:assert'
 import { describe, it } from 'node:test'
-import { NarrativeGeneratorHandler } from '../../src/handlers/mcp/narrative-generator/narrative-generator.js'
+import {
+    extractEnvironmentalHintProposals,
+    NarrativeGeneratorHandler
+} from '../../src/handlers/mcp/narrative-generator/narrative-generator.js'
 import type { IAzureOpenAIClient } from '../../src/services/azureOpenAIClient.js'
 
 function makeContext(): InvocationContext {
@@ -679,5 +682,120 @@ describe('NarrativeGeneratorHandler', () => {
         assert.equal(result.mode, 'template')
         assert.equal(result.advisory, true)
         assert.equal(result.fallbackReason, 'canonical_claim_blocked')
+    })
+
+    // ── extractEnvironmentalHintProposals ────────────────────────────────────
+
+    it('extractEnvironmentalHintProposals detects terrain+direction hint in same sentence', () => {
+        const hints = extractEnvironmentalHintProposals('The hills rise sharply to the north.')
+        assert.equal(hints.length, 1)
+        assert.equal(hints[0].direction, 'north')
+        assert.equal(hints[0].terrainKind, 'hill')
+        assert.ok(hints[0].text.includes('north'))
+    })
+
+    it('extractEnvironmentalHintProposals returns empty when only terrain mentioned', () => {
+        const hints = extractEnvironmentalHintProposals('Hills and valleys fill the landscape.')
+        assert.equal(hints.length, 0)
+    })
+
+    it('extractEnvironmentalHintProposals returns empty when only direction mentioned', () => {
+        const hints = extractEnvironmentalHintProposals('The road stretches north and east.')
+        assert.equal(hints.length, 0)
+    })
+
+    it('extractEnvironmentalHintProposals captures multiple hints from multi-sentence input', () => {
+        const hints = extractEnvironmentalHintProposals(
+            'A mountain ridge dominates the eastern skyline. The valley opens westward into flat plains.'
+        )
+        assert.equal(hints.length, 2)
+        const directions = hints.map((h) => h.direction)
+        const terrainKinds = hints.map((h) => h.terrainKind)
+        assert.ok(directions.includes('east'))
+        assert.ok(directions.includes('west'))
+        assert.ok(terrainKinds.includes('mountain') || terrainKinds.includes('ridge'))
+        assert.ok(terrainKinds.includes('valley'))
+    })
+
+    it('extractEnvironmentalHintProposals returns empty for plain action text with no geography', () => {
+        const hints = extractEnvironmentalHintProposals('You swing the sword. The merchant backs away slowly.')
+        assert.equal(hints.length, 0)
+    })
+
+    // ── generateAmbience: environmental hint proposals ───────────────────────
+
+    it('generateAmbience AI response includes environmentalHints and advisory when narration mentions terrain direction', async () => {
+        const aiClient: IAzureOpenAIClient = {
+            async generate() {
+                return {
+                    content: 'Cold air drifts down from the mountains to the north. The valley floor stretches southward.',
+                    tokenUsage: { prompt: 1, completion: 1, total: 2 }
+                }
+            },
+            async healthCheck() {
+                return true
+            }
+        }
+
+        const handler = new NarrativeGeneratorHandler(aiClient)
+        const result = JSON.parse(
+            await handler.generateAmbience(
+                {
+                    arguments: {
+                        locationName: 'Mountain Pass',
+                        timeOfDay: 'dawn',
+                        weather: 'cold',
+                        mood: 'tense',
+                        preferAi: true
+                    }
+                },
+                makeContext()
+            )
+        )
+
+        assert.equal(result.mode, 'ai')
+        assert.equal(result.advisory, true)
+        assert.ok(Array.isArray(result.environmentalHints))
+        assert.equal(result.environmentalHints.length, 2)
+        const directions = result.environmentalHints.map((h: { direction?: string }) => h.direction)
+        const terrainKinds = result.environmentalHints.map((h: { terrainKind?: string }) => h.terrainKind)
+        assert.ok(directions.includes('north'))
+        assert.ok(directions.includes('south'))
+        assert.ok(terrainKinds.includes('mountain'))
+        assert.ok(terrainKinds.includes('valley'))
+    })
+
+    it('generateAmbience AI response does not include environmentalHints when narration has no terrain hints', async () => {
+        const aiClient: IAzureOpenAIClient = {
+            async generate() {
+                return {
+                    content: 'The market hums with activity. Merchants call their wares over the din.',
+                    tokenUsage: { prompt: 1, completion: 1, total: 2 }
+                }
+            },
+            async healthCheck() {
+                return true
+            }
+        }
+
+        const handler = new NarrativeGeneratorHandler(aiClient)
+        const result = JSON.parse(
+            await handler.generateAmbience(
+                {
+                    arguments: {
+                        locationName: 'Market Square',
+                        timeOfDay: 'noon',
+                        weather: 'clear',
+                        mood: 'bustling',
+                        preferAi: true
+                    }
+                },
+                makeContext()
+            )
+        )
+
+        assert.equal(result.mode, 'ai')
+        assert.equal(result.advisory, undefined)
+        assert.equal(result.environmentalHints, undefined)
     })
 })

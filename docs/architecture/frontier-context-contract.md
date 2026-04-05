@@ -70,10 +70,12 @@ How an AI-authored cue becomes canon:
 AI narration mentions "hills to the west"
         │
         ▼
-Captured as a narrative proposal (not written to tags)
+extractEnvironmentalHintProposals() detects the terrain+direction phrase
+and surfaces it as an EnvironmentalHintProposal in the response payload
+(generateAmbience returns advisory:true + environmentalHints:[...])
         │
         ▼
-Human or tooling reviews the cue for atlas consistency
+Human or tooling reviews the proposal for atlas consistency
         │
         ▼
 If accepted: add `macro:area:` or directional trend data
@@ -87,6 +89,28 @@ for that direction carries the promoted value
 ```
 
 AI generation **must not** write to `macro:area:`, `macro:route:`, or `macro:water:` tags directly.  Those tags are the boundary of what is canonical.
+
+### `EnvironmentalHintProposal` response shape
+
+When `generateAmbience` is called with `preferAi: true` and the AI-generated narrative contains a sentence that mentions both a compass direction and a terrain keyword, the response includes:
+
+```json
+{
+  "mode": "ai",
+  "advisory": true,
+  "narrative": "...",
+  "environmentalHints": [
+    { "text": "The hills rise sharply to the north.", "direction": "north", "terrainKind": "hill" }
+  ],
+  "inputs": { ... }
+}
+```
+
+The `advisory: true` flag signals that the narrative contains geographic proposals that have not been validated against the atlas.  Consumers **must not** use `environmentalHints` to automatically populate atlas data, `PendingExitMetadata`, or any canonical frontier context.
+
+When no terrain-direction hints are detected in the narrative, `advisory` and `environmentalHints` are absent from the response, and the narrative is safe to surface directly.
+
+The extraction logic lives in `backend/src/handlers/mcp/narrative-generator/narrative-generator.ts` (`extractEnvironmentalHintProposals`); the `EnvironmentalHintProposal` type is defined in `backend/src/services/frontierContext.ts`.
 
 ## Override flags
 
@@ -210,9 +234,10 @@ When `planAtlasAwareFutureLocation` is called with an interior or vertical expan
 
 ## Related
 
-- `backend/src/services/frontierContext.ts` — type definitions and `inferStructuralArchetype`
+- `backend/src/services/frontierContext.ts` — type definitions: `inferStructuralArchetype`, `EnvironmentalHintProposal`
 - `backend/src/services/macroGenerationContext.ts` — `buildAtlasAwarePendingMetadata`, `planAtlasAwareFutureLocation`, `resolveAreaTransitionEdge`, `AreaReadinessState`
 - `backend/src/handlers/worldGraph.ts` — surfaces `structuralClass` and `frontierContext` in the world graph API
+- `backend/src/handlers/mcp/narrative-generator/narrative-generator.ts` — `extractEnvironmentalHintProposals`, `generateAmbience` (surfaces `environmentalHints` proposals)
 - `scripts/verify-runtime-invariants.mjs` — validates `destinationReadiness` values and transition contradiction guards
 - `docs/adr/ADR-010-macro-geography-persistence-strategy.md` — persistence strategy for macro geography; establishes that the precedence stack resolves against JSON atlas files, not Gremlin vertices
 - `docs/concept/exit-intent-capture.md` — exit availability states (hard / pending / forbidden)

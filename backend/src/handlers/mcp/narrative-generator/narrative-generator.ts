@@ -2,6 +2,7 @@ import type { InvocationContext } from '@azure/functions'
 import { Container, inject, injectable, optional } from 'inversify'
 import { TOKENS } from '../../../di/tokens.js'
 import type { IAzureOpenAIClient } from '../../../services/azureOpenAIClient.js'
+import type { EnvironmentalHintProposal } from '../../../services/frontierContext.js'
 
 type ToolArgs<T> = { arguments?: T }
 
@@ -150,6 +151,32 @@ const CANONICAL_CLAIM_PATTERNS: readonly RegExp[] = [
     /\byou\s+(?:find|discover|obtain|acquire|take)\b.{0,40}\b(?:key|sword|item|artifact|treasure|relic)\b/i,
     /\b(?:npc|merchant|guard|dragon|villager|stranger)\s+(?:arrives?|appears?|emerges?)\b/i
 ]
+
+const ENVIRONMENTAL_DIRECTION_PATTERN = /\b(north(?:east|west)?|south(?:east|west)?|east|west)(?:ern|ward)?\b/i
+
+const ENVIRONMENTAL_TERRAIN_PATTERN =
+    /\b(hill|mountain|valley|plain|cliff|coast|shore|moor|marsh|forest|wood|river|ridge|slope|canyon|ravine|escarpment)(?:s|es)?\b/i
+
+/** Proposals are advisory only — never promote to atlas tags automatically. */
+export function extractEnvironmentalHintProposals(text: string): EnvironmentalHintProposal[] {
+    const sentences = text.match(/[^.!?]+[.!?]*/g) ?? [text]
+    const proposals: EnvironmentalHintProposal[] = []
+
+    for (const sentence of sentences) {
+        const dirMatch = ENVIRONMENTAL_DIRECTION_PATTERN.exec(sentence)
+        const terrainMatch = ENVIRONMENTAL_TERRAIN_PATTERN.exec(sentence)
+
+        if (dirMatch && terrainMatch) {
+            proposals.push({
+                text: sentence.trim(),
+                direction: dirMatch[1].toLowerCase(),
+                terrainKind: terrainMatch[1].toLowerCase()
+            })
+        }
+    }
+
+    return proposals
+}
 
 function normalizeOptionalString(input: unknown): string | undefined {
     if (typeof input !== 'string') return undefined
@@ -306,11 +333,17 @@ export class NarrativeGeneratorHandler {
         if (preferAi && this.aiClient) {
             const aiAttempt = await this.tryGenerateAIAmbience(input)
             if (aiAttempt.narrative) {
-                return JSON.stringify({
+                const environmentalHints = extractEnvironmentalHintProposals(aiAttempt.narrative)
+                const response: Record<string, unknown> = {
                     mode: 'ai',
                     narrative: aiAttempt.narrative,
                     inputs: input
-                })
+                }
+                if (environmentalHints.length > 0) {
+                    response.advisory = true
+                    response.environmentalHints = environmentalHints
+                }
+                return JSON.stringify(response)
             }
             fallbackReason = aiAttempt.fallbackReason
         }

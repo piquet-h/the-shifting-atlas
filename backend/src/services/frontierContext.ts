@@ -81,6 +81,20 @@ export interface PendingExitMetadata {
 }
 
 /**
+ * An environmental hint extracted from AI-generated narration.
+ * Advisory only — must never be promoted to atlas tags automatically.
+ * See docs/architecture/frontier-context-contract.md § Promotion path.
+ */
+export interface EnvironmentalHintProposal {
+    /** Raw text fragment (sentence) containing the geographic hint. */
+    text: string
+    /** Inferred compass direction, lower-case (e.g. `'north'`). */
+    direction?: string
+    /** Inferred terrain keyword, lower-case (e.g. `'hill'`). */
+    terrainKind?: string
+}
+
+/**
  * Infer the structural archetype for a pending exit.
  *
  * Rules are evaluated in precedence order:
