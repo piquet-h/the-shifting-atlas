@@ -510,6 +510,21 @@
                 }
             },
             {
+                "from": "lr-area-mosswell-fiordhead",
+                "to": "lr-corridor-northgate-valley",
+                "relation": "macro-transition",
+                "traversal": "open",
+                "transition": {
+                    "direction": "northeast",
+                    "threshold": "Northeast valley approach follows Northgate corridor via highland route handoff",
+                    "destinationAreaRef": "lr-corridor-northgate-valley",
+                    "destinationReadiness": "ready",
+                    "entrySegmentRef": "lr-area-northwatch-ranges",
+                    "requiresRouteHandoff": true,
+                    "handoffRouteRef": "mw-route-harbor-to-northgate"
+                }
+            },
+            {
                 "from": "lr-area-fiordmarch-west",
                 "to": "lr-area-rainward-escarpments",
                 "relation": "adjacent",
