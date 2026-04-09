@@ -386,14 +386,8 @@ test('planAtlasAwareFutureLocation: ready transition (north from Mosswell Fiordh
         'macro:water:fjord-sound-head'
     ])
 
-    assert.ok(
-        plan.tags.includes('macro:area:lr-corridor-northgate-valley'),
-        'Ready transition stub must carry destination area tag'
-    )
-    assert.ok(
-        !plan.tags.includes('macro:area:lr-area-mosswell-fiordhead'),
-        'Source area tag must be replaced for ready transition'
-    )
+    assert.ok(plan.tags.includes('macro:area:lr-corridor-northgate-valley'), 'Ready transition stub must carry destination area tag')
+    assert.ok(!plan.tags.includes('macro:area:lr-area-mosswell-fiordhead'), 'Source area tag must be replaced for ready transition')
     // Route lineage must be preserved (ready transition, no routeHandoff for north)
     assert.ok(plan.tags.includes('macro:route:mw-route-harbor-to-northgate'), 'Route lineage must be preserved')
     // Pending exits must still be present (node is traversable, not a dead end)
@@ -409,24 +403,15 @@ test('planAtlasAwareFutureLocation: partial transition (east from Mosswell Fiord
         'macro:water:fjord-sound-head'
     ])
 
-    assert.ok(
-        plan.tags.includes('macro:area:lr-area-eastfall-foothills'),
-        'Partial transition stub must carry destination area tag'
-    )
-    assert.ok(
-        !plan.tags.includes('macro:area:lr-area-mosswell-fiordhead'),
-        'Source area tag must be replaced for partial transition'
-    )
+    assert.ok(plan.tags.includes('macro:area:lr-area-eastfall-foothills'), 'Partial transition stub must carry destination area tag')
+    assert.ok(!plan.tags.includes('macro:area:lr-area-mosswell-fiordhead'), 'Source area tag must be replaced for partial transition')
     assert.ok(plan.pendingExitContext, 'Partial transition stub must carry pendingExitContext')
 })
 
 test('planAtlasAwareFutureLocation: ready transition with routeHandoff (northeast from Mosswell Fiordhead) adds handoff route tag', () => {
     // Northeast from lr-area-mosswell-fiordhead has a ready transition with requiresRouteHandoff=true
     // and handoffRouteRef='mw-route-harbor-to-northgate'. The stub must gain that route tag.
-    const plan = planAtlasAwareFutureLocation('open-plain', 'northeast', [
-        'settlement:mosswell',
-        'macro:area:lr-area-mosswell-fiordhead'
-    ])
+    const plan = planAtlasAwareFutureLocation('open-plain', 'northeast', ['settlement:mosswell', 'macro:area:lr-area-mosswell-fiordhead'])
 
     assert.ok(
         plan.tags.includes('macro:area:lr-corridor-northgate-valley'),
@@ -466,17 +451,10 @@ test('planAtlasAwareFutureLocation: blocked transition (west from Mosswell Fiord
     )
     // Blocked boundary nodes must NOT have pending exits — prevents endless filler node spawning
     assert.equal(plan.pendingExitContext, undefined, 'Blocked transition stub must not carry pendingExitContext')
-    assert.equal(
-        plan.exitAvailability?.pending,
-        undefined,
-        'Blocked transition stub must not have pending exit availability'
-    )
+    assert.equal(plan.exitAvailability?.pending, undefined, 'Blocked transition stub must not have pending exit availability')
     // Source area tag must still be present (node is inside the source area, not the destination)
     assert.ok(plan.tags.includes('macro:area:lr-area-mosswell-fiordhead'), 'Blocked stub must retain source area tag')
-    assert.ok(
-        !plan.tags.includes('macro:area:lr-area-fiordmarch-west'),
-        'Blocked stub must NOT carry blocked destination area tag'
-    )
+    assert.ok(!plan.tags.includes('macro:area:lr-area-fiordmarch-west'), 'Blocked stub must NOT carry blocked destination area tag')
 })
 
 test('planAtlasAwareFutureLocation: direction with no transition edge leaves existing overland behavior unchanged', () => {

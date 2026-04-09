@@ -760,7 +760,9 @@ function suggestBoundaryNodeName(context: MacroGenerationContext, transitionEdge
  */
 function buildBoundaryNodeDescription(name: string, context: MacroGenerationContext, transitionEdge: MacroTransitionEdge): string {
     const threshold = transitionEdge.transition.threshold
-    const parts: string[] = [`${name} marks the edge of passable territory ${context.expansionDirection}, where ${threshold.charAt(0).toLowerCase() + threshold.slice(1)}.`]
+    const parts: string[] = [
+        `${name} marks the edge of passable territory ${context.expansionDirection}, where ${threshold.charAt(0).toLowerCase() + threshold.slice(1)}.`
+    ]
 
     if (context.barrierSemantics.length > 0) {
         parts.push(`The way forward is barred by ${context.barrierSemantics.join(' and ')}.`)
