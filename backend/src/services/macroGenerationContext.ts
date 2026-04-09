@@ -719,6 +719,56 @@ export function getMacroPropagationTags(tags: string[] | undefined, realmKey?: s
     return unique(propagated)
 }
 
+/**
+ * Looks up the human-readable name of a macro atlas area/corridor node by its reference key.
+ *
+ * Used when generating boundary-aware names for stubs at authoring boundary crossings.
+ * Returns `undefined` when the area ref is not found in any loaded atlas.
+ */
+function findMacroNodeName(areaRef: string): string | undefined {
+    for (const atlas of ALL_ATLASES) {
+        const node = atlas.macroGraph?.nodes?.find((n) => n.id === areaRef)
+        if (node) return node.name
+    }
+    return undefined
+}
+
+/**
+ * Generate a player-facing name for a boundary stub at a blocked or deferred area transition.
+ *
+ * Prefers barrier semantics already resolved in the macro context (which reflect the edge's
+ * barrier refs by the time `resolveMacroGenerationContext` has run) and falls back to the
+ * destination area's human-readable name from the atlas, then to a direction-based label.
+ */
+function suggestBoundaryNodeName(context: MacroGenerationContext, transitionEdge: MacroTransitionEdge): string {
+    const destinationName = findMacroNodeName(transitionEdge.transition.destinationAreaRef)
+    if (destinationName) {
+        return `${destinationName} Edge`
+    }
+    if (context.barrierSemantics.length > 0) {
+        return `${context.barrierSemantics[0]} Approach`
+    }
+    return `${directionLabel(context.expansionDirection)} Boundary`
+}
+
+/**
+ * Generate a player-facing fallback description for a boundary stub at a blocked or deferred
+ * area transition.
+ *
+ * The description references the authored transition threshold and any barrier semantics so
+ * the player-facing text is coherent rather than generic continuation prose.
+ */
+function buildBoundaryNodeDescription(name: string, context: MacroGenerationContext, transitionEdge: MacroTransitionEdge): string {
+    const threshold = transitionEdge.transition.threshold
+    const parts: string[] = [`${name} marks the edge of passable territory ${context.expansionDirection}, where ${threshold.charAt(0).toLowerCase() + threshold.slice(1)}.`]
+
+    if (context.barrierSemantics.length > 0) {
+        parts.push(`The way forward is barred by ${context.barrierSemantics.join(' and ')}.`)
+    }
+
+    return parts.join(' ')
+}
+
 export function planAtlasAwareFutureLocation(
     baseTerrain: TerrainType,
     expansionDirection: Direction,
@@ -740,8 +790,60 @@ export function planAtlasAwareFutureLocation(
         tags.push(VERTICAL_GENERATED_TAG)
     }
 
+    // Transition-aware area handoff: check whether the expansion direction crosses an authored
+    // macro-transition edge.  The readiness state determines how to handle the boundary.
+    //
+    // - ready / partial: replace the source area tag with the destination area so subsequent
+    //   generation is contextualized to the new macro area. Add a handoff route when the
+    //   transition specifies one (requiresRouteHandoff + handoffRouteRef).
+    //
+    // - blocked / deferred: this node is an authoring boundary — runtime must not commit to
+    //   the destination area.  Keep source area tags, generate boundary-specific content,
+    //   and suppress pending exits to prevent endless filler node spawning.
+    const sourceAreaRef = extractFirstTag(tags, 'macro:area:')
+    const transitionEdge = resolveAreaTransitionEdge(sourceAreaRef, expansionDirection)
+    const isBoundaryBlocked =
+        transitionEdge !== undefined &&
+        (transitionEdge.transition.destinationReadiness === 'blocked' || transitionEdge.transition.destinationReadiness === 'deferred')
+
+    if (transitionEdge && !isBoundaryBlocked) {
+        // Apply destination area: replace source area tag in-place.
+        const srcAreaIdx = tags.findIndex((tag) => tag.startsWith('macro:area:'))
+        const destAreaTag = `macro:area:${transitionEdge.transition.destinationAreaRef}`
+        if (srcAreaIdx !== -1) {
+            tags[srcAreaIdx] = destAreaTag
+        } else {
+            tags.push(destAreaTag)
+        }
+
+        // Add handoff route tag when the transition requires it and the ref is present.
+        if (transitionEdge.transition.requiresRouteHandoff && transitionEdge.transition.handoffRouteRef) {
+            const handoffTag = `macro:route:${transitionEdge.transition.handoffRouteRef}`
+            if (!tags.includes(handoffTag)) {
+                tags.push(handoffTag)
+            }
+        }
+    }
+
     const macroContext = resolveMacroGenerationContext(tags, expansionDirection)
     const selectedTerrain = selectAtlasAwareTerrain(baseTerrain, macroContext)
+
+    // For blocked/deferred boundary nodes: generate boundary-specific name and description,
+    // and suppress pending exits so no further generation fans out from this terminal node.
+    if (isBoundaryBlocked) {
+        const name = suggestBoundaryNodeName(macroContext, transitionEdge!)
+        const description = buildBoundaryNodeDescription(name, macroContext, transitionEdge!)
+        return {
+            terrain: selectedTerrain,
+            name,
+            description,
+            tags,
+            exitAvailability: undefined,
+            pendingExitContext: undefined,
+            macroContext
+        }
+    }
+
     const name = suggestFutureNodeName(selectedTerrain, macroContext, nextFrontierDepth)
     const description = buildFutureLocationDescription(name, selectedTerrain, macroContext, nextFrontierDepth)
     const backDirection = getOppositeDirection(expansionDirection)
