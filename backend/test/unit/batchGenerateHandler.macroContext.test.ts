@@ -79,7 +79,10 @@ describe('BatchGenerateHandler - macro context propagation', () => {
         const allLocations = await locationRepo.listAll()
         const generated = selectGeneratedLocations(allLocations, beforeIds, rootLocationId)
         assert.equal(generated.length, 1)
-        assert.ok(generated[0].tags?.includes('macro:area:lr-area-mosswell-fiordhead'))
+        // North from lr-area-mosswell-fiordhead has a ready macro-transition to lr-corridor-northgate-valley.
+        // The stub must carry the destination area tag (transition-aware propagation).
+        assert.ok(generated[0].tags?.includes('macro:area:lr-corridor-northgate-valley'))
+        assert.ok(!generated[0].tags?.includes('macro:area:lr-area-mosswell-fiordhead'))
         assert.ok(generated[0].tags?.includes('macro:route:mw-route-harbor-to-northgate'))
         assert.ok(generated[0].tags?.includes('macro:water:fjord-sound-head'))
     })

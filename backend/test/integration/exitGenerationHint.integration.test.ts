@@ -147,7 +147,16 @@ describe('Exit Generation Hint Integration', () => {
             'Unexplored Region',
             'Hint path should not fall back to generic stub naming when atlas context exists'
         )
-        assert.ok(stubLocation?.tags?.includes('macro:area:lr-area-mosswell-fiordhead'))
+        // North from lr-area-mosswell-fiordhead crosses a ready macro-transition to lr-corridor-northgate-valley.
+        // Transition-aware propagation replaces the source area tag with the destination area tag.
+        assert.ok(
+            stubLocation?.tags?.includes('macro:area:lr-corridor-northgate-valley'),
+            'Stub should carry destination area tag after ready north transition'
+        )
+        assert.ok(
+            !stubLocation?.tags?.includes('macro:area:lr-area-mosswell-fiordhead'),
+            'Source area tag should be replaced by destination area tag'
+        )
         assert.ok(stubLocation?.tags?.includes('macro:route:mw-route-harbor-to-northgate'))
         assert.ok(stubLocation?.tags?.includes('macro:water:fjord-sound-head'))
         assert.ok(stubLocation?.exitAvailability?.pending, 'Atlas-aware stub should remain frontier-expandable')
