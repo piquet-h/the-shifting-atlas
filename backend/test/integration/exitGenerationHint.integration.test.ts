@@ -554,4 +554,129 @@ describe('Exit Generation Hint Integration', () => {
         assert.ok(downExit, 'down exit should exist')
         assert.equal(downExit!.travelDurationMs, DESCENT_TRAVEL_DURATION_MS, 'down exit should be fast (descent)')
     })
+
+    // -----------------------------------------------------------------------
+    // Macro-area transition: repeated travel and blocked authoring boundaries
+    // -----------------------------------------------------------------------
+
+    it('should propagate destination area tag through repeated frontier travel into a ready area', async () => {
+        // First travel: origin in lr-area-mosswell-fiordhead → north → stub1 in lr-corridor-northgate-valley.
+        // North from lr-area-mosswell-fiordhead is a ready macro-transition so the stub1 gains
+        // the destination area tag.  stub1 also gains pending exits so further travel is possible.
+        const originId = uuidv4()
+        await locationRepo.upsert({
+            id: originId,
+            name: 'Northern Gate Outpost',
+            description: 'A fortified outpost at the northern edge of the basin',
+            terrain: 'open-plain',
+            tags: [
+                'settlement:mosswell',
+                'macro:area:lr-area-mosswell-fiordhead',
+                'macro:route:mw-route-harbor-to-northgate',
+                'macro:water:fjord-sound-head'
+            ],
+            exits: [],
+            exitAvailability: { pending: { north: 'The road continues north through the valley mouth' } },
+            version: 1
+        })
+
+        const ctx1 = await fixture.createInvocationContext()
+        await queueProcessExitGenerationHint(buildHintMessage(originId, 'north', uuidv4()), ctx1 as unknown as InvocationContext)
+
+        const updatedOrigin = await locationRepo.get(originId)
+        const northExit = updatedOrigin?.exits?.find((e) => e.direction === 'north')
+        assert.ok(northExit?.to, 'First north exit should be materialized after ready transition')
+
+        const stub1 = await locationRepo.get(northExit!.to!)
+        assert.ok(stub1, 'stub1 should exist in the ready destination area')
+        assert.ok(
+            stub1?.tags?.includes('macro:area:lr-corridor-northgate-valley'),
+            'stub1 must carry the destination area tag after ready north transition'
+        )
+        assert.ok(stub1?.exitAvailability?.pending, 'stub1 must have pending exits so further travel is possible')
+
+        // Second travel: from stub1 (lr-corridor-northgate-valley) → north → stub2.
+        // There is no outbound macro-transition edge from lr-corridor-northgate-valley going north,
+        // so the area tag stays (stay-in-area outcome) and stub2 inherits lr-corridor-northgate-valley.
+        const ctx2 = await fixture.createInvocationContext()
+        await queueProcessExitGenerationHint(buildHintMessage(stub1!.id, 'north', uuidv4()), ctx2 as unknown as InvocationContext)
+
+        const updatedStub1 = await locationRepo.get(stub1!.id)
+        const stub1NorthExit = updatedStub1?.exits?.find((e) => e.direction === 'north')
+        assert.ok(stub1NorthExit?.to, 'Second north exit should be materialized from stub1')
+
+        const stub2 = await locationRepo.get(stub1NorthExit!.to!)
+        assert.ok(stub2, 'stub2 should exist')
+        assert.ok(
+            stub2?.tags?.includes('macro:area:lr-corridor-northgate-valley'),
+            'stub2 must carry lr-corridor-northgate-valley area tag: area persists through repeated travel in a ready destination'
+        )
+        assert.ok(stub2?.exitAvailability?.pending, 'stub2 must remain expandable (ready destination area)')
+    })
+
+    it('should create blocked boundary stub with no pending exits, stopping generic continuation on repeated travel', async () => {
+        // First travel: origin in lr-area-mosswell-fiordhead → west → blocked boundary stub.
+        // West from lr-area-mosswell-fiordhead is blocked (lr-area-fiordmarch-west); the generated
+        // stub must carry NO pending exits so batch generation never fans out from it.
+        const originId = uuidv4()
+        await locationRepo.upsert({
+            id: originId,
+            name: 'Western Cliffside',
+            description: 'The cliffs drop steeply to the fiordmarch below',
+            terrain: 'open-plain',
+            tags: ['macro:area:lr-area-mosswell-fiordhead', 'macro:water:fjord-sound-head'],
+            exits: [],
+            exitAvailability: { pending: { west: 'Rocky clifftop path toward the fiordmarch' } },
+            version: 1
+        })
+
+        const ctx1 = await fixture.createInvocationContext()
+        await queueProcessExitGenerationHint(buildHintMessage(originId, 'west', uuidv4()), ctx1 as unknown as InvocationContext)
+
+        const updatedOrigin = await locationRepo.get(originId)
+        const westExit = updatedOrigin?.exits?.find((e) => e.direction === 'west')
+        assert.ok(westExit?.to, 'West exit should be materialized to a blocked boundary stub')
+
+        const blockedStub = await locationRepo.get(westExit!.to!)
+        assert.ok(blockedStub, 'Blocked boundary stub should exist')
+
+        // Blocked boundary stub must have NO pending exits — this stops further batch generation hints.
+        assert.equal(
+            blockedStub?.exitAvailability?.pending,
+            undefined,
+            'Blocked boundary stub must have no pending exits, stopping further frontier generation'
+        )
+        // Blocked boundary stub must retain the source area tag (not gain the blocked destination tag).
+        assert.ok(
+            blockedStub?.tags?.includes('macro:area:lr-area-mosswell-fiordhead'),
+            'Blocked stub must retain source area tag (lr-area-mosswell-fiordhead)'
+        )
+        assert.ok(
+            !blockedStub?.tags?.includes('macro:area:lr-area-fiordmarch-west'),
+            'Blocked stub must NOT carry the blocked destination area tag'
+        )
+
+        // Second hint from the blocked stub: the processor should produce another blocked boundary stub
+        // (not a generic overland location), demonstrating the blocked boundary behavior is deterministic
+        // across repeated traversal attempts in the same direction.
+        const ctx2 = await fixture.createInvocationContext()
+        await queueProcessExitGenerationHint(buildHintMessage(blockedStub!.id, 'west', uuidv4()), ctx2 as unknown as InvocationContext)
+
+        const updatedBlockedStub = await locationRepo.get(blockedStub!.id)
+        const stub2WestExit = updatedBlockedStub?.exits?.find((e) => e.direction === 'west')
+        assert.ok(stub2WestExit?.to, 'Second west hint must produce a new stub from the blocked boundary')
+
+        const stub2 = await locationRepo.get(stub2WestExit!.to!)
+        assert.ok(stub2, 'stub2 should exist')
+        assert.equal(
+            stub2?.exitAvailability?.pending,
+            undefined,
+            'Second-generation west stub must also be a blocked boundary stub with no pending exits'
+        )
+        // stub2 must NOT be a generic overland location — the boundary filter must apply consistently.
+        assert.ok(
+            stub2?.name !== 'Unexplored Open Plain' && stub2?.name !== 'Unexplored Narrow Corridor',
+            `Second stub must not be a generic overland location, got name: "${stub2?.name}"`
+        )
+    })
 })
