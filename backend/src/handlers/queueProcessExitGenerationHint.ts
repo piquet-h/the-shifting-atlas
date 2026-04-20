@@ -36,6 +36,7 @@ import {
     resolveMacroGenerationContext,
     scoreAtlasAwareReconnectionCandidate
 } from '../services/macroGenerationContext.js'
+import { resolveTransitionOutcome } from '../services/macroTransitionResolver.js'
 import type { ITemporalProximityService } from '../services/temporalProximityService.js'
 import { enrichNormalizedErrorAttributes } from '../telemetry/errorTelemetry.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
@@ -557,6 +558,44 @@ export class QueueProcessExitGenerationHintHandler {
             })
             targetLocationId = stubId
             createdStub = true
+
+            // 11a. Emit frontier boundary telemetry for the newly created stub.
+            if (futureLocationPlan.boundaryContext) {
+                // Stub is a blocked/deferred authoring boundary node.
+                this.telemetryService.trackGameEvent(
+                    'World.Frontier.BoundaryReached',
+                    {
+                        sourceAreaRef: futureLocationPlan.macroContext.areaRef ?? 'unknown',
+                        dir: payload.dir,
+                        destinationAreaRef: futureLocationPlan.boundaryContext.destinationAreaRef,
+                        destinationReadiness: futureLocationPlan.boundaryContext.destinationReadiness,
+                        ...(futureLocationPlan.boundaryContext.entrySegmentRef
+                            ? { entrySegmentRef: futureLocationPlan.boundaryContext.entrySegmentRef }
+                            : {}),
+                        correlationId
+                    },
+                    { correlationId }
+                )
+            } else {
+                // Stub is a normal location: check pending exits for approach signals (one hop from boundary).
+                const pendingDirs = Object.keys(futureLocationPlan.exitAvailability?.pending ?? {}) as Direction[]
+                for (const pendingDir of pendingDirs) {
+                    const approachOutcome = resolveTransitionOutcome(futureLocationPlan.tags, pendingDir)
+                    if (approachOutcome.outcome === 'blocked') {
+                        this.telemetryService.trackGameEvent(
+                            'World.Frontier.BoundaryApproach',
+                            {
+                                sourceAreaRef: futureLocationPlan.macroContext.areaRef ?? 'unknown',
+                                approachDir: pendingDir,
+                                destinationAreaRef: approachOutcome.destinationAreaRef,
+                                destinationReadiness: approachOutcome.reason,
+                                correlationId
+                            },
+                            { correlationId }
+                        )
+                    }
+                }
+            }
         }
 
         const exitResult = await this.locationRepository.ensureExitBidirectional(payload.originLocationId, dir, targetLocationId, {

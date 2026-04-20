@@ -24,6 +24,7 @@ import {
 import type { IExitRepository } from '../../src/repos/exitRepository.js'
 import type { ILocationRepository } from '../../src/repos/locationRepository.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
+import { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
 
 describe('Exit Generation Hint Integration', () => {
     let fixture: IntegrationTestFixture
@@ -678,5 +679,142 @@ describe('Exit Generation Hint Integration', () => {
             stub2?.name !== 'Unexplored Open Plain' && stub2?.name !== 'Unexplored Narrow Corridor',
             `Second stub must not be a generic overland location, got name: "${stub2?.name}"`
         )
+    })
+
+    // -----------------------------------------------------------------------
+    // Authoring-boundary telemetry: BoundaryReached and BoundaryApproach
+    // -----------------------------------------------------------------------
+
+    it('should emit World.Frontier.BoundaryReached telemetry when a blocked boundary stub is materialized', async () => {
+        const container = await fixture.getContainer()
+        const mockTelemetry = container.get<MockTelemetryClient>(TOKENS.TelemetryClient)
+        mockTelemetry.clear()
+
+        const originId = uuidv4()
+        await locationRepo.upsert({
+            id: originId,
+            name: 'Western Cliffside Watch',
+            description: 'A lookout point on the clifftop toward the fiordmarch',
+            terrain: 'open-plain',
+            tags: ['macro:area:lr-area-mosswell-fiordhead', 'macro:water:fjord-sound-head'],
+            exits: [],
+            exitAvailability: { pending: { west: 'Rocky clifftop path toward the fiordmarch' } },
+            version: 1
+        })
+
+        const ctx = await fixture.createInvocationContext()
+        await queueProcessExitGenerationHint(buildHintMessage(originId, 'west', uuidv4()), ctx as unknown as InvocationContext)
+
+        const boundaryEvent = mockTelemetry.events.find((e) => e.name === 'World.Frontier.BoundaryReached')
+        assert.ok(boundaryEvent, 'World.Frontier.BoundaryReached event should be emitted')
+        assert.equal(
+            boundaryEvent.properties.sourceAreaRef,
+            'lr-area-mosswell-fiordhead',
+            'sourceAreaRef should identify the source atlas area'
+        )
+        assert.equal(boundaryEvent.properties.dir, 'west', 'dir should be the expansion direction')
+        assert.equal(
+            boundaryEvent.properties.destinationAreaRef,
+            'lr-area-fiordmarch-west',
+            'destinationAreaRef should identify the blocked destination area'
+        )
+        assert.equal(
+            boundaryEvent.properties.destinationReadiness,
+            'blocked',
+            'destinationReadiness should be blocked'
+        )
+        assert.equal(
+            boundaryEvent.properties.entrySegmentRef,
+            'lr-corridor-westwall-shelf',
+            'entrySegmentRef should carry the authored entry segment for the blocked area'
+        )
+        // BoundaryApproach must NOT be emitted for a boundary stub (no pending exits to check).
+        const approachEvent = mockTelemetry.events.find((e) => e.name === 'World.Frontier.BoundaryApproach')
+        assert.equal(approachEvent, undefined, 'World.Frontier.BoundaryApproach should NOT be emitted for a boundary stub')
+    })
+
+    it('should emit World.Frontier.BoundaryApproach telemetry when a non-boundary stub has pending exits toward a blocked transition', async () => {
+        const container = await fixture.getContainer()
+        const mockTelemetry = container.get<MockTelemetryClient>(TOKENS.TelemetryClient)
+        mockTelemetry.clear()
+
+        // Create origin in lr-area-mosswell-fiordhead with a northwest pending exit.
+        // Northwest has no authored macro-transition edge from this area, so the new stub
+        // stays in lr-area-mosswell-fiordhead and inherits its pending exit directions
+        // (north, south, east, west for open-plain terrain).
+        // West from lr-area-mosswell-fiordhead is blocked → BoundaryApproach must fire for west.
+        const originId = uuidv4()
+        await locationRepo.upsert({
+            id: originId,
+            name: 'Northwest Uplands',
+            description: 'A highland ridge with views toward the fiordmarch',
+            terrain: 'open-plain',
+            tags: ['macro:area:lr-area-mosswell-fiordhead'],
+            exits: [],
+            exitAvailability: { pending: { northwest: 'Upland path continues northwest' } },
+            version: 1
+        })
+
+        const ctx = await fixture.createInvocationContext()
+        await queueProcessExitGenerationHint(buildHintMessage(originId, 'northwest', uuidv4()), ctx as unknown as InvocationContext)
+
+        // BoundaryReached must NOT be emitted: the northwest expansion has no blocked transition.
+        const reachedEvent = mockTelemetry.events.find((e) => e.name === 'World.Frontier.BoundaryReached')
+        assert.equal(reachedEvent, undefined, 'World.Frontier.BoundaryReached should NOT be emitted for a non-boundary stub')
+
+        // BoundaryApproach must be emitted for west (blocked → lr-area-fiordmarch-west).
+        const approachEvents = mockTelemetry.events.filter((e) => e.name === 'World.Frontier.BoundaryApproach')
+        assert.ok(approachEvents.length > 0, 'At least one World.Frontier.BoundaryApproach event should be emitted')
+
+        const westApproach = approachEvents.find((e) => e.properties.approachDir === 'west')
+        assert.ok(westApproach, 'BoundaryApproach should be emitted for approach direction west')
+        assert.equal(
+            westApproach.properties.sourceAreaRef,
+            'lr-area-mosswell-fiordhead',
+            'sourceAreaRef should identify the area the new stub lives in'
+        )
+        assert.equal(
+            westApproach.properties.destinationAreaRef,
+            'lr-area-fiordmarch-west',
+            'destinationAreaRef should identify the blocked destination area'
+        )
+        assert.equal(
+            westApproach.properties.destinationReadiness,
+            'blocked',
+            'destinationReadiness should be blocked'
+        )
+    })
+
+    it('should not emit boundary telemetry when a blocked boundary hint is a duplicate (idempotent path)', async () => {
+        const container = await fixture.getContainer()
+        const mockTelemetry = container.get<MockTelemetryClient>(TOKENS.TelemetryClient)
+
+        const originId = uuidv4()
+        await locationRepo.upsert({
+            id: originId,
+            name: 'Western Boundary Approach',
+            description: 'The western approach to the fiordmarch',
+            terrain: 'open-plain',
+            tags: ['macro:area:lr-area-mosswell-fiordhead'],
+            exits: [],
+            exitAvailability: { pending: { west: 'Cliffs drop toward the fiordmarch' } },
+            version: 1
+        })
+
+        // First hint: creates the blocked boundary stub and emits BoundaryReached.
+        const ctx1 = await fixture.createInvocationContext()
+        await queueProcessExitGenerationHint(buildHintMessage(originId, 'west', uuidv4()), ctx1 as unknown as InvocationContext)
+
+        const firstBoundaryEvents = mockTelemetry.events.filter((e) => e.name === 'World.Frontier.BoundaryReached')
+        assert.equal(firstBoundaryEvents.length, 1, 'Exactly one BoundaryReached event on first hint')
+
+        // Second hint for the same origin+direction: hard exit already exists → skipped-idempotent.
+        // No new stub is created, so no BoundaryReached should be emitted again.
+        mockTelemetry.clear()
+        const ctx2 = await fixture.createInvocationContext()
+        await queueProcessExitGenerationHint(buildHintMessage(originId, 'west', uuidv4()), ctx2 as unknown as InvocationContext)
+
+        const secondBoundaryEvents = mockTelemetry.events.filter((e) => e.name === 'World.Frontier.BoundaryReached')
+        assert.equal(secondBoundaryEvents.length, 0, 'No BoundaryReached event on idempotent retry (exit already exists)')
     })
 })

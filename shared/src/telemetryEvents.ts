@@ -88,6 +88,9 @@ export const GAME_EVENT_NAMES = [
     'World.BatchGeneration.Prefetch', // Prefetch triggered on arrival - properties: { rootLocationId, pendingExitCount, correlationId }
     'World.BatchPrefetch.Failed', // Prefetch failed (non-blocking) - properties: { rootLocationId, error, correlationId }
     'World.BatchGeneration.Debounced', // Prefetch debounced (already enqueued recently) - properties: { rootLocationId, correlationId }
+    // Frontier authoring-boundary telemetry (Issue #948 - Emit authoring-boundary approach and reached telemetry)
+    'World.Frontier.BoundaryReached', // Blocked/deferred authoring boundary materialized - properties: { sourceAreaRef, dir, destinationAreaRef, destinationReadiness, entrySegmentRef?, correlationId }
+    'World.Frontier.BoundaryApproach', // Non-boundary location created with pending exit(s) toward a blocked authoring boundary - properties: { sourceAreaRef, approachDir, destinationAreaRef, destinationReadiness, correlationId }
     // Area generation telemetry (operator-triggered area generation via AreaGenerationOrchestrator)
     'World.AreaGeneration.Started', // Area generation initiated - properties: { anchorLocationId, mode, budgetLocations, idempotencyKey, correlationId }
     'World.AreaGeneration.Completed', // Area generation completed - properties: { anchorLocationId, mode, batchSize, terrain, clamped, idempotencyKey, correlationId, durationMs }
