@@ -471,3 +471,26 @@ test('planAtlasAwareFutureLocation: direction with no transition edge leaves exi
     // Regular pending exits must still be generated
     assert.ok(plan.pendingExitContext, 'No-transition stub must carry pendingExitContext for regular expansion')
 })
+
+// ---------------------------------------------------------------------------
+// planAtlasAwareFutureLocation — boundary terrain-bias (#929)
+// ---------------------------------------------------------------------------
+
+test('planAtlasAwareFutureLocation: blocked boundary stub uses atlas-aware terrain bias (boundary terrain-bias case)', () => {
+    // West from lr-area-mosswell-fiordhead is blocked (fiordmarch-west).
+    // The atlas direction trend for west from Mosswell biases terrain toward narrow-corridor
+    // (fiord/cliff terrain).  Even at a blocked boundary, terrain selection must use
+    // atlas-aware logic — not keep the generic base terrain (open-plain).
+    const plan = planAtlasAwareFutureLocation('open-plain', 'west', [
+        'settlement:mosswell',
+        'macro:area:lr-area-mosswell-fiordhead',
+        'macro:water:fjord-sound-head'
+    ])
+
+    assert.notEqual(plan.terrain, 'open-plain', 'Blocked boundary stub must not keep generic base terrain')
+    assert.equal(
+        plan.terrain,
+        'narrow-corridor',
+        'Blocked boundary stub must use atlas-biased narrow-corridor terrain for western fiord boundary'
+    )
+})

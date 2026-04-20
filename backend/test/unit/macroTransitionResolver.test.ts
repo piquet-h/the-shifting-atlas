@@ -83,3 +83,43 @@ test('resolveTransitionOutcome: stay — already in destination area, no outboun
 
     assert.equal(result.outcome, 'stay')
 })
+
+// ---------------------------------------------------------------------------
+// Additional coverage: threshold content, directional asymmetry, traversal
+// ---------------------------------------------------------------------------
+
+test('resolveTransitionOutcome: transition threshold content identifies the atlas area crossing condition', () => {
+    // The threshold must be meaningful prose naming the geographic boundary crossed —
+    // not merely a non-empty string.  The north edge from Mosswell Fiordhead references
+    // both the source basin and the Northgate Valley corridor.
+    const result = resolveTransitionOutcome(['macro:area:lr-area-mosswell-fiordhead', 'settlement:mosswell'], 'north')
+
+    assert.equal(result.outcome, 'transition')
+    if (result.outcome !== 'transition') return
+
+    assert.ok(
+        result.threshold.includes('Northgate') || result.threshold.includes('Mosswell') || result.threshold.includes('north-road'),
+        `Threshold must reference the atlas crossing point, got: "${result.threshold}"`
+    )
+})
+
+test('resolveTransitionOutcome: same area yields ready in one direction and blocked in another (directional asymmetry)', () => {
+    // Edge case: a destination may be ready in one direction and blocked in another.
+    // Both outcomes must be resolved from the same source area without interference.
+    const northResult = resolveTransitionOutcome(['macro:area:lr-area-mosswell-fiordhead', 'settlement:mosswell'], 'north')
+    const westResult = resolveTransitionOutcome(['macro:area:lr-area-mosswell-fiordhead', 'settlement:mosswell'], 'west')
+
+    assert.equal(northResult.outcome, 'transition', 'North from Mosswell Fiordhead must resolve to ready transition')
+    assert.equal(westResult.outcome, 'blocked', 'West from Mosswell Fiordhead must resolve to blocked')
+})
+
+test('resolveTransitionOutcome: blocked outcome carries traversal classification from atlas edge', () => {
+    // The traversal field on a blocked outcome allows callers to inspect the edge type
+    // (open, constrained, blocked) for diagnostic and narration purposes.
+    const result = resolveTransitionOutcome(['macro:area:lr-area-mosswell-fiordhead', 'settlement:mosswell'], 'west')
+
+    assert.equal(result.outcome, 'blocked')
+    if (result.outcome !== 'blocked') return
+
+    assert.equal(result.traversal, 'constrained', 'Blocked outcome must carry the traversal classification from the atlas edge')
+})
