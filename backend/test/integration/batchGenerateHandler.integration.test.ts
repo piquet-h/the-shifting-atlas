@@ -1451,15 +1451,18 @@ describe('BatchGenerateHandler Integration', () => {
             const allLocations = await locationRepo.listAll()
             const newLocations = allLocations.filter((l) => l.id !== rootId)
             const westBoundaryStub = newLocations.find(
-                (l) =>
-                    l.tags?.includes('macro:area:lr-area-mosswell-fiordhead') && !l.exitAvailability?.pending
+                (l) => l.tags?.includes('macro:area:lr-area-mosswell-fiordhead') && !l.exitAvailability?.pending
             )
             assert.ok(westBoundaryStub, 'A blocked boundary stub (no pending exits) should have been created')
 
             // Verify BoundaryReached telemetry was emitted.
             const boundaryEvent = mockTelemetry.events.find((e) => e.name === 'World.Frontier.BoundaryReached')
             assert.ok(boundaryEvent, 'World.Frontier.BoundaryReached event should be emitted for blocked west expansion')
-            assert.equal(boundaryEvent.properties.sourceAreaRef, 'lr-area-mosswell-fiordhead', 'sourceAreaRef must identify the source atlas area')
+            assert.equal(
+                boundaryEvent.properties.sourceAreaRef,
+                'lr-area-mosswell-fiordhead',
+                'sourceAreaRef must identify the source atlas area'
+            )
             assert.equal(boundaryEvent.properties.dir, 'west', 'dir must be the blocked expansion direction')
             assert.equal(
                 boundaryEvent.properties.destinationAreaRef,
@@ -1521,7 +1524,11 @@ describe('BatchGenerateHandler Integration', () => {
             // Verify BoundaryReached telemetry was emitted.
             const boundaryEvent = mockTelemetry.events.find((e) => e.name === 'World.Frontier.BoundaryReached')
             assert.ok(boundaryEvent, 'World.Frontier.BoundaryReached event should be emitted for blocked west expansion')
-            assert.equal(boundaryEvent.properties.sourceAreaRef, 'lr-area-mosswell-fiordhead', 'sourceAreaRef must identify the source atlas area')
+            assert.equal(
+                boundaryEvent.properties.sourceAreaRef,
+                'lr-area-mosswell-fiordhead',
+                'sourceAreaRef must identify the source atlas area'
+            )
             assert.equal(boundaryEvent.properties.dir, 'west', 'dir must be the blocked expansion direction')
             assert.equal(
                 boundaryEvent.properties.destinationAreaRef,
@@ -1587,7 +1594,11 @@ describe('BatchGenerateHandler Integration', () => {
             // BoundaryApproach must not fire: boundary stubs have no pending exits to check, and
             // the north stub (in lr-corridor-northgate-valley) has no blocked outbound transitions.
             const approachEvents = mockTelemetry.events.filter((e) => e.name === 'World.Frontier.BoundaryApproach')
-            assert.equal(approachEvents.length, 0, 'No BoundaryApproach events should be emitted when stubs have no pending exits toward blocked transitions')
+            assert.equal(
+                approachEvents.length,
+                0,
+                'No BoundaryApproach events should be emitted when stubs have no pending exits toward blocked transitions'
+            )
         })
     })
 })

@@ -718,11 +718,7 @@ describe('Exit Generation Hint Integration', () => {
             'lr-area-fiordmarch-west',
             'destinationAreaRef should identify the blocked destination area'
         )
-        assert.equal(
-            boundaryEvent.properties.destinationReadiness,
-            'blocked',
-            'destinationReadiness should be blocked'
-        )
+        assert.equal(boundaryEvent.properties.destinationReadiness, 'blocked', 'destinationReadiness should be blocked')
         assert.equal(
             boundaryEvent.properties.entrySegmentRef,
             'lr-corridor-westwall-shelf',
@@ -778,11 +774,7 @@ describe('Exit Generation Hint Integration', () => {
             'lr-area-fiordmarch-west',
             'destinationAreaRef should identify the blocked destination area'
         )
-        assert.equal(
-            westApproach.properties.destinationReadiness,
-            'blocked',
-            'destinationReadiness should be blocked'
-        )
+        assert.equal(westApproach.properties.destinationReadiness, 'blocked', 'destinationReadiness should be blocked')
     })
 
     it('should not emit boundary telemetry when a blocked boundary hint is a duplicate (idempotent path)', async () => {
