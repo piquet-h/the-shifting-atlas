@@ -242,7 +242,9 @@ describe('World Event Queue Processor', () => {
     describe('Edge Cases', () => {
         test('should handle event with empty payload', async () => {
             const ctx = await fixture.createInvocationContext()
-            const event = createValidEvent({ payload: {} })
+            // Use system actor: player-actor events require payload.actionIntent,
+            // but system-actor events allow an empty payload.
+            const event = createValidEvent({ actor: { kind: 'system' }, payload: {} })
 
             await queueProcessWorldEvent(event, ctx as any)
 

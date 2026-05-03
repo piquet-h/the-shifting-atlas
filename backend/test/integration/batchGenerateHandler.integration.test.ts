@@ -1390,4 +1390,215 @@ describe('BatchGenerateHandler Integration', () => {
             assert.equal(westExits.length, 1, 'Root must have exactly 1 west exit (no duplicates)')
         })
     })
+
+    // -----------------------------------------------------------------------
+    // Authoring-boundary telemetry: BoundaryReached and BoundaryApproach
+    // -----------------------------------------------------------------------
+
+    describe('Authoring-boundary telemetry', () => {
+        it('should emit World.Frontier.BoundaryReached when batch generation creates a blocked boundary stub', async () => {
+            // Root is in lr-area-mosswell-fiordhead. BatchGenerate asks for west expansion.
+            // West from lr-area-mosswell-fiordhead → lr-area-fiordmarch-west (blocked).
+            // The handler should create a boundary stub and emit BoundaryReached.
+            const rootId = uuidv4()
+            await locationRepo.upsert({
+                id: rootId,
+                name: 'Cliffside Watch',
+                description: 'A watching post near the fiordmarch edge',
+                terrain: 'open-plain',
+                tags: ['macro:area:lr-area-mosswell-fiordhead', 'macro:water:fjord-sound-head'],
+                exits: [],
+                version: 1
+            })
+
+            mockTelemetry.clear()
+
+            const event: WorldEventEnvelope = {
+                eventId: uuidv4(),
+                type: 'World.Location.BatchGenerate',
+                occurredUtc: new Date().toISOString(),
+                actor: { kind: 'system' },
+                correlationId: uuidv4(),
+                idempotencyKey: `batch:${uuidv4()}`,
+                version: 1,
+                payload: {
+                    rootLocationId: rootId,
+                    terrain: 'open-plain',
+                    arrivalDirection: 'east', // east is arrival; west will be a generated direction
+                    expansionDepth: 1,
+                    batchSize: 1 // Only request one stub so we can isolate the west direction
+                }
+            }
+
+            // Specify batchSize=1; BatchGenerateHandler selects directions from [north, south, west] after
+            // filtering east (arrival direction). We need to force west. To do this, set batchSize=3 and
+            // request all remaining candidate directions, then look for the west one.
+            const fullEvent: WorldEventEnvelope = {
+                ...event,
+                idempotencyKey: `batch:${uuidv4()}`,
+                payload: {
+                    ...event.payload,
+                    arrivalDirection: 'northeast', // northeast → back=southwest, so all 4 cardinal directions are included
+                    batchSize: 4 // Include all cardinal directions so west will be generated
+                }
+            }
+
+            const result = await handler.handle(fullEvent, mockContext)
+            assert.equal(result.outcome, 'success', 'Handler should succeed')
+
+            // In BatchGenerateHandler, exits are enqueued for later creation (not immediately on root).
+            // Find the blocked boundary stub by checking all newly created locations.
+            const allLocations = await locationRepo.listAll()
+            const newLocations = allLocations.filter((l) => l.id !== rootId)
+            const westBoundaryStub = newLocations.find(
+                (l) => l.tags?.includes('macro:area:lr-area-mosswell-fiordhead') && !l.exitAvailability?.pending
+            )
+            assert.ok(westBoundaryStub, 'A blocked boundary stub (no pending exits) should have been created')
+
+            // Verify BoundaryReached telemetry was emitted.
+            const boundaryEvent = mockTelemetry.events.find((e) => e.name === 'World.Frontier.BoundaryReached')
+            assert.ok(boundaryEvent, 'World.Frontier.BoundaryReached event should be emitted for blocked west expansion')
+            assert.equal(
+                boundaryEvent.properties.sourceAreaRef,
+                'lr-area-mosswell-fiordhead',
+                'sourceAreaRef must identify the source atlas area'
+            )
+            assert.equal(boundaryEvent.properties.dir, 'west', 'dir must be the blocked expansion direction')
+            assert.equal(
+                boundaryEvent.properties.destinationAreaRef,
+                'lr-area-fiordmarch-west',
+                'destinationAreaRef must identify the blocked destination area'
+            )
+            assert.equal(boundaryEvent.properties.destinationReadiness, 'blocked', 'destinationReadiness must be blocked')
+        })
+
+        it('should emit World.Frontier.BoundaryReached when batch generation creates a blocked boundary stub', async () => {
+            // Root is in lr-area-mosswell-fiordhead. West from that area leads to
+            // lr-area-fiordmarch-west (blocked). arrivalDirection=northeast keeps all 4
+            // cardinal directions in scope so the west stub is generated.
+            const rootId = uuidv4()
+            await locationRepo.upsert({
+                id: rootId,
+                name: 'Cliffside Watch',
+                description: 'A watching post near the fiordmarch edge',
+                terrain: 'open-plain',
+                tags: ['macro:area:lr-area-mosswell-fiordhead', 'macro:water:fjord-sound-head'],
+                exits: [],
+                version: 1
+            })
+
+            mockTelemetry.clear()
+
+            const fullEvent: WorldEventEnvelope = {
+                eventId: uuidv4(),
+                type: 'World.Location.BatchGenerate',
+                occurredUtc: new Date().toISOString(),
+                actor: { kind: 'system' },
+                correlationId: uuidv4(),
+                idempotencyKey: `batch:${uuidv4()}`,
+                version: 1,
+                payload: {
+                    rootLocationId: rootId,
+                    terrain: 'open-plain',
+                    arrivalDirection: 'northeast', // northeast → back=southwest; all 4 cardinal directions included
+                    expansionDepth: 1,
+                    batchSize: 4
+                }
+            }
+
+            const result = await handler.handle(fullEvent, mockContext)
+            assert.equal(result.outcome, 'success', 'Handler should succeed')
+
+            // BatchGenerateHandler enqueues exit creation events; exits on root are not set immediately.
+            // Identify the blocked boundary stub by finding a new location in the source area that has
+            // no pending exits (boundary stubs suppress exit availability).
+            const allLocations = await locationRepo.listAll()
+            const newLocations = allLocations.filter((l) => l.id !== rootId)
+            const westBoundaryStub = newLocations.find((l) => {
+                const inSourceArea = l.tags?.includes('macro:area:lr-area-mosswell-fiordhead')
+                const isPendingAbsent = l.exitAvailability === undefined || l.exitAvailability.pending === undefined
+                return inSourceArea && isPendingAbsent
+            })
+            assert.ok(westBoundaryStub, 'A blocked boundary stub (exitAvailability.pending absent) should have been created')
+
+            // Verify BoundaryReached telemetry was emitted.
+            const boundaryEvent = mockTelemetry.events.find((e) => e.name === 'World.Frontier.BoundaryReached')
+            assert.ok(boundaryEvent, 'World.Frontier.BoundaryReached event should be emitted for blocked west expansion')
+            assert.equal(
+                boundaryEvent.properties.sourceAreaRef,
+                'lr-area-mosswell-fiordhead',
+                'sourceAreaRef must identify the source atlas area'
+            )
+            assert.equal(boundaryEvent.properties.dir, 'west', 'dir must be the blocked expansion direction')
+            assert.equal(
+                boundaryEvent.properties.destinationAreaRef,
+                'lr-area-fiordmarch-west',
+                'destinationAreaRef must identify the blocked destination area'
+            )
+            assert.equal(boundaryEvent.properties.destinationReadiness, 'blocked', 'destinationReadiness must be blocked')
+        })
+
+        it('should emit BoundaryReached but not BoundaryApproach when all batch-generated stubs are boundary stubs', async () => {
+            // Root is in lr-area-mosswell-fiordhead with arrivalDirection=south, batchSize=3.
+            // Candidate directions: north (ready), east (partial→blocked), west (blocked).
+            // North creates a stub in lr-corridor-northgate-valley, which has no blocked outbound
+            // transitions in the atlas, so no BoundaryApproach fires for that stub.
+            // East and west create boundary stubs (no pending exits) → BoundaryReached for each,
+            // no BoundaryApproach (boundary stubs have no pending exits to check).
+            //
+            // Note: BoundaryApproach via BatchGenerateHandler is covered by the exitGenerationHint
+            // integration tests, which exercise the same code path with full control over direction.
+            const rootId = uuidv4()
+            await locationRepo.upsert({
+                id: rootId,
+                name: 'Fiordhead Interior',
+                description: 'An interior location in the fiordhead area',
+                terrain: 'open-plain',
+                tags: ['macro:area:lr-area-mosswell-fiordhead'],
+                exits: [],
+                version: 1
+            })
+
+            mockTelemetry.clear()
+
+            const event: WorldEventEnvelope = {
+                eventId: uuidv4(),
+                type: 'World.Location.BatchGenerate',
+                occurredUtc: new Date().toISOString(),
+                actor: { kind: 'system' },
+                correlationId: uuidv4(),
+                idempotencyKey: `batch:${uuidv4()}`,
+                version: 1,
+                payload: {
+                    rootLocationId: rootId,
+                    terrain: 'open-plain',
+                    arrivalDirection: 'south',
+                    expansionDepth: 1,
+                    batchSize: 3 // north, east, west (south is arrival)
+                }
+            }
+
+            const result = await handler.handle(event, mockContext)
+            assert.equal(result.outcome, 'success', 'Handler should succeed')
+
+            // At least one BoundaryReached should fire (for east=partial and/or west=blocked).
+            const boundaryReachedEvents = mockTelemetry.events.filter((e) => e.name === 'World.Frontier.BoundaryReached')
+            assert.ok(boundaryReachedEvents.length >= 1, 'At least one BoundaryReached event should be emitted for boundary stubs')
+
+            // Verify the west-blocked boundary emitted BoundaryReached with the expected payload.
+            const westBoundary = boundaryReachedEvents.find((e) => e.properties.dir === 'west')
+            assert.ok(westBoundary, 'BoundaryReached should be emitted for the blocked west boundary')
+            assert.equal(westBoundary.properties.destinationAreaRef, 'lr-area-fiordmarch-west')
+            assert.equal(westBoundary.properties.destinationReadiness, 'blocked')
+
+            // BoundaryApproach must not fire: boundary stubs have no pending exits to check, and
+            // the north stub (in lr-corridor-northgate-valley) has no blocked outbound transitions.
+            const approachEvents = mockTelemetry.events.filter((e) => e.name === 'World.Frontier.BoundaryApproach')
+            assert.equal(
+                approachEvents.length,
+                0,
+                'No BoundaryApproach events should be emitted when stubs have no pending exits toward blocked transitions'
+            )
+        })
+    })
 })

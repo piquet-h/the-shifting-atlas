@@ -176,6 +176,25 @@ export interface AtlasConstrainedExitAvailability {
     forbidden?: Partial<Record<Direction, ForbiddenExitEntry>>
 }
 
+/**
+ * Authoring boundary context surfaced on {@link AtlasAwareFutureLocationPlan} when the
+ * generated location is a blocked or deferred boundary node.
+ *
+ * Present only when `planAtlasAwareFutureLocation` resolves to a `blocked` or `deferred`
+ * macro-transition edge.  Callers use this to emit `World.Frontier.BoundaryReached`
+ * telemetry without having to re-inspect the atlas data.
+ */
+export interface BoundaryContext {
+    /** Semantic atlas ID of the blocked/deferred destination area. */
+    destinationAreaRef: string
+    /** Readiness state that caused the block (`partial`, `blocked`, or `deferred`). */
+    destinationReadiness: Exclude<AreaReadinessState, 'ready'>
+    /** Recommended entry segment inside the destination area, if authored. */
+    entrySegmentRef?: string
+    /** Barrier node references on the blocking edge, if any. */
+    barrierRefs?: string[]
+}
+
 export interface AtlasAwareFutureLocationPlan {
     terrain: TerrainType
     name: string
@@ -194,6 +213,13 @@ export interface AtlasAwareFutureLocationPlan {
      */
     pendingExitContext?: Partial<Record<Direction, PendingExitMetadata>>
     macroContext: MacroGenerationContext
+    /**
+     * Present when this plan represents a blocked or deferred authoring boundary node.
+     *
+     * Callers should emit `World.Frontier.BoundaryReached` telemetry when this field is set.
+     * Absent for regular (non-boundary) stubs.
+     */
+    boundaryContext?: BoundaryContext
 }
 
 // Re-export frontier context types so callers only need one import.
@@ -842,7 +868,13 @@ export function planAtlasAwareFutureLocation(
             tags,
             exitAvailability: undefined,
             pendingExitContext: undefined,
-            macroContext
+            macroContext,
+            boundaryContext: {
+                destinationAreaRef: transitionEdge!.transition.destinationAreaRef,
+                destinationReadiness: transitionEdge!.transition.destinationReadiness as Exclude<AreaReadinessState, 'ready'>,
+                entrySegmentRef: transitionEdge!.transition.entrySegmentRef,
+                barrierRefs: transitionEdge!.barrierRefs
+            }
         }
     }
 
