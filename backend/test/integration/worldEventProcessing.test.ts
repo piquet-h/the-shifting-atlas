@@ -240,7 +240,12 @@ describe('World Event Processing Integration', () => {
                     playerId,
                     fromLocationId: 'loc-source',
                     toLocationId: 'loc-dest',
-                    direction: 'north'
+                    direction: 'north',
+                    actionIntent: {
+                        rawInput: 'go north',
+                        parsedIntent: { verb: 'move' },
+                        validationResult: { success: true }
+                    }
                 }
             })
 
@@ -379,6 +384,7 @@ describe('World Event Processing Integration', () => {
 
             const event = createValidEvent({
                 type: 'NPC.Tick',
+                actor: { kind: 'system' },
                 idempotencyKey: `integration-retry-${uuidv4()}`,
                 payload: {
                     npcId: uuidv4(),
@@ -661,7 +667,9 @@ describe('World Event Processing Integration', () => {
 
         test('should handle event with empty payload', async () => {
             const ctx = await fixture.createInvocationContext()
-            const event = createValidEvent({ payload: {} })
+            // Use system actor: player-actor events require payload.actionIntent,
+            // but system-actor events allow an empty payload.
+            const event = createValidEvent({ actor: { kind: 'system' }, payload: {} })
 
             await queueProcessWorldEvent(event, asInvocationContext(ctx))
 
@@ -676,6 +684,7 @@ describe('World Event Processing Integration', () => {
             const ctx = await fixture.createInvocationContext()
             const event = createValidEvent({
                 type: 'Location.Environment.Changed',
+                actor: { kind: 'system' },
                 payload: {
                     locationId: uuidv4(),
                     change: 'weather',
