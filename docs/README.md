@@ -68,7 +68,7 @@ If you are an LLM (or a human doing “repo ingestion”), read in this order to
 Then branch based on the question:
 
 - **Data model / persistence** → `architecture/mvp-azure-architecture.md`, `architecture/cosmos-sql-reference.md`, `architecture/sql-repository-pattern.md`
-- **Macro geography / frontier coherence** → `architecture/macro-atlas-and-seed-redesign.md`
+- **Macro geography / frontier coherence** → `architecture/macro-atlas-and-seed-redesign.md`, `architecture/frontier-context-contract.md` (canonicality boundary + promotion path)
 - **Events / async** → `architecture/world-event-contract.md`, `architecture/event-classification-matrix.md`
 - **Frontend ↔ backend contract** → `architecture/frontend-api-contract.md`
 - **Why a decision was made** → `adr/README.md` (ADR index)
