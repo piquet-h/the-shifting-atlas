@@ -68,3 +68,4 @@ Unknown motif values should be treated as invalid input (fail closed); consumers
 - Direction Resolution Rules (canonical set + normalization)
 - Navigation & Traversal Module (movement handler integration)
 - Exit Edge Invariants (`./exits.md`) — structural integrity rules
+- Frontier Context Contract (`../architecture/frontier-context-contract.md`) — structured metadata for pending exits (archetypes, macro lineage, canonicality boundary, AI-cue promotion path)
