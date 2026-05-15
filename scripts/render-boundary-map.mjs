@@ -84,9 +84,7 @@ function inferCoordinates(locations) {
         }
     }
 
-    const hub =
-        locations.find((l) => Array.isArray(l.tags) && l.tags.includes('hub'))?.id ||
-        locations[0]?.id
+    const hub = locations.find((l) => Array.isArray(l.tags) && l.tags.includes('hub'))?.id || locations[0]?.id
 
     const coords = new Map()
     if (!hub) return coords
@@ -185,6 +183,38 @@ function analyzePendingDirections(locations) {
     return { centroid, findings, coords }
 }
 
+// Macro context tag prefixes surfaced in node labels so the boundary view
+// reflects structured atlas context (M4d #893 cutover), not just topology.
+const MACRO_TAG_PREFIXES = ['macro:area:', 'macro:route:', 'macro:water:']
+
+/**
+ * Escape a value for safe inclusion inside a Mermaid quoted-label string.
+ * Replaces embedded quotes, collapses newlines to spaces, and truncates with an
+ * ellipsis when longer than `maxLength` so diagram nodes stay readable.
+ */
+function escapeMermaidLabel(value, maxLength = 72) {
+    const text = String(value ?? '')
+        .replaceAll('"', '\\"')
+        .replaceAll('\n', ' ')
+        .trim()
+    if (text.length <= maxLength) return text
+    return text.slice(0, Math.max(0, maxLength - 1)).trimEnd() + '…'
+}
+
+/**
+ * Extract macro-context tags (`macro:area:*`, `macro:route:*`, `macro:water:*`)
+ * from a location and join them into a single comma-separated string suitable
+ * for rendering on a Mermaid node label. Returns an empty string when the
+ * location has no macro tags.
+ */
+function describeMacroContext(loc) {
+    const tags = Array.isArray(loc?.tags) ? loc.tags : []
+    const macro = tags.filter((t) => MACRO_TAG_PREFIXES.some((prefix) => t.startsWith(prefix)))
+    if (macro.length === 0) return ''
+    // Keep label concise: show distinct macro namespaces, comma-separated.
+    return macro.join(', ')
+}
+
 function buildMermaid(locations, scope, analysis) {
     const byId = new Map(locations.map((l) => [l.id, l]))
     const includeIds = new Set()
@@ -193,7 +223,7 @@ function buildMermaid(locations, scope, analysis) {
     if (scope === 'full') {
         for (const l of locations) includeIds.add(l.id)
     } else {
-        for (const l of locations.filter((loc) => isBoundary(loc) || loc.exitAvailability?.pending)) {
+        for (const l of locations.filter((loc) => isBoundary(loc) || loc.exitAvailability?.pending || loc.exitAvailability?.forbidden)) {
             includeIds.add(l.id)
             for (const ex of l.exits || []) includeIds.add(ex.to)
         }
@@ -211,8 +241,10 @@ function buildMermaid(locations, scope, analysis) {
         const loc = byId.get(id)
         if (!loc) continue
         const mId = idToMermaid.get(id)
-        const name = String(loc.name || id).replaceAll('"', '\\"')
-        lines.push(`  ${mId}["${name}"]`)
+        const macroContext = describeMacroContext(loc)
+        const baseLabel = escapeMermaidLabel(loc.name || id)
+        const label = macroContext ? `${baseLabel}<br/>${escapeMermaidLabel(macroContext, 80)}` : baseLabel
+        lines.push(`  ${mId}["${label}"]`)
         if (isBoundary(loc)) lines.push(`  class ${mId} boundary;`)
         else if (loc.exitAvailability?.pending) lines.push(`  class ${mId} frontierLike;`)
         else lines.push(`  class ${mId} interior;`)
@@ -230,13 +262,28 @@ function buildMermaid(locations, scope, analysis) {
         }
 
         if (loc.exitAvailability?.pending) {
-            for (const dir of Object.keys(loc.exitAvailability.pending)) {
+            for (const [dir, prose] of Object.entries(loc.exitAvailability.pending)) {
                 const pNode = `p${idx++}`
                 const finding = analysis.findings.find((f) => f.locationId === loc.id && f.direction === dir)
                 const badge = finding?.status === 'suspect-inward' ? ' ⚠' : ''
-                lines.push(`  ${pNode}["Unexplored Open Plain (${dir})${badge}"]`)
+                // Surface the actual pending prose instead of a generic "Unexplored Open Plain"
+                // placeholder; falls back to "(pending)" when prose is missing.
+                const proseLabel = escapeMermaidLabel(prose, 64) || '(pending)'
+                lines.push(`  ${pNode}["${dir}${badge}<br/>${proseLabel}"]`)
                 lines.push('  class ' + pNode + ' pending;')
                 links.push(`  ${from} -. "${dir} (pending)" .-> ${pNode}`)
+            }
+        }
+
+        if (loc.exitAvailability?.forbidden) {
+            for (const [dir, entry] of Object.entries(loc.exitAvailability.forbidden)) {
+                const fNode = `f${idx++}`
+                const reason = entry && typeof entry === 'object' ? entry.reason : entry
+                const motif = entry && typeof entry === 'object' && entry.motif ? ` [${entry.motif}]` : ''
+                const reasonLabel = escapeMermaidLabel(reason, 64) || '(no reason)'
+                lines.push(`  ${fNode}["${dir}${motif}<br/>${reasonLabel}"]`)
+                lines.push('  class ' + fNode + ' forbidden;')
+                links.push(`  ${from} -. "${dir} (forbidden)" .-x ${fNode}`)
             }
         }
     }
@@ -247,6 +294,7 @@ function buildMermaid(locations, scope, analysis) {
     lines.push('  classDef frontierLike fill:#1a2942,stroke:#87b3ff,stroke-width:2px;')
     lines.push('  classDef interior fill:#14233a,stroke:#5e7fb3,stroke-width:1px;')
     lines.push('  classDef pending fill:#1d1f2e,stroke:#8ea1ff,stroke-dasharray: 4 4;')
+    lines.push('  classDef forbidden fill:#2e1d1f,stroke:#ff8e8e,stroke-dasharray: 2 2;')
 
     return lines.join('\n')
 }
@@ -289,6 +337,7 @@ Options:
         summary: {
             boundaryLocations: locations.filter(isBoundary).length,
             pendingLocations: locations.filter((l) => l.exitAvailability?.pending).length,
+            forbiddenLocations: locations.filter((l) => l.exitAvailability?.forbidden).length,
             pendingDirectionsScored: analysis.findings.filter((f) => f.direction !== '(unresolved)' && typeof f.score === 'number').length,
             suspectInwardCount: suspects.length,
             borderlineCount: borderline.length

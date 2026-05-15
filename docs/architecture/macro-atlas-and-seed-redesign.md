@@ -346,6 +346,33 @@ This transition should remove or reduce the need for the following legacy patter
 - player-facing pending direction copy,
 - explicit local overrides for special cases.
 
+## Seed Migration Cutover Status (M4d #893)
+
+This section is the explicit cutover record requested by `#893`'s checklist item _"Document which legacy fields remain temporarily and what is removed at each cutover step"_. It is the closing audit for M4d on the seed/tooling side.
+
+### Removed / no-longer-authoritative
+
+| Pattern                                                             | Where it lived                    | Cutover action                                                 | Replacement                                                                                                                         |
+| ------------------------------------------------------------------- | --------------------------------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `Unexplored Open Plain (<dir>)` placeholder labels                  | `scripts/render-boundary-map.mjs` | Removed in #893 follow-up                                      | Actual `exitAvailability.pending` prose is surfaced on pending pseudo-nodes; `forbidden` exits render alongside with reason + motif |
+| Generic future-node naming as the main generation context           | batch generation handlers         | Already cut over in #1019 (batch-generation-cutover-expansion) | Macro-context-guided naming via `resolveMacroGenerationContext()`                                                                   |
+| Duplicated per-node directional trend hints                         | `villageLocations.json`           | No longer relied on for direction priority                     | Atlas-inherited tags (`macro:area:*`, `macro:route:*`, `macro:water:*`) drive `scoreExpansionDirection()`                           |
+| Treating raw `exitAvailability.pending` reasons as geographic truth | Frontier policy                   | Cut over                                                       | `frontierSelectionPolicy` uses atlas scores when `macro:*` tags are present; declaration order is only a fallback                   |
+
+### Retained (intentional — runtime contract, not legacy)
+
+| Field / tag                                   | Role                                                                                                                                                             | Why it stays                                                                                                                                                                                                                                                                                                                                                                     |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `exitAvailability.pending` (prose values)     | Player-facing copy when a pending direction is described in narration                                                                                            | Listed as "Likely survivor: player-facing pending direction copy" above. Not a duplicate of macro context — it's the user-visible hint, while macro tags drive generation.                                                                                                                                                                                                       |
+| `exitAvailability.forbidden` (reason + motif) | Narration of why a direction is impassable; motif feeds consistent reveal hints                                                                                  | Has no structured-atlas equivalent today; deletion would lose narration anchors.                                                                                                                                                                                                                                                                                                 |
+| `frontier:boundary` tag                       | **Priority flag** for `selectFrontierExits()` — locations with this tag have their pending exits treated as high-priority candidates for demand-driven expansion | _Not_ redundant with `macro:area:*`. Macro tags describe _where_ a location sits in the atlas; `frontier:boundary` declares _intent_ that this node is an expansion frontier. A location can carry `macro:area:*` without being a frontier (e.g., interior nodes), and removing the tag would break the cap-aware selection contract documented in `frontierSelectionPolicy.ts`. |
+| Local `terrain` / `tags`                      | Per-node descriptive metadata                                                                                                                                    | Atlas describes regional trend; local tags describe the specific node. Both are needed.                                                                                                                                                                                                                                                                                          |
+
+### Audit / debug tooling parity
+
+- `scripts/render-boundary-map.mjs` now surfaces macro context tags on boundary node labels, renders forbidden exits as a separate dashed-red pseudo-node, and uses the real pending prose for each pending direction. Run via `npm run map:boundaries -- --json=tmp/report.json` to capture both the Mermaid map and a JSON summary that includes `boundaryLocations`, `pendingLocations`, and `forbiddenLocations` counts.
+- Test coverage: `scripts/test/render-boundary-map.test.mjs` (CLI + Mermaid contract); `backend/test/unit/seedWorldMacroBindings.test.ts` and `backend/test/integration/worldSeed.test.ts` cover the seed-side structured authority.
+
 ## Immediate Transition Program
 
 Tracking references:
@@ -373,4 +400,4 @@ These references exist to keep implementation aligned with the documented target
 
 ---
 
-_Last updated: 2026-03-27 — Graph Shape section updated to reflect ADR-010 decision_
+_Last updated: 2026-05-15 — Added Seed Migration Cutover Status section (M4d #893 close-out)_
