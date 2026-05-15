@@ -2,7 +2,7 @@
 
 **Focus**: AI-driven world expansion that creates navigable topology from narrative descriptions, enabling organic frontier growth without rigid spatial rules.
 
-**Status**: Implemented (M4b area generation + reconnection epic)
+**Status**: Implemented (M4b area generation + reconnection; M4d macro-context-guided expansion cutover)
 
 ---
 
@@ -13,6 +13,7 @@
 - **Narrative consistency**: Ensure every location's description explains its traversal affordances (per Tenet #7)
 - **Cost efficiency**: Batch AI description generation to minimize API calls and latency
 - **Terrain-aware guidance**: Provide contextual hints to AI without rigid constraints
+- **Macro-context-guided expansion**: Frontier prefetch, batch shaping, future-node naming, and AI prose inputs consume structured atlas context (direction priority, terrain bias, route continuity, barrier semantics, transition readiness) instead of raw terrain defaults or pending-count heuristics
 
 ---
 
@@ -116,13 +117,14 @@ Handler receives `World.Location.BatchGenerate` event:
 
 Handler executes:
 
-1. Determine neighbor count based on terrain guidance
-2. Create stub locations for each neighbor direction
-3. Prepare batch AI request (single API call)
-4. Generate contextual descriptions via AI
-5. Update locations with generated prose
-6. Enqueue exit creation events for all connections
-7. Parse neighbor descriptions for onward exits
+1. Resolve macro generation context from location tags (area, route, water, barrier refs)
+2. Select atlas-constrained expansion directions (scored by route-continuity, terrain trend, barrier context)
+3. Plan future-node stubs using macro-guided naming and terrain selection; resolve transition boundaries for ready or blocked macro-area destinations
+4. Prepare batch AI request with structured frontier context (single API call)
+5. Generate contextual descriptions via AI
+6. Update locations with generated prose
+7. Enqueue exit creation events for all connections
+8. Parse neighbor descriptions for onward exits
 
 ### Step 3: Exit Inference Post-Processing
 
@@ -295,14 +297,15 @@ Candidates are identified by traversing the exit graph outward from the newly ge
 
 ## Milestone Alignment
 
-| Milestone | Deliverable                                                       | Status |
-| --------- | ----------------------------------------------------------------- | ------ |
-| M3        | AI read-only integration (MCP servers, cost tracking)             | ✅     |
-| M4        | Batch generation handler + exit inference service                 | ✅     |
-| M4        | Terrain guidance system + prompt templates                        | ✅     |
-| M4        | Area generation orchestrator + operator entrypoint                | ✅     |
-| M4        | TemporalProximityService + travelDurationMs exit persistence      | ✅     |
-| M5        | Dynamic topology (seasonal variations, obstacles)                 | 📋     |
+| Milestone | Deliverable                                                                                                                               | Status |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| M3        | AI read-only integration (MCP servers, cost tracking)                                                                                     | ✅     |
+| M4        | Batch generation handler + exit inference service                                                                                         | ✅     |
+| M4        | Terrain guidance system + prompt templates                                                                                                | ✅     |
+| M4        | Area generation orchestrator + operator entrypoint                                                                                        | ✅     |
+| M4        | TemporalProximityService + travelDurationMs exit persistence                                                                              | ✅     |
+| M4d       | Macro-context-guided frontier prefetch, batch shaping, transition boundaries, authoring-boundary telemetry, and structured debug payloads | ✅     |
+| M5        | Dynamic topology (seasonal variations, obstacles)                                                                                         | 📋     |
 
 ---
 
@@ -318,4 +321,4 @@ Candidates are identified by traversing the exit graph outward from the newly ge
 
 ---
 
-_Last updated: 2026-02-24 (add travel duration semantics, urban/wilderness reconnection, realm scope, idempotency invariants)_
+_Last updated: 2026-05-11 (reflect M4d macro-context-guided expansion cutover completion: atlas-constrained prefetch, transition boundaries, authoring-boundary telemetry, structured debug payloads)_
