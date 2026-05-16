@@ -19,6 +19,13 @@ import { resolveMacroGenerationContext, scoreExpansionDirection } from '../servi
  * Tag applied to locations that are explicit frontier expansion boundaries.
  * Locations with this tag have their pending exits treated as high-priority
  * candidates for demand-driven generation.
+ *
+ * Retained intentionally after the M4d seed cutover (#893): this is a runtime
+ * **priority flag**, not a duplicate of `macro:area:*` tags. Macro tags describe
+ * _where_ a location sits in the atlas; `frontier:boundary` declares _intent_
+ * that this node is an expansion frontier. Both can coexist on the same node.
+ * See `docs/architecture/macro-atlas-and-seed-redesign.md` § Seed Migration
+ * Cutover Status.
  */
 export const FRONTIER_BOUNDARY_TAG = 'frontier:boundary'
 
