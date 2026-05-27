@@ -52,7 +52,7 @@
         "marked": "^17.0.1",
         "openai": "^6.16.0",
         "reflect-metadata": "^0.2.2",
-        "ws": "^8.18.0",
+        "ws": "^8.21.0",
         "zod": "^4.1.11"
     },
     "devDependencies": {
