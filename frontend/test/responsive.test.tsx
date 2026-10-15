@@ -145,7 +145,7 @@ describe('Responsive Layout - Breakpoints', () => {
         const { container } = renderGameView()
 
         await waitFor(() => {
-            expect(screen.getByText('Test Location')).toBeInTheDocument()
+            expect(screen.getByRole('heading', { name: 'Test Location' })).toBeInTheDocument()
         })
 
         // Should have grid layout
@@ -181,7 +181,7 @@ describe('Responsive Layout - Breakpoints', () => {
         const { container } = renderGameView()
 
         await waitFor(() => {
-            expect(screen.getByText('Test Location')).toBeInTheDocument()
+            expect(screen.getByRole('heading', { name: 'Test Location' })).toBeInTheDocument()
         })
 
         // Should have desktop layout with two columns (col-span-8 main + col-span-4 sidebar)
@@ -238,7 +238,7 @@ describe('Responsive Layout - Collapsible Stats Panel', () => {
         renderGameView()
 
         await waitFor(() => {
-            expect(screen.getByText('Test Location')).toBeInTheDocument()
+            expect(screen.getByRole('heading', { name: 'Test Location' })).toBeInTheDocument()
         })
 
         // Stats panel button should be disabled (not collapsible)
