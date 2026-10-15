@@ -50,20 +50,15 @@ export default function GameViewLayout({
                 <div className="grid grid-cols-12 gap-4 lg:gap-5 h-full">
                     <div className="col-span-8 flex flex-col gap-4 lg:gap-5 h-full">
                         <div className="card rounded-xl flex flex-col flex-1 min-h-0 overflow-hidden">
-                            <section
-                                aria-labelledby="game-story-title-desktop"
-                                className="flex flex-col flex-1 min-h-0 p-4"
-                            >
+                            <section aria-labelledby="game-story-title-desktop" className="flex flex-col flex-1 min-h-0 p-4">
                                 <h3 id="game-story-title-desktop" className="text-responsive-base font-semibold text-white mb-3">
                                     Story Narrative
                                 </h3>
                                 <div className="flex-1 min-h-0 overflow-auto">
-                                    {locationName && (
-                                        <h4 className="text-responsive-base font-medium text-white mb-2">{locationName}</h4>
-                                    )}
+                                    {locationName && <h4 className="text-responsive-base font-medium text-white mb-2">{locationName}</h4>}
                                     <DescriptionRenderer content={locationDescription ?? ''} />
                                 </div>
-                            </div>
+                            </section>
                             <section
                                 aria-labelledby="game-command-title-desktop"
                                 className="flex flex-col flex-1 min-h-0 border-t border-white/10 p-4"
@@ -81,7 +76,7 @@ export default function GameViewLayout({
                                     />
                                 </div>
                             </section>
-                        </section>
+                        </div>
                     </div>
                     <aside className="col-span-4 flex flex-col gap-4 lg:gap-5">
                         {playerGuid && navigationUIEnabled && (
