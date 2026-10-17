@@ -225,6 +225,8 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                 playerStats={playerStats}
                 commandHistory={commandHistory}
                 commandInterfaceRef={commandInterfaceRef}
+                locationName={location?.name}
+                locationDescription={location?.description?.text}
             />
         </>
     )
