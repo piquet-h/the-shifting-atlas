@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 import { readFile, writeFile } from 'node:fs/promises'
+import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { dirname, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
@@ -14,9 +16,17 @@ const READINESS_ORDER = { ready: 0, partial: 1, deferred: 2, blocked: 3 }
 const STATUS_COLORS = {
     authored: '#218739',
     'in-progress': '#1769aa',
+    'transition-ready': '#1769aa',
     'next-to-author': '#e6a700',
-    blocked: '#c62828'
+    blocked: '#c62828',
+    'inspiration-only': '#757575'
 }
+const require = createRequire(import.meta.url)
+const Ajv = require('ajv')
+const sidecarValidator = new Ajv({ allErrors: true })
+const validateSidecarSchema = sidecarValidator.compile(
+    JSON.parse(readFileSync(new URL('../docs/architecture/long-reach-authoring-overlay.schema.json', import.meta.url), 'utf8'))
+)
 
 function fail(message) {
     throw new Error(message)
@@ -119,6 +129,51 @@ function visualStatus(segment) {
     return segment.coverage
 }
 
+function sidecarOverlay(sidecar, atlas) {
+    if (!validateSidecarSchema(sidecar)) fail(`Overlay schema: ${sidecarValidator.errorsText(validateSidecarSchema.errors)}`)
+    const nodes = new Map(atlasNodes(atlas).map((node) => [node.id, node]))
+    const seen = new Set()
+    const segments = sidecar.entries.map((entry) => {
+        if (seen.has(entry.id)) fail(`Overlay contains duplicate entry id "${entry.id}".`)
+        seen.add(entry.id)
+        const { left, top, right, bottom } = entry.bounds
+        if (left >= right || top >= bottom) fail(`Overlay entry "${entry.id}" needs positive-area bounds.`)
+        for (const [field, nodeClass] of [
+            ['areaRefs', 'area'],
+            ['corridorRefs', 'corridor'],
+            ['segmentRefs', null],
+            ['entrySegmentRef', null]
+        ]) {
+            const refs = field === 'entrySegmentRef' ? (entry[field] ? [entry[field]] : []) : (entry[field] ?? [])
+            for (const ref of refs) {
+                if (!nodes.has(ref)) fail(`Overlay entry "${entry.id}" references unknown atlas node "${ref}".`)
+                if (nodeClass && nodes.get(ref).nodeClass !== nodeClass) fail(`Overlay ${field} nodeClass must be ${nodeClass}.`)
+            }
+        }
+        return {
+            ref: entry.id,
+            label: entry.label,
+            kind: entry.kind === 'region' ? 'area' : 'corridor',
+            coverage: entry.coverage,
+            authoringState: entry.authoringState,
+            authoringReadiness: entry.authoringReadiness ?? 'unspecified',
+            notes: entry.notes,
+            geometry: {
+                type: 'polygon',
+                points: [
+                    [left, top],
+                    [right, top],
+                    [right, bottom],
+                    [left, bottom]
+                ],
+                labelAnchor: [(left + right) / 2, top]
+            }
+        }
+    })
+    // The v1 schema fixes the source image; these are its intrinsic pixel dimensions.
+    return { map: { source: sidecar.image, width: 7040, height: 8480 }, segments }
+}
+
 function xmlEscape(value) {
     return String(value)
         .replaceAll('&', '&amp;')
@@ -133,26 +188,30 @@ function pointToPixels(point, width, height) {
 }
 
 export function renderOverlay(overlay, atlas, sourceHref) {
-    validateOverlay(overlay, atlas)
+    const isSidecar = overlay && 'entries' in overlay
+    if (isSidecar) overlay = sidecarOverlay(overlay, atlas)
+    else validateOverlay(overlay, atlas)
     const { width, height } = overlay.map
+    const labels = []
     const rows = [
         `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" aria-labelledby="title description">`,
         '<title id="title">The Long Reach authoring readiness overlay</title>',
         '<desc id="description">Approximate authoring annotations over the inspiration map. The JSON atlas remains authoritative for runtime transitions.</desc>',
         `<image href="${xmlEscape(sourceHref)}" x="0" y="0" width="${width}" height="${height}" preserveAspectRatio="none"/>`,
-        '<style>text{font-family:Arial,sans-serif;font-weight:700;paint-order:stroke;stroke:#fff;stroke-width:8px;stroke-linejoin:round}.area{fill-opacity:.25;stroke-width:18}.corridor{fill:none;stroke-width:50;stroke-linecap:round;stroke-linejoin:round}.barrier{fill:none;stroke-width:36;stroke-dasharray:48 28;stroke-linecap:round}.label{font-size:42px}.legend{font-size:38px;stroke-width:7px}</style>',
+        '<style>text{font-family:Arial,sans-serif;font-weight:700;paint-order:stroke;stroke:#fff;stroke-width:8px;stroke-linejoin:round}.corridor polyline{stroke-width:50;stroke-linecap:round;stroke-linejoin:round}.barrier polyline{stroke-width:36;stroke-dasharray:48 28;stroke-linecap:round}.label{font-size:42px}.legend{font-size:38px;stroke-width:7px}</style>',
         '<g aria-label="Authoring segments">'
     ]
 
-    for (const segment of overlay.segments) {
-        const readiness = runtimeReadiness(atlas, segment.ref)
-        const status = visualStatus(segment)
+    const layer = { area: 0, corridor: 1, barrier: 2 }
+    for (const segment of [...overlay.segments].sort((left, right) => (layer[left.kind] ?? 0) - (layer[right.kind] ?? 0))) {
+        const readiness = isSidecar ? segment.authoringReadiness : runtimeReadiness(atlas, segment.ref)
+        const status = isSidecar ? segment.authoringState : visualStatus(segment)
         const color = STATUS_COLORS[status]
-        const blocked = readiness === 'partial' || readiness === 'blocked' || readiness === 'deferred'
+        const blocked = readiness === 'blocked' || readiness === 'deferred' || (!isSidecar && readiness === 'partial')
         const label = xmlEscape(segment.label)
         const geometry = segment.geometry
         rows.push(
-            `<g class="${segment.kind}${blocked ? ' runtime-blocked' : ''}" data-ref="${xmlEscape(segment.ref)}" data-status="${status}" data-readiness="${readiness}"><title>${label}: coverage ${segment.coverage}; runtime readiness ${readiness}</title>`
+            `<g class="${segment.kind}${blocked ? ' runtime-blocked' : ''}" data-ref="${xmlEscape(segment.ref)}" data-status="${status}" data-readiness="${readiness}"><title>${label}: coverage ${segment.coverage}; ${isSidecar ? 'readiness snapshot' : 'runtime readiness'} ${readiness}${isSidecar ? `; ${xmlEscape(segment.notes)}` : ''}</title>`
         )
         if (geometry.type === 'marker') {
             const [x, y] = geometry.anchor
@@ -160,38 +219,51 @@ export function renderOverlay(overlay, atlas, sourceHref) {
             rows.push(
                 `<circle cx="${(x * width).toFixed(1)}" cy="${(y * height).toFixed(1)}" r="${radius.toFixed(1)}" fill="${color}" stroke="${blocked ? STATUS_COLORS.blocked : color}" stroke-width="${blocked ? 38 : 18}"/>`
             )
-            rows.push(`<text class="label" x="${(x * width).toFixed(1)}" y="${(y * height + radius + 46).toFixed(1)}" text-anchor="middle">${label}</text>`)
+            labels.push(
+                `<text class="label" x="${(x * width).toFixed(1)}" y="${(y * height + radius + 46).toFixed(1)}" text-anchor="middle">${label}</text>`
+            )
         } else {
             const points = geometry.points.map((point) => pointToPixels(point, width, height)).join(' ')
             const center = geometry.labelAnchor ?? geometry.points[Math.floor(geometry.points.length / 2)]
             const [labelX, labelY] = center
             if (geometry.type === 'polygon') {
                 rows.push(
-                    `<polygon points="${points}" fill="${color}" stroke="${blocked ? STATUS_COLORS.blocked : color}" stroke-width="${blocked ? 42 : 18}"/>`
+                    `<polygon points="${points}" fill="${color}" fill-opacity=".25" stroke="${blocked ? STATUS_COLORS.blocked : color}" stroke-width="${blocked ? 42 : 18}"${status === 'inspiration-only' ? ' stroke-dasharray="32 24"' : ''}/>`
                 )
             } else {
-                if (blocked) rows.push(`<polyline points="${points}" stroke="${STATUS_COLORS.blocked}" stroke-width="76" fill="none"/>`)
+                if (blocked)
+                    rows.push(`<polyline points="${points}" stroke="${STATUS_COLORS.blocked}" style="stroke-width:76" fill="none"/>`)
                 rows.push(`<polyline points="${points}" stroke="${color}" fill="none"/>`)
             }
-            rows.push(`<text class="label" x="${(labelX * width).toFixed(1)}" y="${(labelY * height - 24).toFixed(1)}" text-anchor="middle">${label}</text>`)
+            labels.push(
+                `<text class="label" x="${(labelX * width).toFixed(1)}" y="${(labelY * height - 24).toFixed(1)}" text-anchor="middle">${label}</text>`
+            )
         }
         rows.push('</g>')
     }
 
     const legendItems = [
         ['authored', STATUS_COLORS.authored],
-        ['in progress', STATUS_COLORS['in-progress']],
-        ['next to author', STATUS_COLORS['next-to-author']],
+        ['transition-ready', STATUS_COLORS['transition-ready']],
+        ['next-to-author', STATUS_COLORS['next-to-author']],
+        ['blocked', STATUS_COLORS.blocked],
+        ['inspiration-only', STATUS_COLORS['inspiration-only']],
+        ['in-progress (legacy coverage)', STATUS_COLORS['in-progress']],
         ['runtime handoff currently blocked', STATUS_COLORS.blocked, true]
     ]
-    rows.push('</g>', '<g transform="translate(300 180)" aria-label="Legend">')
-    rows.push('<rect width="700" height="280" rx="20" fill="white" fill-opacity=".88" stroke="#333" stroke-width="6"/>')
+    rows.push('</g>', '<g aria-label="Segment labels">', ...labels, '</g>', '<g transform="translate(300 180)" aria-label="Legend">')
+    rows.push('<rect width="2300" height="650" rx="20" fill="white" fill-opacity=".94" stroke="#333" stroke-width="6"/>')
     legendItems.forEach(([text, color, outline], index) => {
         const y = 58 + index * 62
         rows.push(
             `<circle cx="40" cy="${y - 12}" r="18" fill="${outline ? 'white' : color}" stroke="${color}" stroke-width="${outline ? 7 : 2}"/><text class="legend" x="78" y="${y}">${text}</text>`
         )
     })
+    rows.push(
+        '<text class="legend" x="40" y="505">Approximate footprints — not surveyed boundaries.</text>',
+        '<text class="legend" x="40" y="560">transition-ready = partial snapshot, not runtime permission.</text>',
+        '<text class="legend" x="40" y="615">Atlas/runtime policy remains authoritative; coverage is independent.</text>'
+    )
     rows.push('</g>', '</svg>', '')
     return rows.join('\n')
 }
@@ -265,7 +337,11 @@ function renderMarkdownReport(report) {
         )
     })
     if (report.queue.length === 0) rows.push('| — | No segments need authoring | — | — | 0 | — |')
-    rows.push('', 'Runtime pressure counts `World.Frontier.BoundaryReached` and `World.Frontier.BoundaryApproach` signals with non-ready destinations. Atlas transition readiness remains authoritative.', '')
+    rows.push(
+        '',
+        'Runtime pressure counts `World.Frontier.BoundaryReached` and `World.Frontier.BoundaryApproach` signals with non-ready destinations. Atlas transition readiness remains authoritative.',
+        ''
+    )
     return rows.join('\n')
 }
 
@@ -308,20 +384,21 @@ Usage:
   node scripts/long-reach-authoring.mjs render [--overlay=path] [--atlas=path] [--output=path]
   node scripts/long-reach-authoring.mjs queue [--overlay=path] [--atlas=path] [--signals=path] [--format=markdown|json] [--output=path]
 
+Render accepts the schema v1 entries sidecar or the legacy segments inventory.
+Queue accepts the legacy segments inventory only.
 Signals are JSON arrays of Application Insights events with name/customDimensions fields.
 `)
         return
     }
 
     const [overlay, atlas] = await Promise.all([loadJson(args.overlay), loadJson(args.atlas)])
-    validateOverlay(overlay, atlas)
     let output
     let targetPath = args.output
 
     if (args.command === 'render') {
         targetPath ||= DEFAULT_RENDER
         const target = resolve(process.cwd(), targetPath)
-        const source = resolve(process.cwd(), overlay.map.source)
+        const source = resolve(process.cwd(), overlay.image ?? overlay.map.source)
         output = renderOverlay(overlay, atlas, relative(dirname(target), source).replaceAll('\\', '/'))
     } else {
         const events = args.signals ? await loadJson(args.signals) : []

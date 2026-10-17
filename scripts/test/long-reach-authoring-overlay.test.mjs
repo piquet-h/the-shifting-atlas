@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { test } from 'node:test'
+import { fileURLToPath } from 'node:url'
+import { renderOverlay } from '../long-reach-authoring.mjs'
 
 const require = createRequire(import.meta.url)
 const Ajv = require('ajv')
@@ -117,4 +123,131 @@ test('the documented example conforms to the schema', () => {
     const example = section.match(/```json\n([\s\S]*?)\n```/)
     assert.ok(example, 'overlay example exists')
     check(JSON.parse(example[1]), true)
+})
+
+const atlas = {
+    macroGraph: {
+        nodes: [
+            { id: 'lr-area-fiordmarch-west', nodeClass: 'area' },
+            { id: 'lr-corridor-westwall-shelf', nodeClass: 'corridor' },
+            { id: 'lr-corridor-northgate-valley', nodeClass: 'corridor' }
+        ],
+        edges: []
+    }
+}
+
+test('renders all five editorial states with a legend and no runtime permission claim', () => {
+    const states = ['authored', 'transition-ready', 'next-to-author', 'blocked', 'inspiration-only']
+    const data = sidecar()
+    data.entries = states.map((state, index) => {
+        const entry = sidecar({
+            id: `lr-overlay-state-${index}`,
+            label: `${state} <scope>`,
+            authoringState: state,
+            coverage: state === 'authored' ? 'complete' : 'partial',
+            authoringReadiness: state === 'transition-ready' ? 'partial' : 'blocked',
+            priority: index
+        }).entries[0]
+        if (state === 'transition-ready') entry.entrySegmentRef = 'lr-corridor-westwall-shelf'
+        if (state === 'inspiration-only') {
+            entry.coverage = 'none'
+            delete entry.authoringReadiness
+        }
+        return entry
+    })
+    const before = globalThis.structuredClone({ data, atlas })
+    const svg = renderOverlay(data, atlas, '../../the-long-reach.jpg')
+    const colors = new Set()
+    for (const state of states) {
+        assert.match(svg, new RegExp(`data-status="${state}"`))
+        assert.ok(svg.includes(`${state} &lt;scope&gt;`))
+        assert.ok(svg.includes(`>${state}</text>`))
+        const group = svg.match(new RegExp(`<g [^>]*data-status="${state}"[^>]*>[\\s\\S]*?</g>`))[0]
+        colors.add(group.match(/fill="(#[0-9a-f]+)"/)[1])
+    }
+    assert.equal(colors.size, states.length)
+    assert.match(svg, /Approximate footprints/)
+    assert.match(svg, /partial.*not.*permission/i)
+    assert.match(svg, /coverage complete;.*blocked/)
+    assert.deepEqual({ data, atlas }, before)
+    assert.equal(renderOverlay(data, atlas, '../../the-long-reach.jpg'), svg)
+    assert.ok(Buffer.byteLength(svg) < 20000)
+})
+
+test('layers coarse regions below corridors and keeps labels above all footprints', () => {
+    const data = sidecar()
+    data.entries.push({
+        ...globalThis.structuredClone(data.entries[0]),
+        id: 'lr-overlay-area',
+        kind: 'region',
+        label: 'Area behind route'
+    })
+    const svg = renderOverlay(data, atlas, '../../the-long-reach.jpg')
+    assert.ok(svg.indexOf('data-ref="lr-overlay-area"') < svg.indexOf('data-ref="lr-overlay-westwall"'))
+    assert.ok(svg.lastIndexOf('<polygon') < svg.indexOf('aria-label="Segment labels"'))
+    assert.ok(svg.indexOf('aria-label="Segment labels"') < svg.indexOf('>Area behind route</text>'))
+    assert.match(svg, /fill-opacity="\.25"/)
+})
+
+test('renders an empty or unresolved inspiration-only inventory without inventing readiness', () => {
+    const empty = { ...sidecar(), entries: [] }
+    assert.match(renderOverlay(empty, atlas, 'map.jpg'), /Legend/)
+    const data = sidecar({ kind: 'region', authoringState: 'inspiration-only', coverage: 'none' })
+    for (const field of ['authoringReadiness', 'areaRefs', 'corridorRefs', 'segmentRefs']) delete data.entries[0][field]
+    const svg = renderOverlay(data, atlas, 'map.jpg')
+    assert.match(svg, /data-status="inspiration-only" data-readiness="unspecified"/)
+})
+
+test('renderer rejects invalid schema, duplicate identities, reversed bounds, and unknown atlas references', () => {
+    const cases = [
+        [sidecar({ authoringState: 'ready' }), /schema/i],
+        [sidecar({ bounds: { left: 0.5, top: 0.2, right: 0.1, bottom: 0.4 } }), /bounds/i],
+        [sidecar({ areaRefs: ['lr-area-unknown'] }), /unknown atlas/i],
+        [sidecar({ areaRefs: ['lr-corridor-westwall-shelf'] }), /nodeClass/i]
+    ]
+    const duplicate = sidecar()
+    duplicate.entries.push(globalThis.structuredClone(duplicate.entries[0]))
+    cases.push([duplicate, /duplicate/i])
+    for (const [data, expected] of cases) assert.throws(() => renderOverlay(data, atlas, 'map.jpg'), expected)
+})
+
+test('CLI renders a schema sidecar to a custom output with a relative image link', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'long-reach-overlay-'))
+    const root = new URL('../../', import.meta.url)
+    try {
+        const input = join(directory, 'sidecar.json')
+        const output = join(directory, 'overlay.svg')
+        await writeFile(input, JSON.stringify(sidecar()))
+        execFileSync(
+            process.execPath,
+            [fileURLToPath(new URL('../long-reach-authoring.mjs', import.meta.url)), 'render', `--overlay=${input}`, `--output=${output}`],
+            { cwd: root }
+        )
+        const svg = await readFile(output, 'utf8')
+        assert.match(svg, /data-status="blocked"/)
+        assert.match(svg, /<image href="(?:\.\.\/)+.*the-long-reach\.jpg"/)
+    } finally {
+        await rm(directory, { recursive: true, force: true })
+    }
+})
+
+test('checked-in SVG is lightweight and reproducible from the existing coverage inventory', () => {
+    const load = (path) => JSON.parse(readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8'))
+    const inventory = load('docs/architecture/the-long-reach-authoring-overlay.json')
+    const currentAtlas = load('backend/src/data/theLongReachMacroAtlas.json')
+    const svg = renderOverlay(inventory, currentAtlas, '../../the-long-reach.jpg')
+    assert.equal(readFileSync(new URL('../../docs/architecture/the-long-reach-authoring-overlay.svg', import.meta.url), 'utf8'), svg)
+    assert.ok(Buffer.byteLength(svg) < 25000)
+})
+
+test('legacy extra fields cannot override atlas readiness or inject SVG attributes', () => {
+    const inventory = JSON.parse(
+        readFileSync(new URL('../../docs/architecture/the-long-reach-authoring-overlay.json', import.meta.url), 'utf8')
+    )
+    const currentAtlas = JSON.parse(readFileSync(new URL('../../backend/src/data/theLongReachMacroAtlas.json', import.meta.url), 'utf8'))
+    const expected = renderOverlay(inventory, currentAtlas, 'map.jpg')
+    inventory.segments[0].authoringState = '"><script>alert(1)</script>'
+    inventory.segments[0].authoringReadiness = 'ready'
+    inventory.segments[0].notes = '</title><script>alert(1)</script>'
+    assert.equal(renderOverlay(inventory, currentAtlas, 'map.jpg'), expected)
 })

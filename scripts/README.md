@@ -225,20 +225,32 @@ The source contract is `docs/architecture/the-long-reach-authoring-overlay.json`
 - `priority`: positive integer for any segment that is not authored; lower numbers are earlier static priorities.
 - `geometry`: normalized marker, line, or polygon coordinates, approximate for planning rather than GIS.
 
-The renderer reads runtime readiness from `theLongReachMacroAtlas.json`; it does not alter the atlas or source map. Authored, in-progress, and next-to-author coverage have green, blue, and amber fills. Blocked or deferred transitions are shown with a red outline so runtime status does not hide coverage status. The generated SVG is `docs/architecture/the-long-reach-authoring-overlay.svg`.
+The default inventory above predates the [schema v1 sidecar](../docs/architecture/long-reach-authoring-overlay.schema.json).
+The renderer also accepts that documented `entries` format without requiring an entry for every atlas node:
+
+```bash
+npm run map:long-reach -- --overlay=the-long-reach.overlay.json --output=/tmp/long-reach.svg
+node --test scripts/test/long-reach-authoring*.test.mjs
+```
+
+Schema entries use green `authored`, blue `transition-ready`, amber `next-to-author`, red `blocked`, and gray dashed `inspiration-only` footprints. Readiness is a reviewed snapshot (`ready`, `partial`, `blocked`, `deferred`), not runtime permission: `transition-ready` means `partial`, never an automatically open boundary. Authored-but-blocked entries retain green coverage with a red outline. Inspiration-only entries need no readiness or resolved mapping. Bounds are coarse, translucent rectangles; regions render below corridors and labels render above all footprints regardless of entry order. Schema, unique IDs, positive-area bounds, and supplied atlas references/classes are checked before rendering; the remaining [semantic review gate](../docs/architecture/macro-atlas-and-seed-redesign.md#validation-and-review-gate) still applies.
+
+For the legacy inventory, the renderer reads runtime readiness from `theLongReachMacroAtlas.json`; green/blue/amber retain their authored/in-progress/planned coverage meaning. Partial, blocked, or deferred handoffs receive a red outline under the current runtime policy. Neither format alters the atlas, runtime transitions, or source JPG. The queue command continues to accept only the legacy inventory.
+
+The default generated SVG is `docs/architecture/the-long-reach-authoring-overlay.svg` (text-only, no embedded JPG, deterministic and under 25 KB). Regenerate it with `npm run map:long-reach` and review the diff. View it as a standalone SVG through a local static server with the repository paths intact; embedded-image previews may suppress its relative JPG link. The on-map legend explains approximate geometry and the separation between coverage and runtime authority.
 
 The queue accepts an optional JSON array of Application Insights events:
 
 ```json
 [
-  {
-    "name": "World.Frontier.BoundaryReached",
-    "customDimensions": {
-      "destinationAreaRef": "lr-area-fiordmarch-west",
-      "destinationReadiness": "blocked",
-      "entrySegmentRef": "lr-corridor-westwall-shelf"
+    {
+        "name": "World.Frontier.BoundaryReached",
+        "customDimensions": {
+            "destinationAreaRef": "lr-area-fiordmarch-west",
+            "destinationReadiness": "blocked",
+            "entrySegmentRef": "lr-corridor-westwall-shelf"
+        }
     }
-  }
 ]
 ```
 
