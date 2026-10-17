@@ -1,0 +1,251 @@
+{
+    "schemaVersion": 1,
+    "map": {
+        "source": "the-long-reach.jpg",
+        "width": 7040,
+        "height": 8480
+    },
+    "segments": [
+        {
+            "ref": "lr-area-fiordmarch-west",
+            "label": "Fiordmarch West",
+            "kind": "area",
+            "coverage": "planned",
+            "priority": 1,
+            "geometry": { "type": "marker", "anchor": [0.27, 0.61] }
+        },
+        {
+            "ref": "lr-area-mosswell-fiordhead",
+            "label": "Mosswell Fiordhead",
+            "kind": "area",
+            "coverage": "authored",
+            "geometry": { "type": "marker", "anchor": [0.38, 0.65] }
+        },
+        {
+            "ref": "lr-area-rainward-escarpments",
+            "label": "Rainward Escarpments",
+            "kind": "area",
+            "coverage": "in-progress",
+            "priority": 3,
+            "geometry": { "type": "marker", "anchor": [0.34, 0.47] }
+        },
+        {
+            "ref": "lr-area-crownspine-divide",
+            "label": "Crownspine Divide",
+            "kind": "area",
+            "coverage": "in-progress",
+            "priority": 2,
+            "geometry": { "type": "marker", "anchor": [0.49, 0.39] }
+        },
+        {
+            "ref": "lr-area-northwatch-ranges",
+            "label": "Northwatch Ranges",
+            "kind": "area",
+            "coverage": "in-progress",
+            "priority": 2,
+            "geometry": { "type": "marker", "anchor": [0.59, 0.12] }
+        },
+        {
+            "ref": "lr-area-icefall-uplands",
+            "label": "Icefall Uplands",
+            "kind": "area",
+            "coverage": "planned",
+            "priority": 5,
+            "geometry": { "type": "marker", "anchor": [0.55, 0.27] }
+        },
+        {
+            "ref": "lr-area-eastfall-foothills",
+            "label": "Eastfall Foothills",
+            "kind": "area",
+            "coverage": "in-progress",
+            "priority": 1,
+            "geometry": { "type": "marker", "anchor": [0.67, 0.41] }
+        },
+        {
+            "ref": "lr-area-braidwater-basin",
+            "label": "Braidwater Basin",
+            "kind": "area",
+            "coverage": "planned",
+            "priority": 2,
+            "geometry": { "type": "marker", "anchor": [0.68, 0.53] }
+        },
+        {
+            "ref": "lr-area-sunmere-plains",
+            "label": "Sunmere Plains",
+            "kind": "area",
+            "coverage": "planned",
+            "priority": 4,
+            "geometry": { "type": "marker", "anchor": [0.71, 0.29] }
+        },
+        {
+            "ref": "lr-area-eastshelf-coast",
+            "label": "Eastshelf Coast",
+            "kind": "area",
+            "coverage": "planned",
+            "priority": 5,
+            "geometry": { "type": "marker", "anchor": [0.78, 0.32] }
+        },
+        {
+            "ref": "lr-area-southbreak-uplands",
+            "label": "Southbreak Uplands",
+            "kind": "area",
+            "coverage": "planned",
+            "priority": 3,
+            "geometry": { "type": "marker", "anchor": [0.56, 0.69] }
+        },
+        {
+            "ref": "lr-area-southtangle-coast",
+            "label": "Southtangle Coast",
+            "kind": "area",
+            "coverage": "planned",
+            "priority": 4,
+            "geometry": { "type": "marker", "anchor": [0.41, 0.77] }
+        },
+        {
+            "ref": "lr-area-emberfen-lowlands",
+            "label": "Emberfen Lowlands",
+            "kind": "area",
+            "coverage": "planned",
+            "priority": 5,
+            "geometry": { "type": "marker", "anchor": [0.69, 0.73] }
+        },
+        {
+            "ref": "lr-corridor-mosswell-harbor-road",
+            "label": "Mosswell Harbor Road",
+            "kind": "corridor",
+            "coverage": "authored",
+            "geometry": {
+                "type": "line",
+                "points": [[0.35, 0.68], [0.39, 0.65], [0.43, 0.63]],
+                "labelAnchor": [0.4, 0.69]
+            }
+        },
+        {
+            "ref": "lr-corridor-northgate-valley",
+            "label": "Northgate Valley",
+            "kind": "corridor",
+            "coverage": "authored",
+            "geometry": {
+                "type": "line",
+                "points": [[0.58, 0.19], [0.59, 0.15], [0.6, 0.12]],
+                "labelAnchor": [0.64, 0.17]
+            }
+        },
+        {
+            "ref": "lr-corridor-westwall-shelf",
+            "label": "Westwall Shelf",
+            "kind": "corridor",
+            "coverage": "in-progress",
+            "priority": 1,
+            "geometry": {
+                "type": "line",
+                "points": [[0.29, 0.57], [0.32, 0.61], [0.35, 0.65]],
+                "labelAnchor": [0.28, 0.63]
+            }
+        },
+        {
+            "ref": "lr-corridor-lantern-notch-pass",
+            "label": "Lantern Notch",
+            "kind": "corridor",
+            "coverage": "planned",
+            "priority": 3,
+            "geometry": {
+                "type": "line",
+                "points": [[0.48, 0.35], [0.51, 0.38], [0.54, 0.41]],
+                "labelAnchor": [0.48, 0.33]
+            }
+        },
+        {
+            "ref": "lr-corridor-ashen-step-pass",
+            "label": "Ashen Step",
+            "kind": "corridor",
+            "coverage": "planned",
+            "priority": 3,
+            "geometry": {
+                "type": "line",
+                "points": [[0.51, 0.43], [0.54, 0.45], [0.57, 0.46]],
+                "labelAnchor": [0.57, 0.43]
+            }
+        },
+        {
+            "ref": "lr-corridor-braidwater-run",
+            "label": "Braidwater Run",
+            "kind": "corridor",
+            "coverage": "planned",
+            "priority": 2,
+            "geometry": {
+                "type": "line",
+                "points": [[0.65, 0.49], [0.68, 0.52], [0.72, 0.55]],
+                "labelAnchor": [0.69, 0.48]
+            }
+        },
+        {
+            "ref": "lr-corridor-eastshelf-road",
+            "label": "Eastshelf Road",
+            "kind": "corridor",
+            "coverage": "planned",
+            "priority": 4,
+            "geometry": {
+                "type": "line",
+                "points": [[0.72, 0.34], [0.76, 0.35], [0.79, 0.38]],
+                "labelAnchor": [0.77, 0.32]
+            }
+        },
+        {
+            "ref": "lr-corridor-southfork-vale",
+            "label": "Southfork Vale",
+            "kind": "corridor",
+            "coverage": "planned",
+            "priority": 1,
+            "geometry": {
+                "type": "line",
+                "points": [[0.51, 0.66], [0.55, 0.69], [0.59, 0.72]],
+                "labelAnchor": [0.55, 0.66]
+            }
+        },
+        {
+            "ref": "lr-barrier-fiord-deeps",
+            "label": "Fiord Deeps",
+            "kind": "barrier",
+            "coverage": "authored",
+            "geometry": {
+                "type": "line",
+                "points": [[0.22, 0.63], [0.24, 0.67], [0.26, 0.71]],
+                "labelAnchor": [0.18, 0.68]
+            }
+        },
+        {
+            "ref": "lr-barrier-rainward-cliffwall",
+            "label": "Rainward Cliffwall",
+            "kind": "barrier",
+            "coverage": "authored",
+            "geometry": {
+                "type": "line",
+                "points": [[0.28, 0.48], [0.3, 0.54], [0.31, 0.61]],
+                "labelAnchor": [0.25, 0.52]
+            }
+        },
+        {
+            "ref": "lr-barrier-crownspine-ridge",
+            "label": "Crownspine Ridge",
+            "kind": "barrier",
+            "coverage": "authored",
+            "geometry": {
+                "type": "line",
+                "points": [[0.48, 0.2], [0.5, 0.37], [0.53, 0.56]],
+                "labelAnchor": [0.47, 0.25]
+            }
+        },
+        {
+            "ref": "lr-barrier-emberfen-break",
+            "label": "Emberfen Marsh Break",
+            "kind": "barrier",
+            "coverage": "authored",
+            "geometry": {
+                "type": "line",
+                "points": [[0.66, 0.7], [0.7, 0.72], [0.73, 0.74]],
+                "labelAnchor": [0.73, 0.68]
+            }
+        }
+    ]
+}
