@@ -204,7 +204,7 @@ export function buildAuthoringQueue(overlay, atlas, events = []) {
     validateOverlay(overlay, atlas)
     if (!Array.isArray(events)) fail('Boundary signals must be an array of events.')
 
-    const segmentRefs = new Set(overlay.segments.map((segment) => segment.ref))
+    const segmentRefs = new Set(overlay.segments.filter((segment) => segment.coverage !== 'authored').map((segment) => segment.ref))
     const pressure = new Map()
     for (const event of events) {
         if (!PRESSURE_EVENTS.has(event?.name ?? event?.eventName)) continue
