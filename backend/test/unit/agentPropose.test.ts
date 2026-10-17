@@ -44,6 +44,11 @@ const VALID_PROPOSAL = {
     version: 1,
     issuedUtc: new Date().toISOString(),
     actor: { kind: 'ai', id: '22222222-2222-4222-8222-222222222222' },
+    intent: {
+        rawInput: 'describe the surroundings',
+        parsedIntent: { verb: 'look' },
+        validationResult: { success: true }
+    },
     correlationId: '33333333-3333-4333-8333-333333333333',
     idempotencyKey: 'proposal:11111111-1111-4111-8111-111111111111:Ambience.Generate:loc:44444444-4444-4444-8444-444444444444',
     proposedActions: [
