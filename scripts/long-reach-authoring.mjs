@@ -61,6 +61,21 @@ export function validateOverlay(overlay, atlas) {
         }
 
         const geometry = segment.geometry
+        if (
+            (geometry?.type === 'line' || geometry?.type === 'polygon') &&
+            geometry.labelAnchor !== undefined &&
+            geometry.labelAnchor !== null
+        ) {
+            normalizedPoint(geometry.labelAnchor, `${context} geometry.labelAnchor`)
+        }
+        if (
+            geometry?.type === 'marker' &&
+            geometry.radius !== undefined &&
+            geometry.radius !== null &&
+            (!Number.isFinite(geometry.radius) || geometry.radius <= 0)
+        ) {
+            fail(`${context} geometry.radius must be a finite positive number.`)
+        }
         if (geometry?.type === 'marker') {
             normalizedPoint(geometry.anchor, `${context} geometry.anchor`)
         } else if (geometry?.type === 'line' || geometry?.type === 'polygon') {
