@@ -209,6 +209,43 @@ node scripts/render-boundary-map.mjs --scope=boundary --output=/tmp/mosswell-bou
 
 ---
 
+### `long-reach-authoring.mjs`
+
+Validates the authoring overlay sidecar, renders an SVG over `the-long-reach.jpg`, and reports the next-to-author queue.
+
+```bash
+npm run map:long-reach
+npm run report:long-reach
+npm run report:long-reach -- --signals=/tmp/frontier-events.json --format=json
+```
+
+The source contract is `docs/architecture/the-long-reach-authoring-overlay.json`. Each atlas node has a matching segment with:
+
+- `coverage`: `authored`, `in-progress`, or `planned`, maintained independently of runtime readiness.
+- `priority`: positive integer for any segment that is not authored; lower numbers are earlier static priorities.
+- `geometry`: normalized marker, line, or polygon coordinates, approximate for planning rather than GIS.
+
+The renderer reads runtime readiness from `theLongReachMacroAtlas.json`; it does not alter the atlas or source map. Authored, in-progress, and next-to-author coverage have green, blue, and amber fills. Blocked or deferred transitions are shown with a red outline so runtime status does not hide coverage status. The generated SVG is `docs/architecture/the-long-reach-authoring-overlay.svg`.
+
+The queue accepts an optional JSON array of Application Insights events:
+
+```json
+[
+  {
+    "name": "World.Frontier.BoundaryReached",
+    "customDimensions": {
+      "destinationAreaRef": "lr-area-fiordmarch-west",
+      "destinationReadiness": "blocked",
+      "entrySegmentRef": "lr-corridor-westwall-shelf"
+    }
+  }
+]
+```
+
+Only `World.Frontier.BoundaryReached` and `World.Frontier.BoundaryApproach` signals with non-ready destinations contribute pressure. Queue ordering is pressure count descending, then sidecar priority ascending, then semantic reference. Markdown is the default report format; use `--format=json` for structured output.
+
+---
+
 ### `verify-deployable.mjs`
 
 Verifies the project is deployable (checks for file-based dependencies and other issues).
