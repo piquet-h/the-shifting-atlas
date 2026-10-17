@@ -148,7 +148,7 @@ export function renderOverlay(overlay, atlas, sourceHref) {
         const readiness = runtimeReadiness(atlas, segment.ref)
         const status = visualStatus(segment)
         const color = STATUS_COLORS[status]
-        const blocked = readiness === 'blocked' || readiness === 'deferred'
+        const blocked = readiness === 'partial' || readiness === 'blocked' || readiness === 'deferred'
         const label = xmlEscape(segment.label)
         const geometry = segment.geometry
         rows.push(
@@ -182,7 +182,7 @@ export function renderOverlay(overlay, atlas, sourceHref) {
         ['authored', STATUS_COLORS.authored],
         ['in progress', STATUS_COLORS['in-progress']],
         ['next to author', STATUS_COLORS['next-to-author']],
-        ['blocked / deferred transition', STATUS_COLORS.blocked, true]
+        ['runtime handoff currently blocked', STATUS_COLORS.blocked, true]
     ]
     rows.push('</g>', '<g transform="translate(300 180)" aria-label="Legend">')
     rows.push('<rect width="700" height="280" rx="20" fill="white" fill-opacity=".88" stroke="#333" stroke-width="6"/>')

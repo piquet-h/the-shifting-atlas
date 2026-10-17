@@ -12,6 +12,7 @@ const atlas = {
     macroGraph: {
         nodes: [
             { id: 'area-blocked', name: 'Blocked Area', nodeClass: 'area' },
+            { id: 'area-partial', name: 'Partial Area', nodeClass: 'area' },
             { id: 'area-ready', name: 'Ready Area', nodeClass: 'area', authoringReadiness: 'ready' },
             { id: 'corridor-west', name: 'West Entry', nodeClass: 'corridor' }
         ],
@@ -24,6 +25,15 @@ const atlas = {
                     destinationAreaRef: 'area-blocked',
                     destinationReadiness: 'blocked',
                     entrySegmentRef: 'corridor-west'
+                }
+            },
+            {
+                from: 'area-ready',
+                to: 'area-partial',
+                relation: 'macro-transition',
+                transition: {
+                    destinationAreaRef: 'area-partial',
+                    destinationReadiness: 'partial'
                 }
             }
         ]
@@ -48,6 +58,14 @@ const overlay = {
             kind: 'area',
             coverage: 'authored',
             geometry: { type: 'marker', anchor: [0.6, 0.5] }
+        },
+        {
+            ref: 'area-partial',
+            label: 'Partial Area',
+            kind: 'area',
+            coverage: 'in-progress',
+            priority: 9,
+            geometry: { type: 'marker', anchor: [0.7, 0.5] }
         },
         {
             ref: 'corridor-west',
@@ -88,14 +106,16 @@ describe('Long Reach authoring overlay', () => {
         assert.throws(() => validateOverlay(invalid, atlas), /missing atlas node refs/)
     })
 
-    test('renders linked source imagery with authored, next, and blocked status cues', () => {
+    test('outlines partial and non-ready runtime transitions as blocked handoffs', () => {
         const svg = renderOverlay(overlay, atlas, '../../the-long-reach.jpg')
 
         assert.match(svg, /<image[^>]+href="\.\.\/\.\.\/the-long-reach\.jpg"/)
-        assert.match(svg, /data-readiness="blocked"/)
+        assert.match(svg, /class="area runtime-blocked" data-ref="area-blocked"[^>]*data-readiness="blocked"/)
+        assert.match(svg, /class="area runtime-blocked" data-ref="area-partial"[^>]*data-readiness="partial"/)
         assert.match(svg, /data-status="next-to-author"/)
         assert.match(svg, /data-status="authored"/)
         assert.match(svg, /Blocked Area/)
+        assert.match(svg, /runtime handoff currently blocked/)
     })
 
     test('ranks blocked-boundary pressure ahead of static priority without mutating the atlas', () => {

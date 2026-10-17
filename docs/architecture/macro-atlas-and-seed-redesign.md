@@ -126,7 +126,7 @@ Practical note:
 
 The persistence strategy for macro geography has been decided in [ADR-010](../adr/ADR-010-macro-geography-persistence-strategy.md): JSON atlas files remain the authoritative source. Macro context is projected onto Gremlin location vertices via `macro:area:`, `macro:route:`, and `macro:water:` tags at seed time rather than as dedicated graph vertices. The Long Reach and Mosswell-area macro regions are represented in `theLongReachMacroAtlas.json` and `mosswellMacroAtlas.json` accordingly.
 
-The Long Reach authoring overlay in [`the-long-reach-authoring-overlay.json`](the-long-reach-authoring-overlay.json) tracks approximate map coverage separately from runtime readiness. Regenerate its visual SVG with `npm run map:long-reach`; neither the sidecar nor the rendered image changes atlas transition authority.
+The Long Reach authoring overlay in [`the-long-reach-authoring-overlay.json`](the-long-reach-authoring-overlay.json) tracks approximate map coverage separately from runtime readiness. Its red outline marks destinations with `partial`, `blocked`, or `deferred` readiness: runtime handoffs are currently blocked until the atlas marks them `ready`. Regenerate its visual SVG with `npm run map:long-reach`; neither the sidecar nor the rendered image changes atlas transition authority.
 
 ### Layer 2 — Local traversal graph
 
