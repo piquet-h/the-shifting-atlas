@@ -45,7 +45,7 @@
         "@azure/service-bus": "^7.9.5",
         "@piquet-h/shared": "^0.3.157",
         "@types/marked": "^5.0.2",
-        "applicationinsights": "^2.9.5",
+        "applicationinsights": "^3.15.0",
         "ci": "^2.3.0",
         "gremlin": "^3.7.0",
         "inversify": "^7.10.3",
