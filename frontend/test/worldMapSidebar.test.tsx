@@ -1,9 +1,60 @@
-import { render, screen } from '@testing-library/react'
+import { render as renderComponent, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { ReactElement } from 'react'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import WorldMapSidebar from '../src/components/WorldMapSidebar'
 
+function render(ui: ReactElement) {
+    return renderComponent(ui, { wrapper: MemoryRouter })
+}
+
 describe('WorldMapSidebar', () => {
+    it('returns to the command screen from a directly opened map using the keyboard', async () => {
+        const user = userEvent.setup()
+
+        renderComponent(
+            <MemoryRouter initialEntries={['/map']}>
+                <Routes>
+                    <Route
+                        path="/map"
+                        element={
+                            <WorldMapSidebar
+                                showOutsideNodes={true}
+                                setShowOutsideNodes={vi.fn()}
+                                showInsideNodes={true}
+                                setShowInsideNodes={vi.fn()}
+                                sameLevelOnly={false}
+                                setSameLevelOnly={vi.fn()}
+                                distanceScale={1.8}
+                                setDistanceScale={vi.fn()}
+                                selectedName={null}
+                                selectedId={null}
+                                focusName={null}
+                                focusId={null}
+                                focusDepth={1}
+                                setFocusDepth={vi.fn()}
+                                onFocusSelected={vi.fn()}
+                                onClearFocus={vi.fn()}
+                                onReset={vi.fn()}
+                            />
+                        }
+                    />
+                    <Route path="/game" element={<h1>Command screen</h1>} />
+                </Routes>
+            </MemoryRouter>
+        )
+
+        const link = screen.getByRole('link', { name: /back to commands/i })
+        expect(link).toHaveAttribute('href', '/game')
+
+        await user.tab()
+        expect(link).toHaveFocus()
+        await user.keyboard('{Enter}')
+
+        expect(screen.getByRole('heading', { name: 'Command screen' })).toBeInTheDocument()
+    })
+
     it('disables "Same floor slice" until a focus node is set', async () => {
         const user = userEvent.setup()
         const setSameLevelOnly = vi.fn()

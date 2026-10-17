@@ -1,0 +1,127 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Long Reach authoring overlay sidecar",
+    "description": "Design-time authoring annotations, not runtime transition authority. Semantic review rules accompany this schema in macro-atlas-and-seed-redesign.md.",
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["schemaVersion", "image", "atlas", "entries"],
+    "properties": {
+        "$schema": { "type": "string", "minLength": 1 },
+        "schemaVersion": { "const": 1 },
+        "image": { "const": "the-long-reach.jpg" },
+        "atlas": { "const": "backend/src/data/theLongReachMacroAtlas.json" },
+        "entries": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/entry" }
+        }
+    },
+    "definitions": {
+        "text": { "type": "string", "pattern": "\\S" },
+        "ref": {
+            "type": "string",
+            "description": "Semantic atlas reference, never a runtime location GUID.",
+            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$",
+            "not": { "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$" }
+        },
+        "refs": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "$ref": "#/definitions/ref" }
+        },
+        "coordinate": { "type": "number", "minimum": 0, "maximum": 1 },
+        "entry": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "label", "kind", "bounds", "authoringState", "coverage", "notes"],
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "Stable overlay identity, independent of atlas/runtime identity.",
+                    "pattern": "^lr-overlay-[a-z0-9]+(?:-[a-z0-9]+)*$"
+                },
+                "label": { "$ref": "#/definitions/text" },
+                "kind": { "enum": ["region", "corridor"] },
+                "bounds": {
+                    "type": "object",
+                    "description": "Coarse normalized image bounds; origin top-left, x rightward, y downward. Review left < right and top < bottom.",
+                    "additionalProperties": false,
+                    "required": ["left", "top", "right", "bottom"],
+                    "properties": {
+                        "left": { "$ref": "#/definitions/coordinate" },
+                        "top": { "$ref": "#/definitions/coordinate" },
+                        "right": { "$ref": "#/definitions/coordinate" },
+                        "bottom": { "$ref": "#/definitions/coordinate" }
+                    }
+                },
+                "authoringState": {
+                    "enum": ["authored", "transition-ready", "next-to-author", "blocked", "inspiration-only"]
+                },
+                "coverage": {
+                    "description": "Hand-authored coverage of this entry's footprint, independent of operational readiness.",
+                    "enum": ["none", "partial", "complete"]
+                },
+                "authoringReadiness": {
+                    "description": "Reviewed runtime AreaReadinessState snapshot, not permission to cross a boundary.",
+                    "enum": ["ready", "partial", "blocked", "deferred"]
+                },
+                "areaRefs": { "$ref": "#/definitions/refs" },
+                "corridorRefs": { "$ref": "#/definitions/refs" },
+                "segmentRefs": { "$ref": "#/definitions/refs" },
+                "entrySegmentRef": { "$ref": "#/definitions/ref" },
+                "entryAnchorId": {
+                    "type": "string",
+                    "description": "Optional existing local traversal location GUID; not a semantic atlas ref.",
+                    "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                },
+                "priority": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Editorial queue order: lower numbers first; ties allowed. Required for next-to-author."
+                },
+                "notes": {
+                    "$ref": "#/definitions/text",
+                    "description": "Scope, mapping uncertainty, coverage evidence, or reason for blocking/deferral."
+                }
+            },
+            "allOf": [
+                {
+                    "if": { "properties": { "authoringState": { "const": "inspiration-only" } } },
+                    "then": {
+                        "properties": { "coverage": { "const": "none" } },
+                        "not": {
+                            "anyOf": [
+                                { "required": ["authoringReadiness"] },
+                                { "required": ["entrySegmentRef"] },
+                                { "required": ["entryAnchorId"] }
+                            ]
+                        }
+                    },
+                    "else": { "required": ["authoringReadiness"] }
+                },
+                {
+                    "if": { "properties": { "authoringState": { "const": "authored" } } },
+                    "then": { "properties": { "coverage": { "const": "complete" } } }
+                },
+                {
+                    "if": { "properties": { "authoringState": { "const": "transition-ready" } } },
+                    "then": {
+                        "required": ["areaRefs", "entrySegmentRef"],
+                        "properties": {
+                            "coverage": { "enum": ["partial", "complete"] },
+                            "authoringReadiness": { "const": "partial" }
+                        }
+                    }
+                },
+                {
+                    "if": { "properties": { "authoringState": { "enum": ["blocked", "next-to-author"] } } },
+                    "then": { "properties": { "authoringReadiness": { "enum": ["blocked", "deferred"] } } }
+                },
+                {
+                    "if": { "properties": { "authoringState": { "const": "next-to-author" } } },
+                    "then": { "required": ["priority"] }
+                }
+            ]
+        }
+    }
+}

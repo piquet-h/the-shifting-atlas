@@ -212,6 +212,32 @@ describe('GameView Component', () => {
             expect(markup).toMatch(/Your Atlas/)
         })
 
+        it('shows story narrative above a single command interface on desktop', async () => {
+            mockIsDesktop = true
+            const { default: GameViewLayout } = await import('../src/components/layout/GameViewLayout')
+            const markup = renderWithProviders(
+                <GameViewLayout
+                    isTablet={true}
+                    isDesktop={true}
+                    navigationUIEnabled={false}
+                    availableExitsWithHints={[]}
+                    availableExitDirections={[]}
+                    onNavigate={() => {}}
+                    navigationDisabled={false}
+                    playerStats={null}
+                    commandHistory={[]}
+                    commandInterfaceRef={React.createRef()}
+                    locationName="Test Location"
+                    locationDescription="A mysterious chamber with ancient runes."
+                />
+            )
+
+            expect(markup).toContain('Story Narrative')
+            expect(markup).toContain('Test Location')
+            expect(markup).toContain('A mysterious chamber with ancient runes.')
+            expect(markup.match(/placeholder="Enter a command \(e\.g\., ping\)"/g)).toHaveLength(1)
+        })
+
         it('constrains Your Atlas panel for internal scrolling', async () => {
             mockIsDesktop = true
             const { default: GameView } = await import('../src/components/GameView')

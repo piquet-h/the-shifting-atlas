@@ -110,6 +110,30 @@ scripts/          Automation (seed data, validation, deployment helpers)
 
 ## Development Workflow
 
+### Dependency updates
+
+The root, `shared/`, `backend/`, and `frontend/` maintain separate manifests and
+lockfiles. Run updates under Node.js 22 and include development dependencies:
+
+```bash
+npm update --save --include=dev
+npm update --save --include=dev --prefix shared
+npm update --save --include=dev --prefix backend
+npm update --save --include=dev --prefix frontend
+```
+
+Review each manifest and lockfile, then run `npm run build`, `npm run lint`,
+`npm run typecheck`, and the package test suites. Consumers must continue to
+install `@piquet-h/shared` from GitHub Packages, not a local file reference.
+
+Keep major-version migrations separate from routine updates. In particular,
+ESLint 10 is outside the current React/accessibility plugins' peer ranges,
+Application Insights 3 requires replacing the backend's telemetry processors,
+and React 19, React Router 7, and Tailwind 4 require dedicated compatibility
+review. Do not use `npm audit fix --force` to bypass these constraints.
+Remaining audit findings in these trees and the SWA/axe development tools must
+be reviewed separately; a compatible update does not imply a clean audit.
+
 Prerequisites:
 
 - Node.js >= 22 (Azure Functions currently supports 22.x; do not use 24.x yet)

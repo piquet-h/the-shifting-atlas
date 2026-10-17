@@ -21,18 +21,7 @@
 
 /** Cardinal & common text‑adventure directions. Extend cautiously to avoid traversal injection. */
 export type Direction =
-    | 'north'
-    | 'south'
-    | 'east'
-    | 'west'
-    | 'northeast'
-    | 'northwest'
-    | 'southeast'
-    | 'southwest'
-    | 'up'
-    | 'down'
-    | 'in'
-    | 'out'
+    'north' | 'south' | 'east' | 'west' | 'northeast' | 'northwest' | 'southeast' | 'southwest' | 'up' | 'down' | 'in' | 'out'
 
 /** Set of allowed directions for validation / normalization. */
 export const DIRECTIONS: readonly Direction[] = [

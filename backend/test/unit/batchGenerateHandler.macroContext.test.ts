@@ -134,7 +134,7 @@ describe('BatchGenerateHandler - macro context propagation', () => {
         assert.ok(!generated?.name.includes('Unexplored Open Plain'))
     })
 
-    test('generated stub pending exits use atlas-aware barrier and water hints instead of generic wilderness text', async () => {
+    test('generated stub pending exits use destination atlas and water hints after an area handoff', async () => {
         const rootLocationId = uuidv4()
         const beforeIds = await snapshotLocationIds()
         await locationRepo.upsert({
@@ -179,7 +179,9 @@ describe('BatchGenerateHandler - macro context propagation', () => {
 
         const pendingDescriptions = Object.values(generated!.exitAvailability!.pending!)
         assert.ok(pendingDescriptions.some((value) => value.includes('fjord') || value.includes('sound')))
-        assert.ok(pendingDescriptions.some((value) => value.includes('Fiord Deeps') || value.includes('Delta Marsh Break')))
+        assert.ok(generated?.tags?.includes('macro:area:lr-corridor-northgate-valley'))
+        assert.ok(pendingDescriptions.some((value) => value.includes('valley-road lineage')))
+        assert.ok(pendingDescriptions.every((value) => !value.includes('Fiord Deeps') && !value.includes('Delta Marsh Break')))
         assert.ok(pendingDescriptions.every((value) => value !== 'Open wilderness awaiting exploration'))
     })
 
@@ -222,7 +224,9 @@ describe('BatchGenerateHandler - macro context propagation', () => {
         assert.equal(result.outcome, 'success')
 
         const allLocations = await locationRepo.listAll()
-        const westwardGenerated = allLocations.find((location) => location.id !== rootLocationId && location.name.includes('Westward'))
+        const westwardGenerated = allLocations.find(
+            (location) => location.id !== rootLocationId && location.name === 'Fiordmarch West Edge'
+        )
 
         assert.ok(westwardGenerated)
         assert.equal(westwardGenerated?.terrain, 'narrow-corridor')
@@ -377,7 +381,7 @@ describe('BatchGenerateHandler - macro context propagation', () => {
         assert.notEqual(westExit?.to, genericCandidateId)
     })
 
-    test('generated waterfront stub marks atlas-blocked direction as forbidden before any further generation occurs', async () => {
+    test('generated waterfront boundary suppresses pending expansion before any further generation occurs', async () => {
         const rootLocationId = uuidv4()
         await locationRepo.upsert({
             id: rootLocationId,
@@ -416,13 +420,14 @@ describe('BatchGenerateHandler - macro context propagation', () => {
         assert.equal(result.outcome, 'success')
 
         const allLocations = await locationRepo.listAll()
-        const westwardGenerated = allLocations.find((location) => location.id !== rootLocationId && location.name.includes('Westward'))
+        const westwardGenerated = allLocations.find(
+            (location) => location.id !== rootLocationId && location.name === 'Fiordmarch West Edge'
+        )
 
-        assert.ok(westwardGenerated?.exitAvailability)
-        assert.ok(westwardGenerated?.exitAvailability?.forbidden?.west)
-        assert.ok(!westwardGenerated?.exitAvailability?.pending?.west)
-        assert.ok(westwardGenerated?.exitAvailability?.pending?.north)
-        assert.ok(westwardGenerated?.exitAvailability?.pending?.south)
+        assert.ok(westwardGenerated)
+        assert.ok(westwardGenerated.tags?.includes('macro:area:lr-area-mosswell-fiordhead'))
+        assert.ok(!westwardGenerated.tags?.includes('macro:area:lr-area-fiordmarch-west'))
+        assert.equal(westwardGenerated.exitAvailability?.pending, undefined)
     })
 
     test('exit tailoring telemetry emitted once per generated stub during batch generation', async () => {

@@ -85,17 +85,19 @@ Utility Components
 
 ### Component Responsibilities
 
-| Component                 | Type         | Responsibility                                                           | State Scope   |
-| ------------------------- | ------------ | ------------------------------------------------------------------------ | ------------- |
-| `App.tsx`                 | Layout       | Root component, routing, global contexts (AuthContext, PlayerContext)    | Global        |
-| `Nav.tsx`                 | Navigation   | Global navigation header, authentication status, user menu               | Read-only     |
-| `LiveAnnouncer.tsx`       | Utility      | ARIA live regions for screen reader announcements                        | Internal      |
-| `GameView.tsx`            | Container    | Game state orchestration, location display, command handling             | Local + Query |
-| `CommandInput.tsx`        | Form         | Command entry with autocomplete, validation, and history navigation      | Internal      |
-| `CommandInterface.tsx`    | Orchestrator | Command lifecycle (parse, execute, track), telemetry integration         | Local         |
-| `NavigationUI.tsx`        | Interactive  | Directional navigation buttons with keyboard shortcuts (WASD, arrows)    | Props         |
-| `StatusPanel.tsx`         | Display      | Persistent player status (health, location, inventory, session duration) | Props         |
-| `DescriptionRenderer.tsx` | Utility      | Markdown rendering + HTML sanitization (XSS prevention)                  | Stateless     |
+| Component                 | Type         | Responsibility                                                            | State Scope   |
+| ------------------------- | ------------ | ------------------------------------------------------------------------- | ------------- |
+| `App.tsx`                 | Layout       | Root component, routing, global contexts (AuthContext, PlayerContext)     | Global        |
+| `Nav.tsx`                 | Navigation   | Global navigation header, authentication status, user menu                | Read-only     |
+| `LiveAnnouncer.tsx`       | Utility      | ARIA live regions for screen reader announcements                         | Internal      |
+| `GameView.tsx`            | Container    | Game state orchestration, location display, command handling              | Local + Query |
+| `CommandInput.tsx`        | Form         | Command entry with autocomplete, validation, and history navigation       | Internal      |
+| `CommandInterface.tsx`    | Orchestrator | Command lifecycle (parse, execute, track), telemetry integration          | Local         |
+| `NavigationUI.tsx`        | Interactive  | Directional navigation buttons with keyboard shortcuts (WASD, arrows)     | Props         |
+| `WorldMap.tsx`            | Container    | Read-only world graph snapshot, layout, selection, and visibility filters | Local         |
+| `WorldMapSidebar.tsx`     | Navigation   | Map controls and a persistent link back to commands at `/game`            | Props         |
+| `StatusPanel.tsx`         | Display      | Persistent player status (health, location, inventory, session duration)  | Props         |
+| `DescriptionRenderer.tsx` | Utility      | Markdown rendering + HTML sanitization (XSS prevention)                   | Stateless     |
 
 ---
 
