@@ -93,6 +93,126 @@ while preserving:
 - non-Earth lore,
 - freedom to compress or soften geography for better exploration.
 
+## Long Reach authoring overlay sidecar
+
+The design-time sidecar contract is [long-reach-authoring-overlay.schema.json](long-reach-authoring-overlay.schema.json)
+(JSON Schema Draft 7, `schemaVersion: 1`). A future populated sidecar belongs at repository root as
+`the-long-reach.overlay.json`, beside [the-long-reach.jpg](../../the-long-reach.jpg). This contract does not
+add a populated coverage inventory, loader, or renderer.
+
+The sidecar is the canonical source for **overlay annotations and editorial ordering**; the JPG is only a
+rendered/inspiration view. The [macro atlas](../../backend/src/data/theLongReachMacroAtlas.json) remains authoritative
+for geography and transition metadata, and local seed/runtime data remains authoritative for traversal locations.
+Editing the sidecar never opens a runtime boundary or writes back to the atlas.
+
+### Entry contract
+
+Each entry describes a coarse `region` or `corridor` footprint. `bounds` uses normalized image coordinates
+in `[0, 1]`, with the origin at the top-left, x increasing rightward and y increasing downward.
+These are approximate annotation bounds, not traversal geometry or territorial boundaries.
+Overlapping footprints are allowed.
+
+| Field                         | Meaning                                                                                                                                          |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`, `label`                 | Stable unique `lr-overlay-*` identity and human-readable name. Do not derive identity from array position or label.                              |
+| `authoringState`              | Editorial designation from the table below. Not a runtime enum.                                                                                  |
+| `coverage`                    | `none`, `partial`, or `complete` hand-authored coverage of this entry's scope, independent of whether travel is open.                            |
+| `authoringReadiness`          | Canonical `AreaReadinessState` snapshot: `ready`, `partial`, `blocked`, or `deferred`. Required except for inspiration-only entries.             |
+| `areaRefs`                    | Optional list of resolved semantic area IDs in `macroGraph.nodes`. Omit when mapping is unresolved; never invent an area to satisfy the overlay. |
+| `corridorRefs`, `segmentRefs` | Optional lists of semantic macro corridor/segment node IDs; one footprint may cover several corridors or segments.                               |
+| `entrySegmentRef`             | Semantic destination entry segment ID, matching the relevant atlas transition metadata.                                                          |
+| `entryAnchorId`               | Optional existing local traversal location GUID for the arrival anchor; never substitute it for an atlas ref.                                    |
+| `priority`                    | Optional non-negative integer, lower first; required for `next-to-author`. Ties are allowed and do not imply runtime execution order.            |
+| `notes`                       | Required nonblank explanation of scope, coverage evidence, mapping uncertainty, or the operational block/deferral.                               |
+
+References are raw IDs, not `macro:area:*` tags. Missing optional references mean **unresolved/not recorded**,
+not an empty or fabricated target. A multi-area zone is allowed only when the stated coverage and readiness
+apply consistently to its scope; otherwise split it into separate entries. Do not infer area-wide completeness
+from a completely authored corridor or entry anchor.
+
+### Authoring states and runtime alignment
+
+Readiness vocabulary and authoring boundaries follow the
+[frontier context contract](frontier-context-contract.md#area-transition-readiness-areareadinessstate).
+
+| `authoringState`   | Required relationship                                                                                                                                                                              |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `authored`         | `coverage: complete` for the entry's scope. Does not imply runtime `ready`: an authored segment can still be operationally `blocked` or `deferred`.                                                |
+| `transition-ready` | `authoringReadiness: partial`, nonzero coverage (`partial` or `complete`), resolved `areaRefs`, and `entrySegmentRef`. Review must confirm the entry segment is authored and barriers are defined. |
+| `next-to-author`   | `authoringReadiness: blocked` or `deferred`, with explicit `priority`. Any coverage is allowed, including an existing partial skeleton.                                                            |
+| `blocked`          | `authoringReadiness: blocked` or `deferred`. Any coverage is allowed; `notes` must explain why handoff remains closed.                                                                             |
+| `inspiration-only` | `coverage: none`; no readiness, entry segment, or runtime anchor claim. Resolved area/corridor references may orient the inspiration without asserting authored content.                           |
+
+`transition-ready` and `next-to-author` retain their existing workflow meanings; they do not add runtime
+readiness states. `blocked` and `deferred` must never be interpreted as generic frontier continuation.
+`partial` is not a promise that the current runtime will permit a handoff: consumers still apply their
+runtime policy and the authoritative transition edge.
+
+Example sidecar (illustrative bounds and coverage, **not** a current-world inventory):
+
+```json
+{
+    "$schema": "docs/architecture/long-reach-authoring-overlay.schema.json",
+    "schemaVersion": 1,
+    "image": "the-long-reach.jpg",
+    "atlas": "backend/src/data/theLongReachMacroAtlas.json",
+    "entries": [
+        {
+            "id": "lr-overlay-westwall",
+            "label": "Westwall shelf approach",
+            "kind": "corridor",
+            "bounds": { "left": 0.1, "top": 0.55, "right": 0.25, "bottom": 0.75 },
+            "authoringState": "blocked",
+            "coverage": "partial",
+            "authoringReadiness": "blocked",
+            "areaRefs": ["lr-area-fiordmarch-west"],
+            "corridorRefs": ["lr-corridor-westwall-shelf"],
+            "segmentRefs": ["lr-corridor-westwall-shelf"],
+            "entrySegmentRef": "lr-corridor-westwall-shelf",
+            "priority": 1,
+            "notes": "Illustrative partial entry skeleton; destination handoff remains closed pending a barrier/content review."
+        },
+        {
+            "id": "lr-overlay-unmapped-north",
+            "label": "Unmapped northern inspiration",
+            "kind": "region",
+            "bounds": { "left": 0.4, "top": 0.05, "right": 0.7, "bottom": 0.2 },
+            "authoringState": "inspiration-only",
+            "coverage": "none",
+            "notes": "Geographic inspiration only; no single atlas area mapping has been agreed."
+        }
+    ]
+}
+```
+
+### Validation and review gate
+
+Schema validation rejects unknown fields, unsupported versions or state values, blank text, malformed IDs,
+out-of-range coordinates, duplicate references within a list, and contradictory designation/readiness combinations.
+The following semantic checks are additionally required in review; JSON Schema alone cannot resolve atlas/runtime
+references, compare bounds, or enforce uniqueness by entry ID:
+
+1. Confirm unique entry IDs, `left < right`, and `top < bottom`. Reject zero-area/reversed bounds.
+2. Resolve every supplied atlas reference against the named atlas; verify area and corridor node classes.
+   Segment refs name macro nodes, not runtime location GUIDs. Verify any `entryAnchorId` against local seed/runtime
+   locations and confirm its association with the entry segment.
+3. Compare readiness and entry segment claims with area `authoringReadiness` and the relevant inbound
+   `macro-transition` edge's `destinationAreaRef`, `destinationReadiness`, and `entrySegmentRef`.
+   Missing metadata is unknown, not implicitly ready. A disagreement is a review blocker: correct the overlay
+   or explicitly review an atlas update separately; never let the sidecar override it.
+4. Reject a transition-ready claim if any relevant inbound edge is operationally blocked, or the destination
+   lacks an authored entry segment/barrier definition. Preserve the existing prohibition on
+   `traversal: blocked` with `destinationReadiness: ready`.
+5. For unresolved or multi-area mappings, explain uncertainty in `notes`. Split entries when corridors or
+   destinations have different coverage/readiness; overlapping entries must not make conflicting claims for
+   the same segment. Record why authored content remains blocked instead of discarding its coverage.
+6. Review priority ties and missing links explicitly; array order and JPG colors do not establish readiness
+   or silently resolve ambiguous mappings. An empty `entries` array is a valid unpopulated overlay.
+
+Run the focused schema/example tests from repository root after `npm ci`:
+`node --test scripts/test/long-reach-authoring-overlay.test.mjs`.
+They validate the contract and illustrative fixtures, not the live world's authoring coverage.
+
 ## Architectural Model
 
 ### Layer 0 — World shell
