@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 
 export interface WorldMapSidebarProps {
     showOutsideNodes: boolean
@@ -36,6 +37,14 @@ export default function WorldMapSidebar(props: WorldMapSidebarProps): React.Reac
             className="absolute left-3 top-3 z-20 w-[280px] max-w-[calc(100%-1.5rem)] rounded-lg border border-white/10 bg-atlas-card/90 backdrop-blur px-3 py-3 text-sm text-slate-200 shadow-lg"
             aria-label="Map controls"
         >
+            <nav aria-label="Map navigation" className="mb-3 border-b border-white/10 pb-2">
+                <Link
+                    to="/game"
+                    className="touch-target inline-flex items-center rounded px-2 py-1 text-atlas-accent hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-atlas-accent"
+                >
+                    Back to commands
+                </Link>
+            </nav>
             <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                     <p className="text-xs font-semibold text-slate-200">Map controls</p>

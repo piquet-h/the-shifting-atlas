@@ -62,6 +62,11 @@ npm test
 
 **Important:** The test runner automatically loads configuration from `local.settings.json`. If this file doesn't exist, tests will default to memory mode.
 
+Player-originated world-event fixtures must include `payload.actionIntent`, and
+player-initiated AI proposal fixtures must include envelope `intent`. Autonomous
+`World.Agent.Step` proposals use `npc` or `system` actors instead; they must not
+fabricate player input to satisfy intent validation.
+
 ### Why Tests Might Run Slowly
 
 If your tests are running slowly when you expect memory mode:

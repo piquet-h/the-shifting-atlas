@@ -50,6 +50,24 @@ describe('AgentStepHandler', () => {
 
     // --- Happy path (no ambient layer) -------------------------------------
 
+    test('autonomous ai-agent steps apply ambience without fabricating player intent', async () => {
+        const ctx = await fixture.createInvocationContext()
+        const event = createAgentStepEvent({
+            idempotencyKey: 'agent-step:ai-agent:autonomous',
+            payload: {
+                entityId: 'agent-001',
+                entityKind: 'ai-agent',
+                locationId: 'loc-forest',
+                stepSequence: 1
+            }
+        })
+
+        await queueProcessWorldEvent(event, ctx as any)
+
+        assert.ok(telemetry.events.some((entry) => entry.name === 'Agent.Step.ActionApplied'))
+        assert.ok(!telemetry.events.some((entry) => entry.name === 'Agent.Step.ActionRejected'))
+    })
+
     test('should invoke AgentStepHandler and emit step-processed telemetry', async () => {
         const ctx = await fixture.createInvocationContext()
         const event = createAgentStepEvent({ idempotencyKey: 'agent-step:npc-001:success' })

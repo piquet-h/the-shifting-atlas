@@ -35,6 +35,11 @@ describe('AgentReplayHarness', () => {
             version: 1,
             issuedUtc: '2025-12-01T10:00:00.000Z',
             actor: { kind: 'ai' },
+            intent: {
+                rawInput: 'describe the surroundings',
+                parsedIntent: { verb: 'look' },
+                validationResult: { success: true }
+            },
             correlationId,
             ...(causationId ? { causationId } : {}),
             idempotencyKey: `proposal:${proposalId}:Layer.Add:loc:${locationId}`,
@@ -71,7 +76,8 @@ describe('AgentReplayHarness', () => {
     function makeSystemProposalWithoutIntent(proposalId: string, locationId: string, correlationId: string): AgentProposalEnvelope {
         return {
             ...makeValidProposal(proposalId, locationId, correlationId),
-            actor: { kind: 'system' }
+            actor: { kind: 'system' },
+            intent: undefined
         }
     }
 

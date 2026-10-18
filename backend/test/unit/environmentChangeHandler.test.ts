@@ -28,7 +28,8 @@ describe('EnvironmentChangeHandler', () => {
         descriptionRepo = container.get<IDescriptionRepository>('IDescriptionRepository')
     })
 
-    function createEnvironmentEvent(overrides?: Record<string, unknown>): Record<string, unknown> {
+    function createEnvironmentEvent(overrides?: Record<string, unknown> & { payload?: Record<string, unknown> }): Record<string, unknown> {
+        const { payload, ...envelopeOverrides } = overrides ?? {}
         return {
             eventId: '10000000-0000-4000-8000-000000000001',
             type: 'Location.Environment.Changed',
@@ -38,18 +39,20 @@ describe('EnvironmentChangeHandler', () => {
             idempotencyKey: 'env:loc-forest:fire:1',
             version: 1,
             payload: {
-                locationId: 'loc-forest',
-                changeType: 'fire',
-                severity: 'moderate',
-                description: 'Fire has broken out in the forest',
-                duration: 'temporary',
+                ...(payload ?? {
+                    locationId: 'loc-forest',
+                    changeType: 'fire',
+                    severity: 'moderate',
+                    description: 'Fire has broken out in the forest',
+                    duration: 'temporary'
+                }),
                 actionIntent: {
                     rawInput: 'set fire to the forest',
                     parsedIntent: { verb: 'ignite' },
                     validationResult: { success: true }
                 }
             },
-            ...overrides
+            ...envelopeOverrides
         }
     }
 

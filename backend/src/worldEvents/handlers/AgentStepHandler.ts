@@ -210,7 +210,8 @@ export class AgentStepHandler extends BaseWorldEventHandler {
             proposalId: randomUUID(),
             version: 1,
             issuedUtc: new Date().toISOString(),
-            actor: { kind: 'ai' },
+            // Autonomous steps are not player-initiated AI proposals.
+            actor: { kind: entityKind === 'npc' ? 'npc' : 'system' },
             correlationId,
             causationId: event.eventId,
             idempotencyKey: `proposal:${String(entityId)}:${String(stepSequence)}`,

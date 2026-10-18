@@ -160,7 +160,12 @@ describe('Queue Processor Dead-Letter Integration', () => {
                     playerId: '00000000-0000-4000-8000-000000000002',
                     fromLocationId: 'loc-1',
                     toLocationId: 'loc-2',
-                    direction: 'north'
+                    direction: 'north',
+                    actionIntent: {
+                        rawInput: 'go north',
+                        parsedIntent: { verb: 'move' },
+                        validationResult: { success: true }
+                    }
                 }
             }
 

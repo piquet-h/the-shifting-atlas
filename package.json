@@ -27,6 +27,8 @@
         "verify:runtime-behavior": "npm run test:runtime-invariants --prefix backend",
         "verify:crosspkg": "node scripts/verify-shared-version-bump.mjs",
         "map:boundaries": "node scripts/render-boundary-map.mjs",
+        "map:long-reach": "node scripts/long-reach-authoring.mjs render",
+        "report:long-reach": "node scripts/long-reach-authoring.mjs queue",
         "concept:issues:dry": "node scripts/generate-concept-issues.mjs",
         "concept:issues:create": "cross-env CREATE_CONCEPT_ISSUES=true node scripts/generate-concept-issues.mjs",
         "workbooks:export": "node scripts/observability/export-workbooks.mjs",
@@ -52,15 +54,16 @@
         "node": "22.x"
     },
     "devDependencies": {
-        "@eslint/js": "^9.39.1",
-        "@octokit/core": "^5.0.0",
-        "@typescript-eslint/eslint-plugin": "^8.12.2",
-        "@typescript-eslint/parser": "^8.12.2",
+        "@eslint/js": "^9.39.5",
+        "@octokit/core": "^5.2.2",
+        "@typescript-eslint/eslint-plugin": "^8.71.2",
+        "@typescript-eslint/parser": "^8.71.2",
+        "ajv": "^6.15.0",
         "cross-env": "^7.0.3",
-        "eslint": "^9.39.1",
-        "eslint-plugin-jsx-a11y": "^6.9.0",
-        "eslint-plugin-prettier": "^5.2.1",
-        "eslint-plugin-react": "^7.34.1",
-        "eslint-plugin-react-hooks": "^5.0.0"
+        "eslint": "^9.39.5",
+        "eslint-plugin-jsx-a11y": "^6.10.2",
+        "eslint-plugin-prettier": "^5.5.7",
+        "eslint-plugin-react": "^7.37.5",
+        "eslint-plugin-react-hooks": "^5.2.0"
     }
 }
