@@ -16,10 +16,10 @@
         },
         {
             "ref": "lr-area-mosswell-fiordhead",
-            "label": "Mosswell Fiordhead",
+            "label": "Mosswell village",
             "kind": "area",
             "coverage": "authored",
-            "geometry": { "type": "marker", "anchor": [0.38, 0.65] }
+            "geometry": { "type": "marker", "anchor": [0.26, 0.60], "radius": 0.004 }
         },
         {
             "ref": "lr-area-rainward-escarpments",
@@ -116,8 +116,8 @@
             "coverage": "authored",
             "geometry": {
                 "type": "line",
-                "points": [[0.35, 0.68], [0.39, 0.65], [0.43, 0.63]],
-                "labelAnchor": [0.4, 0.69]
+                "points": [[0.25, 0.605], [0.26, 0.60], [0.27, 0.595]],
+                "labelAnchor": [0.29, 0.62]
             }
         },
         {
