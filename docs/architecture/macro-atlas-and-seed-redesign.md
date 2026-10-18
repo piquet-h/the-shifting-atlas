@@ -96,9 +96,10 @@ while preserving:
 ## Long Reach authoring overlay sidecar
 
 The design-time sidecar contract is [long-reach-authoring-overlay.schema.json](long-reach-authoring-overlay.schema.json)
-(JSON Schema Draft 7, `schemaVersion: 1`). A future populated sidecar belongs at repository root as
-`the-long-reach.overlay.json`, beside [the-long-reach.jpg](../../the-long-reach.jpg). This contract does not
-add a populated coverage inventory, loader, or renderer.
+(JSON Schema Draft 7, `schemaVersion: 1`). A populated sidecar belongs at repository root as
+`the-long-reach.overlay.json`, beside [the-long-reach.jpg](../../the-long-reach.jpg). The
+[renderer workflow](../../scripts/README.md#long-reach-authoringmjs) accepts this contract using
+`npm run map:long-reach -- --overlay=the-long-reach.overlay.json`; the default remains the older coverage inventory.
 
 The sidecar is the canonical source for **overlay annotations and editorial ordering**; the JPG is only a
 rendered/inspiration view. The [macro atlas](../../backend/src/data/theLongReachMacroAtlas.json) remains authoritative
