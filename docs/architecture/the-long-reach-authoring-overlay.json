@@ -19,7 +19,7 @@
             "label": "Mosswell village",
             "kind": "area",
             "coverage": "authored",
-            "geometry": { "type": "marker", "anchor": [0.26, 0.60], "radius": 0.004 }
+            "geometry": { "type": "marker", "anchor": [0.16, 0.55], "radius": 0.001 }
         },
         {
             "ref": "lr-area-rainward-escarpments",
@@ -116,8 +116,8 @@
             "coverage": "authored",
             "geometry": {
                 "type": "line",
-                "points": [[0.25, 0.605], [0.26, 0.60], [0.27, 0.595]],
-                "labelAnchor": [0.29, 0.62]
+                "points": [[0.15, 0.555], [0.16, 0.55], [0.17, 0.545]],
+                "labelAnchor": [0.19, 0.57]
             }
         },
         {

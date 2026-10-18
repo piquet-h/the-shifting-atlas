@@ -216,8 +216,10 @@ export function renderOverlay(overlay, atlas, sourceHref) {
         if (geometry.type === 'marker') {
             const [x, y] = geometry.anchor
             const radius = (geometry.radius ?? 0.023) * width
+            const strokeWidth = Math.min(blocked ? 38 : 18, radius * 0.25)
+            const formattedStrokeWidth = Number.isInteger(strokeWidth) ? strokeWidth : strokeWidth.toFixed(1)
             rows.push(
-                `<circle cx="${(x * width).toFixed(1)}" cy="${(y * height).toFixed(1)}" r="${radius.toFixed(1)}" fill="${color}" stroke="${blocked ? STATUS_COLORS.blocked : color}" stroke-width="${blocked ? 38 : 18}"/>`
+                `<circle cx="${(x * width).toFixed(1)}" cy="${(y * height).toFixed(1)}" r="${radius.toFixed(1)}" fill="${color}" stroke="${blocked ? STATUS_COLORS.blocked : color}" stroke-width="${formattedStrokeWidth}"/>`
             )
             labels.push(
                 `<text class="label" x="${(x * width).toFixed(1)}" y="${(y * height + radius + 46).toFixed(1)}" text-anchor="middle">${label}</text>`
