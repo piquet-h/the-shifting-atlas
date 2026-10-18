@@ -198,7 +198,7 @@ export function renderOverlay(overlay, atlas, sourceHref) {
         '<title id="title">The Long Reach authoring readiness overlay</title>',
         '<desc id="description">Approximate authoring annotations over the inspiration map. The JSON atlas remains authoritative for runtime transitions.</desc>',
         `<image href="${xmlEscape(sourceHref)}" x="0" y="0" width="${width}" height="${height}" preserveAspectRatio="none"/>`,
-        '<style>text{font-family:Arial,sans-serif;font-weight:700;paint-order:stroke;stroke:#fff;stroke-width:8px;stroke-linejoin:round}.corridor polyline{stroke-width:50;stroke-linecap:round;stroke-linejoin:round}.barrier polyline{stroke-width:36;stroke-dasharray:48 28;stroke-linecap:round}.label{font-size:42px}.legend{font-size:38px;stroke-width:7px}</style>',
+        '<style>text{font-family:Arial,sans-serif;font-weight:700;paint-order:stroke;stroke:#fff;stroke-width:8px;stroke-linejoin:round}.area circle{fill-opacity:.25}.corridor polyline{stroke-width:50;stroke-linecap:round;stroke-linejoin:round}.barrier polyline{stroke-width:36;stroke-dasharray:48 28;stroke-linecap:round}.label{font-size:42px}.legend{font-size:38px;stroke-width:7px}</style>',
         '<g aria-label="Authoring segments">'
     ]
 
