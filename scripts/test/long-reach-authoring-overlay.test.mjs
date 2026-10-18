@@ -240,6 +240,24 @@ test('checked-in SVG is lightweight and reproducible from the existing coverage 
     assert.ok(Buffer.byteLength(svg) < 25000)
 })
 
+test('places Mosswell at Milford Sound at small-town map scale', () => {
+    const load = (path) => JSON.parse(readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8'))
+    const inventory = load('docs/architecture/the-long-reach-authoring-overlay.json')
+    const currentAtlas = load('backend/src/data/theLongReachMacroAtlas.json')
+    const village = inventory.segments.find((segment) => segment.label === 'Mosswell village')
+    const harborRoad = inventory.segments.find((segment) => segment.label === 'Mosswell Harbor Road')
+
+    assert.deepEqual(village.geometry.anchor, [0.16, 0.55])
+    assert.equal(village.geometry.radius, 0.001)
+    assert.ok(harborRoad.geometry.points.some((point) => JSON.stringify(point) === JSON.stringify(village.geometry.anchor)))
+
+    const svg = renderOverlay(inventory, currentAtlas, '../../the-long-reach.jpg')
+    assert.match(
+        svg,
+        /data-ref="lr-area-mosswell-fiordhead"[^>]*>[\s\S]*?<circle cx="1126\.4" cy="4664\.0" r="7\.0"[^>]*stroke-width="1\.8"/
+    )
+})
+
 test('legacy extra fields cannot override atlas readiness or inject SVG attributes', () => {
     const inventory = JSON.parse(
         readFileSync(new URL('../../docs/architecture/the-long-reach-authoring-overlay.json', import.meta.url), 'utf8')
