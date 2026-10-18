@@ -236,7 +236,7 @@ export function renderOverlay(overlay, atlas, sourceHref) {
                 rows.push(`<polyline points="${points}" stroke="${color}" fill="none"/>`)
             }
             labels.push(
-                `<text class="label" x="${(labelX * width).toFixed(1)}" y="${(labelY * height - 24).toFixed(1)}" text-anchor="middle">${label}</text>`
+                `<text class="label" x="${(labelX * width).toFixed(1)}" y="${Math.max(46, labelY * height - 24).toFixed(1)}" text-anchor="middle">${label}</text>`
             )
         }
         rows.push('</g>')
@@ -244,11 +244,12 @@ export function renderOverlay(overlay, atlas, sourceHref) {
 
     const legendItems = [
         ['authored', STATUS_COLORS.authored],
-        ['transition-ready', STATUS_COLORS['transition-ready']],
+        isSidecar
+            ? ['transition-ready', STATUS_COLORS['transition-ready']]
+            : ['in-progress (legacy coverage)', STATUS_COLORS['in-progress']],
         ['next-to-author', STATUS_COLORS['next-to-author']],
         ['blocked', STATUS_COLORS.blocked],
-        ['inspiration-only', STATUS_COLORS['inspiration-only']],
-        ['in-progress (legacy coverage)', STATUS_COLORS['in-progress']],
+        ...(isSidecar ? [['inspiration-only', STATUS_COLORS['inspiration-only']]] : []),
         ['runtime handoff currently blocked', STATUS_COLORS.blocked, true]
     ]
     rows.push('</g>', '<g aria-label="Segment labels">', ...labels, '</g>', '<g transform="translate(300 180)" aria-label="Legend">')
