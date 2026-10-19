@@ -235,7 +235,7 @@ node --test scripts/test/long-reach-authoring*.test.mjs
 
 Schema entries use green `authored`, blue `transition-ready`, amber `next-to-author`, red `blocked`, and gray dashed `inspiration-only` footprints. Readiness is a reviewed snapshot (`ready`, `partial`, `blocked`, `deferred`), not runtime permission: `transition-ready` means `partial`, never an automatically open boundary. Authored-but-blocked entries retain green coverage with a red outline. Inspiration-only entries need no readiness or resolved mapping. Bounds are coarse, translucent rectangles; regions render below corridors and labels render above all footprints regardless of entry order. Schema, unique IDs, positive-area bounds, and supplied atlas references/classes are checked before rendering; the remaining [semantic review gate](../docs/architecture/macro-atlas-and-seed-redesign.md#validation-and-review-gate) still applies.
 
-For the legacy inventory, the renderer reads runtime readiness from `theLongReachMacroAtlas.json`; green/blue/amber retain their authored/in-progress/planned coverage meaning. Partial, blocked, or deferred handoffs receive a red outline under the current runtime policy. Neither format alters the atlas, runtime transitions, or source JPG. The queue command continues to accept only the legacy inventory.
+For the legacy inventory, the renderer reads runtime readiness from `theLongReachMacroAtlas.json`; green/blue/amber retain their authored/in-progress/planned coverage meaning. Partial, blocked, or deferred handoffs receive a red outline under the current runtime policy. The queue accepts both formats: legacy planned/in-progress segments remain candidates, while schema entries are queued only when `authoringState` is `next-to-author`. Authored, transition-ready, blocked, and inspiration-only entries are omitted. Neither format alters the atlas, runtime transitions, or source JPG.
 
 The default generated SVG is `docs/architecture/the-long-reach-authoring-overlay.svg` (text-only, no embedded JPG, deterministic and under 25 KB). Regenerate it with `npm run map:long-reach` and review the diff. View it as a standalone SVG through a local static server with the repository paths intact; embedded-image previews may suppress its relative JPG link. The on-map legend explains approximate geometry and the separation between coverage and runtime authority.
 
@@ -254,7 +254,7 @@ The queue accepts an optional JSON array of Application Insights events:
 ]
 ```
 
-Only `World.Frontier.BoundaryReached` and `World.Frontier.BoundaryApproach` signals with non-ready destinations contribute pressure. Queue ordering is pressure count descending, then sidecar priority ascending, then semantic reference. Markdown is the default report format; use `--format=json` for structured output.
+Only `World.Frontier.BoundaryReached` and `World.Frontier.BoundaryApproach` signals with non-ready destinations contribute pressure. Sidecar signals match entry segments first, then destination area refs; multiple approaches to the same destination accumulate. Queue ordering is pressure count descending, then overlay priority ascending, then semantic reference. The report shows sidecar authoring readiness separately from atlas readiness, and includes links to mapped atlas refs and entry anchors. Markdown is the default report format; use `--format=json` for structured output. Sparse or absent signals leave the overlay priority ordering intact.
 
 ---
 

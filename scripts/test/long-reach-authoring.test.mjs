@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
-import { resolve } from 'node:path'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
 import { describe, test } from 'node:test'
 import { promisify } from 'node:util'
 import { buildAuthoringQueue, renderOverlay, validateOverlay } from '../long-reach-authoring.mjs'
@@ -73,7 +75,59 @@ const overlay = {
             kind: 'corridor',
             coverage: 'planned',
             priority: 3,
-            geometry: { type: 'line', points: [[0.2, 0.5], [0.35, 0.5]] }
+            geometry: {
+                type: 'line',
+                points: [
+                    [0.2, 0.5],
+                    [0.35, 0.5]
+                ]
+            }
+        }
+    ]
+}
+
+const sidecar = {
+    schemaVersion: 1,
+    image: 'the-long-reach.jpg',
+    atlas: 'backend/src/data/theLongReachMacroAtlas.json',
+    entries: [
+        {
+            id: 'lr-overlay-blocked-destination',
+            label: 'Blocked Destination',
+            kind: 'region',
+            bounds: { left: 0.1, top: 0.1, right: 0.2, bottom: 0.2 },
+            authoringState: 'next-to-author',
+            coverage: 'partial',
+            authoringReadiness: 'blocked',
+            areaRefs: ['area-blocked'],
+            entrySegmentRef: 'corridor-west',
+            entryAnchorId: '12345678-1234-4234-8234-123456789abc',
+            priority: 9,
+            notes: 'Blocked destination needs authoring.'
+        },
+        {
+            id: 'lr-overlay-static-destination',
+            label: 'Static Destination',
+            kind: 'region',
+            bounds: { left: 0.3, top: 0.1, right: 0.4, bottom: 0.2 },
+            authoringState: 'next-to-author',
+            coverage: 'none',
+            authoringReadiness: 'deferred',
+            areaRefs: ['area-partial'],
+            priority: 1,
+            notes: 'Deferred destination needs authoring.'
+        },
+        {
+            id: 'lr-overlay-paused-destination',
+            label: 'Paused Destination',
+            kind: 'region',
+            bounds: { left: 0.5, top: 0.1, right: 0.6, bottom: 0.2 },
+            authoringState: 'blocked',
+            coverage: 'partial',
+            authoringReadiness: 'blocked',
+            areaRefs: ['area-ready'],
+            priority: 0,
+            notes: 'Intentionally paused.'
         }
     ]
 }
@@ -89,19 +143,19 @@ describe('Long Reach authoring overlay', () => {
     test('validates atlas references and normalized geometry', () => {
         assert.equal(validateOverlay(overlay, atlas), true)
 
-        const invalid = structuredClone(overlay)
+        const invalid = globalThis.structuredClone(overlay)
         invalid.segments[0].geometry.anchor[0] = 1.1
         assert.throws(() => validateOverlay(invalid, atlas), /normalized coordinates/)
     })
 
     test('rejects duplicate segment references', () => {
-        const invalid = structuredClone(overlay)
-        invalid.segments.push(structuredClone(invalid.segments[0]))
+        const invalid = globalThis.structuredClone(overlay)
+        invalid.segments.push(globalThis.structuredClone(invalid.segments[0]))
         assert.throws(() => validateOverlay(invalid, atlas), /duplicate segment ref/)
     })
 
     test('rejects overlays that omit an atlas segment', () => {
-        const invalid = structuredClone(overlay)
+        const invalid = globalThis.structuredClone(overlay)
         invalid.segments.pop()
         assert.throws(() => validateOverlay(invalid, atlas), /missing atlas node refs/)
     })
@@ -133,14 +187,17 @@ describe('Long Reach authoring overlay', () => {
                 customDimensions: { destinationAreaRef: 'area-ready', destinationReadiness: 'ready' }
             }
         ]
-        const before = structuredClone(atlas)
+        const before = globalThis.structuredClone(atlas)
         const report = buildAuthoringQueue(overlay, atlas, events)
 
         assert.equal(report.queue[0].ref, 'corridor-west')
         assert.equal(report.queue[0].runtimeBoundaryPressure.total, 1)
         assert.equal(report.queue[0].runtimeReadiness, 'blocked')
         assert.equal(report.queue[1].ref, 'area-blocked')
-        assert.equal(report.queue.some((entry) => entry.ref === 'area-ready'), false)
+        assert.equal(
+            report.queue.some((entry) => entry.ref === 'area-ready'),
+            false
+        )
         assert.deepEqual(atlas, before)
     })
 
@@ -149,6 +206,71 @@ describe('Long Reach authoring overlay', () => {
             { name: 'World.Player.Moved', customDimensions: { destinationAreaRef: 'area-blocked' } }
         ])
 
-        assert.equal(report.queue.every((entry) => entry.runtimeBoundaryPressure.total === 0), true)
+        assert.equal(
+            report.queue.every((entry) => entry.runtimeBoundaryPressure.total === 0),
+            true
+        )
+    })
+
+    test('uses sidecar next-to-author state and static priority when runtime signals are absent', () => {
+        const report = buildAuthoringQueue(sidecar, atlas)
+
+        assert.deepEqual(
+            report.queue.map(({ ref, authoringState }) => [ref, authoringState]),
+            [
+                ['lr-overlay-static-destination', 'next-to-author'],
+                ['lr-overlay-blocked-destination', 'next-to-author']
+            ]
+        )
+        assert.deepEqual(report.queue[1].areaRefs, ['area-blocked'])
+        assert.equal(report.queue[1].entrySegmentRef, 'corridor-west')
+        assert.equal(report.queue[1].entryAnchorId, '12345678-1234-4234-8234-123456789abc')
+        assert.equal(report.queue[1].authoringReadiness, 'blocked')
+    })
+
+    test('aggregates reached and approaching pressure for a sidecar destination', () => {
+        const report = buildAuthoringQueue(sidecar, atlas, [
+            {
+                name: 'World.Frontier.BoundaryReached',
+                customDimensions: {
+                    destinationAreaRef: 'area-blocked',
+                    destinationReadiness: 'blocked',
+                    entrySegmentRef: 'corridor-west'
+                }
+            },
+            {
+                name: 'World.Frontier.BoundaryApproach',
+                properties: { destinationAreaRef: 'area-blocked', destinationReadiness: 'deferred' }
+            },
+            {
+                name: 'World.Frontier.BoundaryReached',
+                customDimensions: { destinationAreaRef: 'area-blocked', destinationReadiness: 'ready' }
+            }
+        ])
+
+        assert.equal(report.queue[0].ref, 'lr-overlay-blocked-destination')
+        assert.deepEqual(report.queue[0].runtimeBoundaryPressure, {
+            total: 2,
+            byReadiness: { blocked: 1, deferred: 1 }
+        })
+    })
+
+    test('renders references and entry anchors as links in the markdown report', async () => {
+        const directory = await mkdtemp(join(tmpdir(), 'long-reach-queue-'))
+        try {
+            const sidecarPath = resolve(directory, 'sidecar.json')
+            const atlasPath = resolve(directory, 'atlas.json')
+            await writeFile(sidecarPath, JSON.stringify(sidecar))
+            await writeFile(atlasPath, JSON.stringify(atlas))
+            const { stdout } = await execAsync('node', [SCRIPT_PATH, 'queue', `--overlay=${sidecarPath}`, `--atlas=${atlasPath}`])
+
+            assert.match(stdout, /\[area-blocked\]\(https:\/\/github\.com\/piquet-h\/the-shifting-atlas\/search\?q=area-blocked\)/)
+            assert.match(
+                stdout,
+                /\[12345678-1234-4234-8234-123456789abc\]\(https:\/\/github\.com\/piquet-h\/the-shifting-atlas\/search\?q=12345678-1234-4234-8234-123456789abc\)/
+            )
+        } finally {
+            await rm(directory, { recursive: true, force: true })
+        }
     })
 })
