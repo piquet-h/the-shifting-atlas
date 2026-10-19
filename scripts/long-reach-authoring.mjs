@@ -276,10 +276,49 @@ function eventProperties(event) {
 }
 
 export function buildAuthoringQueue(overlay, atlas, events = []) {
-    validateOverlay(overlay, atlas)
     if (!Array.isArray(events)) fail('Boundary signals must be an array of events.')
 
-    const segmentRefs = new Set(overlay.segments.filter((segment) => segment.coverage !== 'authored').map((segment) => segment.ref))
+    const isSidecar = overlay && Array.isArray(overlay.entries)
+    let candidates
+    if (isSidecar) {
+        sidecarOverlay(overlay, atlas)
+        candidates = overlay.entries
+            .filter((entry) => entry.authoringState === 'next-to-author')
+            .map((entry) => ({
+                ref: entry.id,
+                label: entry.label,
+                kind: entry.kind,
+                coverage: entry.coverage,
+                authoringState: entry.authoringState,
+                authoringReadiness: entry.authoringReadiness,
+                priority: entry.priority,
+                areaRefs: entry.areaRefs ?? [],
+                corridorRefs: entry.corridorRefs ?? [],
+                segmentRefs: entry.segmentRefs ?? [],
+                entrySegmentRef: entry.entrySegmentRef,
+                entryAnchorId: entry.entryAnchorId,
+                atlasRef: entry.entrySegmentRef ?? entry.areaRefs?.[0] ?? entry.corridorRefs?.[0] ?? entry.segmentRefs?.[0]
+            }))
+    } else {
+        validateOverlay(overlay, atlas)
+        candidates = overlay.segments
+            .filter((segment) => segment.coverage !== 'authored')
+            .map((segment) => ({
+                ref: segment.ref,
+                label: segment.label,
+                kind: segment.kind,
+                coverage: segment.coverage,
+                authoringState: segment.coverage === 'planned' ? 'next-to-author' : 'in-progress',
+                priority: segment.priority,
+                areaRefs: segment.kind === 'area' ? [segment.ref] : [],
+                corridorRefs: segment.kind === 'corridor' ? [segment.ref] : [],
+                segmentRefs: [],
+                entrySegmentRef: segment.kind === 'corridor' ? segment.ref : undefined,
+                atlasRef: segment.ref
+            }))
+    }
+
+    const candidatesByRef = new Map(candidates.map((candidate) => [candidate.ref, candidate]))
     const pressure = new Map()
     for (const event of events) {
         if (!PRESSURE_EVENTS.has(event?.name ?? event?.eventName)) continue
@@ -288,25 +327,55 @@ export function buildAuthoringQueue(overlay, atlas, events = []) {
         if (!READINESS_STATES.has(readiness) || readiness === 'ready') continue
         const entryRef = properties.entrySegmentRef
         const destinationRef = properties.destinationAreaRef
-        const ref = segmentRefs.has(entryRef) ? entryRef : destinationRef
-        if (!segmentRefs.has(ref)) continue
-        const counts = pressure.get(ref) ?? { total: 0, byReadiness: {} }
-        counts.total += 1
-        counts.byReadiness[readiness] = (counts.byReadiness[readiness] ?? 0) + 1
-        pressure.set(ref, counts)
+        let matches
+        if (isSidecar) {
+            matches = entryRef ? candidates.filter((candidate) => candidate.entrySegmentRef === entryRef) : []
+            if (matches.length === 0) {
+                matches = candidates.filter((candidate) => candidate.areaRefs.includes(destinationRef))
+            }
+        } else {
+            const preferredRef = candidatesByRef.has(entryRef) ? entryRef : destinationRef
+            matches = candidatesByRef.has(preferredRef) ? [candidatesByRef.get(preferredRef)] : []
+        }
+        for (const candidate of new Set(matches)) {
+            const counts = pressure.get(candidate.ref) ?? { total: 0, byReadiness: {} }
+            counts.total += 1
+            counts.byReadiness[readiness] = (counts.byReadiness[readiness] ?? 0) + 1
+            pressure.set(candidate.ref, counts)
+        }
     }
 
-    const queue = overlay.segments
-        .filter((segment) => segment.coverage !== 'authored')
-        .map((segment) => ({
-            ref: segment.ref,
-            label: segment.label,
-            kind: segment.kind,
-            coverage: segment.coverage,
-            priority: segment.priority,
-            runtimeReadiness: runtimeReadiness(atlas, segment.ref),
-            runtimeBoundaryPressure: pressure.get(segment.ref) ?? { total: 0, byReadiness: {} }
-        }))
+    const queue = candidates
+        .map((candidate) => {
+            const references = [
+                ...candidate.areaRefs.map((ref) => ({ kind: 'area', ref })),
+                ...candidate.corridorRefs.map((ref) => ({ kind: 'corridor', ref })),
+                ...candidate.segmentRefs.map((ref) => ({ kind: 'segment', ref })),
+                ...(candidate.entrySegmentRef ? [{ kind: 'entry segment', ref: candidate.entrySegmentRef }] : []),
+                ...(candidate.entryAnchorId ? [{ kind: 'entry anchor', ref: candidate.entryAnchorId }] : [])
+            ]
+            const uniqueReferences = [...new Map(references.map((reference) => [reference.ref, reference])).values()]
+            return {
+                ref: candidate.ref,
+                label: candidate.label,
+                kind: candidate.kind,
+                coverage: candidate.coverage,
+                authoringState: candidate.authoringState,
+                authoringReadiness: candidate.authoringReadiness,
+                priority: candidate.priority,
+                areaRefs: candidate.areaRefs,
+                corridorRefs: candidate.corridorRefs,
+                segmentRefs: candidate.segmentRefs,
+                entrySegmentRef: candidate.entrySegmentRef,
+                entryAnchorId: candidate.entryAnchorId,
+                references: uniqueReferences.map((reference) => ({
+                    ...reference,
+                    url: `https://github.com/piquet-h/the-shifting-atlas/search?q=${encodeURIComponent(reference.ref)}`
+                })),
+                runtimeReadiness: runtimeReadiness(atlas, candidate.atlasRef),
+                runtimeBoundaryPressure: pressure.get(candidate.ref) ?? { total: 0, byReadiness: {} }
+            }
+        })
         .sort(
             (left, right) =>
                 right.runtimeBoundaryPressure.total - left.runtimeBoundaryPressure.total ||
@@ -331,17 +400,19 @@ function renderMarkdownReport(report) {
         `Generated: ${report.generatedAt}`,
         `Queued segments: ${report.summary.queuedSegments}; with runtime boundary pressure: ${report.summary.segmentsWithBoundaryPressure}`,
         '',
-        '| Rank | Segment | Coverage | Atlas readiness | Boundary pressure | Static priority |',
-        '| ---: | --- | --- | --- | ---: | ---: |'
+        '| Rank | Segment | Authoring state | Coverage | Overlay readiness | Atlas readiness | Boundary pressure | Static priority | References |',
+        '| ---: | --- | --- | --- | --- | --- | ---: | ---: | --- |'
     ]
     report.queue.forEach((segment, index) => {
+        const references = segment.references.map(({ ref, url }) => `[${ref}](${url})`).join(', ')
         rows.push(
-            `| ${index + 1} | ${segment.label} (\`${segment.ref}\`) | ${segment.coverage} | ${segment.runtimeReadiness} | ${segment.runtimeBoundaryPressure.total} | ${segment.priority} |`
+            `| ${index + 1} | ${segment.label} (\`${segment.ref}\`) | ${segment.authoringState} | ${segment.coverage} | ${segment.authoringReadiness ?? '—'} | ${segment.runtimeReadiness} | ${segment.runtimeBoundaryPressure.total} | ${segment.priority} | ${references || '—'} |`
         )
     })
-    if (report.queue.length === 0) rows.push('| — | No segments need authoring | — | — | 0 | — |')
+    if (report.queue.length === 0) rows.push('| — | No segments need authoring | — | — | — | — | 0 | — | — |')
     rows.push(
         '',
+        'Sidecar entries in `next-to-author` are queued; authored, transition-ready, blocked, and inspiration-only entries are not. Legacy planned/in-progress coverage remains supported.',
         'Runtime pressure counts `World.Frontier.BoundaryReached` and `World.Frontier.BoundaryApproach` signals with non-ready destinations. Atlas transition readiness remains authoritative.',
         ''
     )
@@ -387,9 +458,8 @@ Usage:
   node scripts/long-reach-authoring.mjs render [--overlay=path] [--atlas=path] [--output=path]
   node scripts/long-reach-authoring.mjs queue [--overlay=path] [--atlas=path] [--signals=path] [--format=markdown|json] [--output=path]
 
-Render accepts the schema v1 entries sidecar or the legacy segments inventory.
-Queue accepts the legacy segments inventory only.
-Signals are JSON arrays of Application Insights events with name/customDimensions fields.
+Render and queue accept the schema v1 entries sidecar or the legacy segments inventory.
+Signals are JSON arrays of Application Insights events with name and customDimensions (or properties) fields.
 `)
         return
     }
