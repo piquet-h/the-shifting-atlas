@@ -14,8 +14,7 @@ export class MockTelemetryClient implements ITelemetryClient {
     public traces: Contracts.TraceTelemetry[] = []
     public dependencies: Contracts.DependencyTelemetry[] = []
     public requests: Contracts.RequestTelemetry[] = []
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private processors: Array<(envelope: Contracts.Envelope, contextObjects?: { [name: string]: any }) => boolean> = []
+    private processors: Array<Parameters<ITelemetryClient['addTelemetryProcessor']>[0]> = []
 
     trackEvent(telemetry: Contracts.EventTelemetry): void {
         this.events.push(telemetry)
@@ -41,8 +40,7 @@ export class MockTelemetryClient implements ITelemetryClient {
         this.requests.push(telemetry)
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    addTelemetryProcessor(telemetryProcessor: (envelope: Contracts.Envelope, contextObjects?: { [name: string]: any }) => boolean): void {
+    addTelemetryProcessor(telemetryProcessor: Parameters<ITelemetryClient['addTelemetryProcessor']>[0]): void {
         this.processors.push(telemetryProcessor)
     }
 

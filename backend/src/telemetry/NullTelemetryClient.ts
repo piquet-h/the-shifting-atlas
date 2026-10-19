@@ -25,8 +25,8 @@ export class NullTelemetryClient implements ITelemetryClient {
     trackRequest(telemetry: Contracts.RequestTelemetry): void {}
 
     addTelemetryProcessor(
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
-        telemetryProcessor: (envelope: Contracts.Envelope, contextObjects?: { [name: string]: any }) => boolean
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        telemetryProcessor: Parameters<ITelemetryClient['addTelemetryProcessor']>[0]
     ): void {}
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

@@ -1,4 +1,4 @@
-import type { Contracts } from 'applicationinsights'
+import type { Contracts, TelemetryClient } from 'applicationinsights'
 
 /**
  * Telemetry client interface for dependency injection.
@@ -38,8 +38,7 @@ export interface ITelemetryClient {
     /**
      * Add a telemetry processor to filter/enrich telemetry
      */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    addTelemetryProcessor(telemetryProcessor: (envelope: Contracts.Envelope, contextObjects?: { [name: string]: any }) => boolean): void
+    addTelemetryProcessor(telemetryProcessor: Parameters<TelemetryClient['addTelemetryProcessor']>[0]): void
 
     /**
      * Flush buffered telemetry
