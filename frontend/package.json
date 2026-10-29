@@ -60,7 +60,7 @@
         "eslint-plugin-prettier": "^5.5.7",
         "eslint-plugin-react": "^7.37.5",
         "eslint-plugin-react-hooks": "^5.2.0",
-        "happy-dom": "^20.14.6",
+        "happy-dom": "^21.0.4",
         "jsdom": "^25.0.1",
         "msw": "^2.15.0",
         "postcss": "^8.5.30",
