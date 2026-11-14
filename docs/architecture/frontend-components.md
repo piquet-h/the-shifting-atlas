@@ -33,10 +33,10 @@ The Shifting Atlas frontend is a React SPA built with Vite, TypeScript, and Tail
 ### Tech Stack
 
 - **Framework**: React 18 with TypeScript
-- **Build Tool**: Vite 5
+- **Build Tool**: Vite 8
 - **Styling**: Tailwind CSS 3 with custom theme
-- **State Management**: React Context + TanStack Query (React Query)
-- **Routing**: React Router 6
+- **State Management**: React Context + TanStack Query 5 (React Query)
+- **Routing**: React Router 7
 - **Hosting**: Azure Static Web Apps
 - **Authentication**: Azure AD (Entra ID) via SWA Easy Auth
 

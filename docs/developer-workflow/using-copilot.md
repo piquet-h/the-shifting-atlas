@@ -26,12 +26,15 @@ Store project skills under:
 
 This repository currently maintains these project skills:
 
+- `tdd-first-workflow` — mandatory Red → Green → Refactor ceremony for runtime changes
 - `world-content-generation` — lore/world/prompt authoring rules
 - `exit-consistency-audit` — run & interpret exit graph consistency scans
 - `prompts-quality-gate` — validate + bundle prompt templates
 - `test-triage` — failing tests + “Node won’t exit” workflows
 - `functions-local-dev` — backend Azure Functions local dev loop
-- `shared-release-workflow` — shared→backend two-stage workflow + cross-package detection
+- `shared-release-workflow` — cross-package npm workspace & standalone Function packaging workflow
+- `epic-health-audit` — epic sub-issue wiring & dependency audit
+- `milestone-delivery-path-reanalysis` — deterministic milestone slice regeneration
 
 ### TDD scope note
 
@@ -98,12 +101,13 @@ If you add or change a repeatable workflow (tests, debugging, prompt pipelines, 
 
 ## Helpful Aliases
 
-| Command                        | Purpose                            |
-| ------------------------------ | ---------------------------------- |
-| `cd frontend && npm run build` | Build production bundle.           |
-| `cd backend && npm run build`  | Build backend functions.           |
-| `cd shared && npm run build`   | Build shared package.              |
-| `npm run typecheck`            | TypeScript validation per package. |
+| Command                   | Purpose                                                |
+| ------------------------- | ------------------------------------------------------ |
+| `npm run build`           | Build `shared` (with prompt bundle), `backend`, and `frontend`. |
+| `npm run lint`            | ESLint + runtime invariants across all workspaces.     |
+| `npm run typecheck`       | TypeScript validation across all workspaces.           |
+| `npm test`                | Run unit & integration suites across all workspaces.   |
+| `npm run package:backend` | Stage standalone Azure Functions deployment directory. |
 
 ## Next Improvements
 

@@ -11,13 +11,9 @@ Graph (Gremlin): Locations | NPCs (spatial edges). Documents (SQL): Players | In
 
 Function Naming: Http<VerbNoun>, Queue<ProcessThing>. Stateless, single purpose.
 
-Core Scripts: `npm run build`, `npm run test`, `npm run lint`, `npm run typecheck`. (Backend-specific scripts in `backend/package.json`).
+Core Scripts: `npm run build`, `npm test`, `npm run lint`, `npm run typecheck`, `npm run package:backend`, `npm run board:snapshot`.
 
-**MECE Documentation (7 Layers)**:
-
-1. Vision (60k ft) → README.md | 2. Tenets (50k ft) → docs/tenets.md (WAF-aligned) | 3. Design Modules (40k ft) → docs/design-modules/ | 4. Architecture (30k ft) → docs/architecture/ | 5. Roadmap (20k ft) → docs/roadmap.md | 6. Examples (10k ft) → docs/examples/ | 7. Code (Ground) → backend/, frontend/, shared/, infrastructure/
-
-**Navigation**: Start README.md (Vision) → links to all layers. New contributors: Examples → Tenets → Design Modules → Code.
+**MECE Documentation**: Canonical altitude table & reading order live in `docs/README.md` (Vision `README.md` → Tenets `docs/tenets.md` → Concepts `docs/concept/` → Design Modules `docs/design-modules/` → Architecture `docs/architecture/` → Workflows `docs/workflows/` → Roadmap `docs/roadmap.md` → Examples `docs/examples/` → Code).
 
 Labels:
 

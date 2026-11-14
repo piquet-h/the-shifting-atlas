@@ -461,7 +461,7 @@ Top Token Buckets:
 
 ```bash
 # Run manual audit (requires shared package built)
-npm run verify:ai-cost-payload --prefix shared
+npm run verify:ai-cost-payload --workspace @piquet-h/shared
 
 # Or run directly
 node scripts/verify-ai-cost-payload.mjs

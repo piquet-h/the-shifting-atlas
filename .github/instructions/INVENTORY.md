@@ -17,7 +17,7 @@
     - `world/.instructions.md` (prompt-authoring delta only; scoped to `shared/src/prompts/**`)
 3. Auxiliary / Patterns
     - `../copilot-commit-message-instructions.md` (commit hygiene)
-    - `inversify-di-patterns.md` (DEPRECATED redirect; authoritative DI doc is in `docs/architecture/`)
+    - Authoritative DI guidance lives in `docs/architecture/dependency-injection.md`
 4. Index & Metadata
     - `instructions/README.md` (brief pointer)
     - `instructions/INVENTORY.md` (this file – periodically updated)
@@ -64,15 +64,13 @@ Deprecate / merge if:
 | `instructions/backend/.instructions.md`  | Backend Azure Functions specifics | KEEP (SLIM)           | Remove architecture redundancies already in core; focus on code-first patterns, idempotency, envelope design | Duplicates some cosmos/service bus notes from core                                        |
 | `instructions/frontend/.instructions.md` | Frontend UI rules                 | KEEP (EXPAND MINOR)   | Add explicit ties to language style (Prettier/ESLint) and error boundary policy                              | Currently sparse; low duplication risk                                                    |
 | `instructions/world/.instructions.md`    | World prompt delta                | KEEP (SLIM)           | Keep scoped to prompt sources; move detailed world guidance to skill                                         | Avoid always-on lore context                                                              |
-| `instructions/inversify-di-patterns.md`  | DI usage patterns                 | DEPRECATE             | Merge into `docs/architecture/` (tag as DEPRECATED here, keep for 1 milestone)                               | Patterns belong to architecture docs; instructions should focus on generation constraints |
-| `instructions/README.md`                 | Index placeholder                 | KEEP (UPDATE)         | Replace with brief explanation + link to INVENTORY.md                                                        | Provide orientation                                                                       |
-| `instructions/INVENTORY.md`              | Inventory & rationalization       | NEW                   | Maintain quarterly or on structural changes                                                                  | Meta governance                                                                           |
+| `instructions/README.md`                 | Index                         | KEEP                  | Points to path-specific deltas, `AGENTS.md`, and skills                                                      | Orientation entrypoint                                                                    |
+| `instructions/INVENTORY.md`              | Inventory & rationalization   | KEEP                  | Maintain quarterly or on structural changes                                                                  | Meta governance                                                                           |
 
-## Deprecation Plan
+## Completed Consolidations
 
-1. Keep `instructions/inversify-di-patterns.md` as a short redirect only.
-2. Maintain authoritative DI guidance in `docs/architecture/dependency-injection.md`.
-3. Remove the deprecated file once nothing links to it.
+1. Removed deprecated `instructions/inversify-di-patterns.md` redirect in favor of `docs/architecture/dependency-injection.md`.
+2. Deduplicated Prettier/CI gate boilerplate across `backend/`, `frontend/`, and `shared/` instruction deltas (canonical in `../copilot-instructions.md`).
 
 ## Slimming Actions (Next Pass)
 

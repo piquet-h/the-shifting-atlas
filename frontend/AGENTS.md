@@ -18,11 +18,10 @@ It is intended to apply when editing anything under `frontend/`.
 
 ## Local dev (preferred)
 
-From `frontend/`:
+Install workspaces once from the repository root (`npm ci && npm run build:shared`), then:
 
-- Install deps: `npm install`
-- Dev server (Vite): `npm run dev`
-- SWA local integration (if needed): `npm run swa`
+- Dev server (Vite): `npm run dev:frontend` (repo root) or `npm run dev` (in `frontend/`)
+- SWA local integration (if needed): `npm run swa` (in `frontend/`)
 
 From repo root (useful in CI-style validation):
 

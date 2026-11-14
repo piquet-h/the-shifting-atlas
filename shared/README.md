@@ -4,29 +4,18 @@
 >
 > NOTE: This package was previously named `@atlas/shared`. The scope was renamed because the `@atlas` organization scope is not yet available. A future migration to `@atlas/shared` (organization scope) may occur; any such change will follow semantic versioning with clear deprecation notices.
 
-## Installation
+## Workspace Usage
+
+`@piquet-h/shared` is an **internal npm workspace** package resolved automatically from the root `package-lock.json` (`"@piquet-h/shared": "*"` in `backend/package.json` and `frontend/package.json`). No GitHub Packages authentication or external `npm publish` step is used.
+
+From the repository root:
 
 ```bash
-# GitHub Packages registry (ensure auth is configured)
-npm install @piquet-h/shared
+npm ci
+npm run build:shared   # generates barrels, compiles dist/, and bundles prompts
 ```
 
-Add to your project (if not already present):
-
-```bash
-npm pkg set dependencies.@piquet-h/shared="^0.1.0"
-```
-
-## Auth Setup (GitHub Packages)
-
-Ensure your `.npmrc` contains:
-
-```ini
-@piquet-h:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
-```
-
-(If/when migrated to an `@atlas` org scope, a parallel entry will be documented.)
+At Azure Functions deploy time, `npm run package:backend` (`scripts/package-backend-function.mjs`) copies built `shared/dist` into `backend/.deploy/node_modules/@piquet-h/shared` as a standalone non-symlinked module.
 
 ## Exports & Public Surface
 
@@ -119,66 +108,23 @@ Any violations will fail CI.
 
 Telemetry event names are governed centrally (see `shared/src/telemetryEvents.ts`) and enforced by ESLint rules:
 
-- `eslint-rules/telemetry-event-name.mjs` – regex + segment grammar
-- `eslint-rules/telemetry-event-membership.mjs` – membership in canonical enumeration
+- `eslint-rules/telemetry-event.mjs` – regex + segment grammar
+- `eslint-rules/telemetry-registry-pattern.mjs` – membership in canonical enumeration
 
 Shared package only exposes enumerations and validation helpers; it does NOT emit Application Insights events directly (no `trackEvent` calls). Backend instrumentation should use the strict helpers and avoid introducing literal names outside the enumeration. Propose additions via PR updating both the enumeration and observability docs.
 
-## Versioning
-
-Semantic Versioning (SemVer) will be followed beginning with the first tagged release after stabilization. Pre-1.0 minor versions may contain limited breaking changes; these will be noted in CHANGELOG (to be added when external consumption begins).
-
-## Future Scope Migration
-
-If an `@atlas` GitHub organization is created:
-
-1. `@piquet-h/shared` will continue to receive patch updates for a deprecation window.
-2. A new `@atlas/shared` package will publish the same content.
-3. A migration guide will be added to this README.
-
 ## Scripts
 
-Available npm scripts:
+From the repository root (or inside `shared/`):
 
 ```bash
-# Build TypeScript to dist/
-npm run build
-
-# Run tests
-npm run test
-
-# Smoke test: traversal movement loop
-npm run smoke:traversal
+npm run build:shared
+npm run test:shared
+npm run lint:shared
+npm run typecheck:shared
 ```
 
-The smoke test validates core game flow (bootstrap → look → move → look) and can be run from the repository root via `npm run smoke:traversal`.
-
-## Contributing
-
-Internal contributors should:
-
-```bash
-cd shared
-
-# Build
-npm run build
-
-# Test
-npm test
-
-# Smoke test
-npm run smoke:traversal
-```
-
-## Publishing
-
-```bash
-cd shared
-npm run build
-npm publish
-```
-
-(Requires a token with `write:packages`).
+Inside `shared/`, `npm run smoke:traversal` validates the core traversal loop (`bootstrap → look → move → look`).
 
 ## License
 

@@ -17,7 +17,20 @@ Useful links
 Implementation references
 
 - Frontend auth hook (reads `/.auth/me`): `frontend/src/hooks/useAuth.tsx`
+- Static Web App auth route config (`openIdIssuer`): `frontend/public/staticwebapp.config.json`
 - Server-side principal parsing (SWA `x-ms-client-principal`): `shared/src/auth/playerAuth.ts`
+
+### Single-Tenant SWA App Settings Mapping (Deployed)
+
+Deployment (`frontend-swa-deploy.yml`) populates SWA app settings via `az staticwebapp appsettings set`:
+
+| SWA Setting Key     | GitHub Secret Source                           | Referenced In                               |
+| ------------------- | ---------------------------------------------- | ------------------------------------------- |
+| `AAD_CLIENT_ID`     | `CUSTOMER_CLIENT_ID` (fallback `AZURE_CLIENT_ID`) | `staticwebapp.config.json` registration     |
+| `AAD_TENANT_ID`     | `CUSTOMER_TENANT_ID` (fallback `AZURE_TENANT_ID`) | Diagnostics / optional app logic            |
+| `AAD_CLIENT_SECRET` | `CUSTOMER_SECRET` (fallback `AZURE_CLIENT_SECRET`)| `staticwebapp.config.json` (optional flow)  |
+
+Missing `AAD_CLIENT_ID` locally gracefully falls back to anonymous guest sessions (`/.auth/me`). For local redirect simulation, configure `http://localhost:4280/.auth/login/aad/callback` on a dev App Registration with the SWA CLI emulator.
 
 For configuration examples, prefer the official SWA documentation (it stays current as the platform evolves).
 

@@ -1051,26 +1051,26 @@ Run this query repeatedly over 15 minutes to exceed 70% of provisioned throughpu
 
 - [Observability Overview](../observability.md) — High-level monitoring strategy
 - [Telemetry Implementation](../../shared/src/telemetryEvents.ts) — Event name registry
-- [ESLint Telemetry Rules](../../eslint-rules/telemetry-event-name.mjs) — Naming convention enforcement
-- [Application Insights Setup](../../README.md#telemetry-application-insights) — Azure configuration
+- [ESLint Telemetry Rules](../../eslint-rules/telemetry-event.mjs) — Naming convention enforcement
+- [Workbooks Guide](./workbooks.md) — Application Insights workbooks & deployment
 
 ---
 
 ### Dashboard Recommendations (M2 Observability)
 
-| Panel                         | Query Basis                               | Purpose                                         | Refresh | Workbook File                                                                              |
-| ----------------------------- | ----------------------------------------- | ----------------------------------------------- | ------- | ------------------------------------------------------------------------------------------ |
-| Movement Success Rate         | Success vs Blocked events                 | Detect traversal friction & regressions         | 5 min   | [movement-success-rate-workbook.json](movement-success-rate-workbook.json)                 |
-| Blocked Reasons Breakdown     | Navigation.Move.Blocked grouped by reason | Prioritize fixes (no-exit vs invalid-direction) | 5 min   | [movement-blocked-reasons.workbook.json](workbooks/movement-blocked-reasons.workbook.json) |
-| Movement Latency Distribution | Success event latency_ms percentiles      | Monitor core loop responsiveness                | 5 min   | [#283](https://github.com/piquet-h/the-shifting-atlas/issues/283)                          |
+| Panel                         | Query Basis                               | Purpose                                         | Refresh | Workbook File                                                                                           |
+| ----------------------------- | ----------------------------------------- | ----------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------- |
+| Movement Success Rate         | Success vs Blocked events                 | Detect traversal friction & regressions         | 5 min   | [movement-navigation-dashboard.workbook.json](workbooks/movement-navigation-dashboard.workbook.json)    |
+| Blocked Reasons Breakdown     | Navigation.Move.Blocked grouped by reason | Prioritize fixes (no-exit vs invalid-direction) | 5 min   | [movement-navigation-dashboard.workbook.json](workbooks/movement-navigation-dashboard.workbook.json)    |
+| Movement Latency Distribution | Success event latency_ms percentiles      | Monitor core loop responsiveness                | 5 min   | [#283](https://github.com/piquet-h/the-shifting-atlas/issues/283)                                       |
 
 > **Implementation**: Each panel derives from `customEvents` queries shown above with clear thresholds & annotations referencing issue [#10](https://github.com/piquet-h/the-shifting-atlas/issues/10).
 >
 > **Workbook Files:**
 >
-> - **Movement Success Rate**: [movement-success-rate-workbook.json](./movement-success-rate-workbook.json) with import guide at [movement-success-rate-import-guide.md](./movement-success-rate-import-guide.md)
-> - **Blocked Reasons Breakdown**: [movement-blocked-reasons.workbook.json](workbooks/movement-blocked-reasons.workbook.json) with setup instructions in [workbooks/README.md](workbooks/README.md)
-> - **Other Workbooks**: See [docs/observability/workbooks/](workbooks/) directory for additional dashboards
+> - **Movement & Navigation**: [movement-navigation-dashboard.workbook.json](workbooks/movement-navigation-dashboard.workbook.json) with import guide at [movement-success-rate-import-guide.md](./movement-success-rate-import-guide.md)
+> - **Infrastructure Bicep Workbooks**: See [infrastructure/workbooks/](../../infrastructure/workbooks/) and [workbooks.md](./workbooks.md)
+> - **Exported Workbook Snapshots**: See [docs/observability/workbooks/](workbooks/) directory
 
 **Last Updated:** 2026-03-20  
 **Authoritative event registry:** [`shared/src/telemetryEvents.ts` — `GAME_EVENT_NAMES`](../../shared/src/telemetryEvents.ts) (single source of truth for all registered event names and current count)  

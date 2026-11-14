@@ -99,12 +99,6 @@ function main() {
             }
         }
 
-        // Deprecated DI patterns file check
-        if (file.endsWith('inversify-di-patterns.md') && !/DEPRECATION NOTICE/i.test(content)) {
-            issues.push({ type: 'deprecationBannerMissing', file: relativeToRoot(file) })
-            failed = true
-        }
-
         // World prompt inline check
         if (file.endsWith('world/.instructions.md')) {
             for (const starter of WORLD_INLINE_PROMPT_STARTERS) {

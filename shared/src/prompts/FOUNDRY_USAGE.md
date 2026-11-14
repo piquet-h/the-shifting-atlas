@@ -253,10 +253,10 @@ this.track('AI.Agent.TokenUsage', {
 
 ## Related Documentation
 
-- [Azure Foundry Agent Setup](./azure-foundry-agent-setup.md)
-- [Agentic AI & MCP Architecture](../architecture/agentic-ai-and-mcp.md)
-- [Prompt Template Schema](../../shared/src/prompts/schema.md)
-- [Prompt Template README](../../shared/src/prompts/README.md)
+- [Azure Foundry Agent Setup](../../../docs/developer-workflow/azure-foundry-agent-setup.md)
+- [Agentic AI & MCP Architecture](../../../docs/architecture/agentic-ai-and-mcp.md)
+- [Prompt Template Schema](./schema.md)
+- [Prompt Template README](./README.md)
 
 ---
 

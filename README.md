@@ -53,301 +53,90 @@ Common entrypoints:
 
 ## Quick Start (Local Dev)
 
----
-
-## Repository Layout
-
-```
-frontend/         React SPA (Vite + Tailwind CSS)
-backend/          Azure Functions App (HTTP + queue endpoints)
-shared/           Shared domain models, telemetry, utilities (published to GitHub Packages)
-infrastructure/   Bicep templates (Azure resources: SWA, Functions, Cosmos DB, Key Vault, App Insights)
-docs/             Documentation (portal: `docs/README.md`; MECE: vision → tenets → concepts → design-modules → architecture → workflows → roadmap → examples)
-scripts/          Automation (seed data, validation, deployment helpers)
-```
-
-**Notable**:
-
-- `backend/src/functions/*` – HTTP endpoints (player, location, movement, health)
-- `backend/src/handlers/*` – Business logic (separated from routing)
-- `shared/src/` – Domain models, telemetry constants, direction normalizer
-- `frontend/src/components/*` – React components (GameView, CommandInput, NavigationUI)
-- `frontend/src/contexts/*` – React contexts (PlayerContext for state management)
-- `docs/design-modules/` – Design Modules (gameplay contracts and invariants)
-- `docs/examples/` – Practical code walkthroughs (function endpoints, Gremlin queries, seed scripts)
-- `docs/architecture/frontend-components.md` – Frontend component architecture, style guide, accessibility patterns
-- `docs/ux/` – UX documentation, wireframes, accessibility guidelines
-
-**Learn more**:
-
-- [Local Development Setup](docs/developer-workflow/local-dev-setup.md)
-- [Frontend Component Architecture](docs/architecture/frontend-components.md)
-- [Accessibility Guidelines](docs/ux/accessibility-guidelines.md)
-
----
-
-## Current Implementation Status
-
-| Area                           | Status                         | Notes                                                                                 |
-| ------------------------------ | ------------------------------ | ------------------------------------------------------------------------------------- |
-| Frontend UI                    | Game view + routing + auth     | Landing homepage (hero + auth states); full game view with navigation (M3b ✅)        |
-| Backend Functions (`backend/`) | Player + location endpoints    | Source of all HTTP game actions (migrated from SWA)                                   |
-| Frontend API (co‑located)      | Removed                        | Replaced by unified backend Function App                                              |
-| Queue / world logic            | M3a complete (Event Backbone)  | Event schema, processor implemented; Service Bus integration and DLQ/replay validated |
-| Cosmos DB integration          | Dual persistence operational   | SQL API authoritative for players (ADR-004); Gremlin for world structure              |
-| Key Vault integration          | Provisioned (secrets)          | Non‑Cosmos secrets only; Cosmos uses Managed Identity                                 |
-| Infrastructure (Bicep)         | Core resources deployed        | SWA + Functions + Cosmos (Gremlin + SQL) + Key Vault + App Insights                   |
-| CI/CD                          | Workflows operational          | See `.github/workflows/` (YAML is source of truth)                                    |
-| Tracing (OpenTelemetry)        | Enriched telemetry operational | Span lifecycle + correlation IDs (M2 #312); M3 adds event correlation                 |
-
-**Read more**:
-
-- [Architecture Overview](docs/architecture/mvp-azure-architecture.md) (Current vs Planned)
-- [Roadmap](docs/roadmap.md) (Milestone status: M0–M1 ✅ closed, M2 ✅ closed 2025-11-23, M3 split into M3a/M3b/M3c — M3a ✅ closed 2025-11-30, M3b ✅ closed 2025-12-11; M3c active, M4–M7 planned)
-- [Examples](docs/examples/README.md) (Practical code walkthroughs)
-
----
-
-## Development Workflow
-
-### Dependency updates
-
-The root, `shared/`, `backend/`, and `frontend/` maintain separate manifests and
-lockfiles. Run updates under Node.js 22 and include development dependencies:
+Prerequisites: **Node.js 22.x** (`.nvmrc`). All packages are managed as **npm workspaces** with a single root `package-lock.json` — no registry token or per-folder install is required.
 
 ```bash
-npm update --save --include=dev
-npm update --save --include=dev --prefix shared
-npm update --save --include=dev --prefix backend
-npm update --save --include=dev --prefix frontend
+npm ci
+npm run build:shared
+npm run dev:fullstack:memory
 ```
 
-Review each manifest and lockfile, then run `npm run build`, `npm run lint`,
-`npm run typecheck`, and the package test suites. Consumers must continue to
-install `@piquet-h/shared` from GitHub Packages, not a local file reference.
-
-Keep major-version migrations separate from routine updates. In particular,
-ESLint 10 is outside the current React/accessibility plugins' peer ranges,
-Application Insights 3 requires replacing the backend's telemetry processors,
-and React 19, React Router 7, and Tailwind 4 require dedicated compatibility
-review. Do not use `npm audit fix --force` to bypass these constraints.
-Remaining audit findings in these trees and the SWA/axe development tools must
-be reviewed separately; a compatible update does not imply a clean audit.
-
-Prerequisites:
-
-- Node.js >= 22 (Azure Functions currently supports 22.x; do not use 24.x yet)
-- (Optional) Azure Functions Core Tools v4 (for direct Functions host runs)
-- **GitHub Personal Access Token** with `read:packages` scope (for accessing `@piquet-h/shared` from GitHub Packages)
-
-### GitHub Packages Authentication (Required)
-
-The project uses the private `@piquet-h/shared` package from GitHub Packages. Before installing dependencies, you need to authenticate:
-
-1. **Create a Personal Access Token (PAT)**:
-    - Go to: https://github.com/settings/tokens
-    - Click "Generate new token (classic)"
-    - Select scopes: `read:packages` (and `write:packages` if you need to publish)
-    - Generate and copy the token
-
-2. **Configure npm authentication** (choose one method):
-
-    **Option A: Environment variable (recommended)**
-
-    ```bash
-    export NODE_AUTH_TOKEN=ghp_your_token_here
-    ```
-
-    Add to your shell profile (`~/.bashrc`, `~/.zshrc`) to make it permanent:
-
-    ```bash
-    echo 'export NODE_AUTH_TOKEN=ghp_your_token_here' >> ~/.bashrc
-    source ~/.bashrc
-    ```
-
-    **Option B: User-level .npmrc** (alternative)
-
-    ```bash
-    echo "//npm.pkg.github.com/:_authToken=ghp_your_token_here" >> ~/.npmrc
-    ```
-
-The repository `.npmrc` file already contains the scope mapping (`@piquet-h:registry=https://npm.pkg.github.com`), so you only need to provide authentication.
-
-### Option A: Frontend Only
+Or run the frontend (`http://localhost:5173`) and backend Functions host (`http://localhost:7071`) in separate terminals:
 
 ```bash
-cd frontend
-npm install
-npm run dev
+npm run dev:frontend
+npm run dev:backend
 ```
 
-Visit: http://localhost:5173
-
-### Backend Functions (Unified)
-
-Install dependencies for each package:
-
-```bash
-cd shared && npm install
-cd ../backend && npm install
-cd ../frontend && npm install
-```
-
-Run frontend & backend separately during development:
-
-```bash
-cd frontend && npm run dev   # Vite dev server (http://localhost:5173)
-cd backend && npm start      # Azure Functions host (http://localhost:7071)
-```
-
-Health check (example):
-
-```bash
-curl http://localhost:7071/api/ping
-```
-
-The SWA CLI can still serve the static frontend, but API proxying is no longer required since Functions are decoupled; use simple CORS or a local reverse proxy if needed.
-
-### Build Artifacts
-
-```bash
-cd frontend
-npm run build
-```
-
-Output: `frontend/dist/` (referenced in `swa-cli.config.json` via `outputLocation`).
-
-### Authentication (Azure AD / Entra ID) – Single‑Tenant Configuration (MVP Implemented)
-
-The Static Web App uses Azure AD (Entra ID) Easy Auth and is currently locked to a single tenant:
-
-Tenant ID: `fecae6e9-696f-46e4-b1c8-5b471b499a24`
-
-`frontend/public/staticwebapp.config.json` contains a hard‑coded `openIdIssuer` pointing at that tenant (v2.0 endpoint). If multi‑tenant or environment‑specific tenant substitution is required later, reintroduce a `<TENANT_ID>` placeholder and a replacement step in the deploy workflow.
-
-Deployment still provisions / refreshes SWA app settings (`AAD_CLIENT_ID`, `AAD_TENANT_ID`, optional `AAD_CLIENT_SECRET`) using `az staticwebapp appsettings set` before `swa deploy`.
-
-Required GitHub repository (or org) Secrets (Settings → Secrets and variables → Actions):
-
-| Secret Name             | Source (Azure Portal)                                    | Used For                                 |
-| ----------------------- | -------------------------------------------------------- | ---------------------------------------- |
-| `AZURE_CLIENT_ID`       | App Registration → Overview → Application (client) ID    | Azure OIDC login + passed to SWA setting |
-| `AZURE_TENANT_ID`       | Azure AD (Entra) → Tenant / Directory ID                 | Azure OIDC login + tenant substitution   |
-| `AZURE_SUBSCRIPTION_ID` | Subscription overview                                    | Azure OIDC login (scopes actions)        |
-| `AZURE_CLIENT_SECRET`   | App Registration → Certificates & secrets (secret value) | (Optional) SWA AAD confidential flow     |
-
-SWA App Settings populated (mapped in workflow):
-
-| Setting Key         | Value Source             | Referenced In                                     |
-| ------------------- | ------------------------ | ------------------------------------------------- |
-| `AAD_CLIENT_ID`     | `AZURE_CLIENT_ID` secret | `staticwebapp.config.json` registration (by name) |
-| `AAD_TENANT_ID`     | `AZURE_TENANT_ID` secret | (Optional for app logic / diagnostics)            |
-| `AAD_CLIENT_SECRET` | `AZURE_CLIENT_SECRET`    | `staticwebapp.config.json` (by name, optional)    |
-
-Security notes:
-
-- The workflow never echoes secret values; only key names are shown.
-- Rotating the client secret requires updating the GitHub secret; the next deploy overwrites the SWA setting.
-- If you adopt certificate-based credentials later, remove `AZURE_CLIENT_SECRET` and rely on federated credentials.
-
-Local emulator:
-
-- The SWA CLI local auth emulator is used; if you need to test provider redirects locally you can configure a dev app registration redirect URI pointing to `http://localhost:4280/.auth/login/aad/callback`.
-
-Local auth convenience:
-
-- Run the whole stack via two terminals (frontend + backend). Add a lightweight proxy later if same-origin local testing is required.
-- Missing `AAD_CLIENT_ID` will simply result in anonymous local sessions in the frontend.
-- For pure public client (PKCE) local usage you may omit `AAD_CLIENT_SECRET`.
-- The SPA includes a lightweight `useAuth` hook which fetches `/.auth/me` and drives conditional UI (loading spinner, unauthenticated hero CTA -> provider login, authenticated personalized panel). Sign-out redirects to `/.auth/logout` and broadcasts a cross-tab refresh.
-
-Next steps (future hardening):
-
-- Optional: revert to placeholder + dynamic substitution for multi‑environment builds.
-- Manage Entra app via IaC (Bicep/Terraform) and output identifiers automatically.
-- Add a preflight script validating required app settings before deploy.
-
-## 6. Development Workflow
-
-See `docs/developer-workflow/local-dev-setup.md` for environment setup. Guidelines:
-
-- Keep handlers small & stateless; extract shared helpers once they appear twice.
-- Link a design doc section when opening a feature PR.
-- Prefer enqueueing a world event over cascading direct mutations.
-
-### Seeding World Data
-
-An idempotent seed script is available for initializing anchor locations and exits:
+Seed anchor locations (idempotent):
 
 ```bash
 node scripts/seed-anchor-locations.mjs
 ```
 
-The script is safe to re-run and outputs a summary of locations and exits processed. See [`docs/examples/seed-script-usage.md`](docs/examples/seed-script-usage.md) for detailed usage.
+Full setup, health endpoints, Cosmos DB Managed Identity (`az login`), and E2E configuration live in [`docs/developer-workflow/local-dev-setup.md`](docs/developer-workflow/local-dev-setup.md).
 
-**Guidelines**:
+---
 
-- Keep handlers small & stateless; extract shared helpers once they appear twice
-- Link a design doc section when opening a feature PR
-- Prefer enqueueing a world event over cascading direct mutations
+## Repository Layout
 
-**Read more**: [Local Development Setup](docs/developer-workflow/local-dev-setup.md)
+```
+frontend/         React SPA (Vite 8 + React 18 + Tailwind CSS)
+backend/          Azure Functions v4 App (HTTP endpoints, Service Bus queues, MCP tools)
+shared/           Internal npm workspace package (@piquet-h/shared: domain models, schemas, telemetry, prompts)
+infrastructure/   Bicep templates (SWA, Flex Consumption Functions, Service Bus, Cosmos DB, Foundry, App Insights)
+docs/             MECE documentation hierarchy (portal: docs/README.md)
+scripts/          CI/CD scope, standalone Function packager, milestone sweep, board-pulse, and world utilities
+```
+
+---
+
+## Current Implementation Status
+
+| Area                           | Status                         | Authoritative Reference                                                                                       |
+| ------------------------------ | ------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| Frontend SPA (`frontend/`)     | Deployed                       | [`docs/architecture/frontend-components.md`](docs/architecture/frontend-components.md)                        |
+| Backend Functions (`backend/`) | Deployed (HTTP + Queues + MCP) | [`docs/architecture/overview.md`](docs/architecture/overview.md)                                              |
+| Persistence (Cosmos DB)        | Gremlin graph + SQL API (MI)   | [`docs/adr/ADR-004-player-store-cutover-completion.md`](docs/adr/ADR-004-player-store-cutover-completion.md)  |
+| Infrastructure (`main.bicep`)  | Incremental IaC + Foundry      | [`infrastructure/README.md`](infrastructure/README.md)                                                        |
+| Observability                  | Telemetry registry + alerts    | [`docs/observability.md`](docs/observability.md)                                                              |
+| Milestones & Delivery Slices   | Live in GitHub Milestones      | [`docs/roadmap.md`](docs/roadmap.md)                                                                          |
+
+---
+
+## Development Workflow
+
+Run workspace build, lint, typecheck, formatting, and test suites from the repository root:
+
+```bash
+npm run build        # shared (with prompt bundle) -> backend -> frontend
+npm run lint         # ESLint + runtime/atlas invariants across workspaces
+npm run typecheck    # tsc --noEmit across workspaces
+npm test             # shared + backend + frontend unit & integration tests
+npm run format       # Prettier auto-format
+```
+
+- **Cross-package changes**: Ship coordinated `shared/` + `backend/`/`frontend/` changes in one atomic PR; see [`docs/developer-workflow/shared-versioning.md`](docs/developer-workflow/shared-versioning.md).
+- **Authentication**: SWA Entra EasyAuth configuration and local emulator notes live in [`docs/ux/azure-auth-notes.md`](docs/ux/azure-auth-notes.md).
+- **Dependency updates**: Managed via root `npm` workspaces and [`.github/dependabot.yml`](.github/dependabot.yml); keep major framework migrations in dedicated PRs.
 
 ---
 
 ## CI/CD Pipelines
 
-All workflows are defined in `.github/workflows/` and use GitHub Actions with Azure OIDC authentication (no raw secrets).
+Workflows live in [`.github/workflows/`](.github/workflows/) and use GitHub Actions on public runners with Azure OIDC authentication:
 
-**Key workflows**:
+- **PR Validation (`ci.yml`)**: Merge-candidate checkout, path-scoped parallel legs (`shared`, `backend-unit`, `backend-integration`, `frontend`, `a11y`, offline `infrastructure` Bicep build, `governance`), single `PR validation` summary gate, and `automerge` support.
+- **Continuous Delivery**: Sequential non-canceling deploys for Infrastructure (`deploy-infrastructure.yml`), Backend standalone Function archive (`backend-functions-deploy.yml`), and Frontend SWA (`frontend-swa-deploy.yml`), advancing `deployed-<unit>` tags and handing referenced `#NNN` issues to `state:testing`.
+- **Closed-Loop Milestone Engine**: `milestone-sweep.yml`, `milestone-sweep-cleanup.yml`, and `board-pulse.yml` refine, dispatch, verify, and close milestone slices.
 
-- **CI**: Lint, typecheck, test, accessibility scans (triggered on PRs/pushes)
-- **Infrastructure Deploy**: Bicep templates → Azure resources (Cosmos, Functions, SWA, Key Vault)
-- **Publish Shared**: Publish `@piquet-h/shared` to GitHub Packages
-- **Backend Deploy**: Build + deploy Functions (depends on shared package)
-- **Frontend Deploy**: Build + deploy Static Web App
-
-**Deployment order**: Infrastructure → Shared → Backend → Frontend
-
-**Read more**: [CI/CD Documentation](docs/developer-workflow/ci-cd.md) (links to all workflow files)
+**Read more**: [`docs/developer-workflow/ci-cd.md`](docs/developer-workflow/ci-cd.md)
 
 ---
 
 ## Contributing Guidelines
 
-1. Open an issue describing the change & referencing design doc section
-2. Keep functions stateless; configuration via env only
-3. Small focused PRs (single domain concern)
-4. Follow [Tenets](docs/tenets.md) (reliability, security, cost, operational excellence, performance, accessibility, narrative consistency)
-5. Review [Design Modules](docs/design-modules/README.md) for gameplay contracts before implementing features
-6. Use [Examples](docs/examples/README.md) as templates for common patterns
-
-### Issue Taxonomy (Simplified)
-
-Project planning uses a deliberately **minimal label + milestone scheme** (see `docs/developer-workflow/issue-taxonomy.md` for full details). Only these axes exist (former numeric implementation ordering / predictive scheduling removed):
-
-- `scope:` one of `core|world|traversal|ai|mcp|systems|observability|devx|security`
-- Type (no prefix) one of `feature|enhancement|refactor|infra|docs|spike|test`
-- Milestone (no label): `M0 Foundation`, `M1 Traversal`, `M2 Data Foundations`, `M3a Event Backbone`, `M3b Player UI & Telemetry`, `M3c Temporal PI-0`, `M4 AI Read`, `M5 Quality & Depth`, `M6 Systems`, `M7 Post-MVP Extensibility`
-
-Rules:
-
-- Exactly one of each labeled axis (`scope:`, Type). No `priority:` labels.
-- No `area:*`, `phase-*`, `status:*`, or `priority:*` labels—remove if encountered.
-- Internal module sub‑phases (e.g. traversal normalization N1..N5) stay in docs, not labels.
-
-Migration (2025-09-27): Old Phase 0/1/2 terminology maps to Milestones `M4 AI Read`, `M5 Quality & Depth`, `M6 Systems` respectively. Remove deprecated labels during triage.
-Migration (2025-09-27 later): Removed the `kind:` prefix; existing `kind:feature|…` labels replaced with bare type labels.
-Migration (2025-09-27 final): Removed `priority:` axis (ordering automation since deprecated). Subsequent cleanup (2025-10-09): removed legacy predictive scheduling / numeric ordering artifacts.
-
-### Coding Conventions (Early)
-
-- ES Modules everywhere (`"type": "module"`)
-- Async/await for all I/O
-- Avoid premature framework additions; keep dependencies lean
-- Formatting (indentation, quotes, commas) is auto-enforced by Prettier/ESLint; run `npm run format` locally before pushing
-
-**Read more**: [Developer Workflow](docs/developer-workflow/) | [Issue Taxonomy](docs/developer-workflow/issue-taxonomy.md)
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for mandatory TDD-first workflow and PR gates, and [`docs/developer-workflow/issue-taxonomy.md`](docs/developer-workflow/issue-taxonomy.md) for the single-`scope:` + `type` + `state:*` label taxonomy.
 
 ---
 

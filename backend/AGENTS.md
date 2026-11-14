@@ -18,14 +18,11 @@ It is intended to apply when editing anything under `backend/`.
 
 ## Local dev (preferred)
 
-- Install deps from `backend/`: `npm install`
-- Start watch/dev loop: `npm run watch` (or `npm start` if that is the current canonical script)
-- Run Functions host locally: `func host start` (or `npm start` if the script wraps it)
-
-If you need to choose persistence mode for tests/dev, use the provided scripts:
-
-- `npm run use:memory` (fast, no external dependencies)
-- `npm run use:cosmos` (requires Azure AD credentials)
+- Install workspaces from repository root: `npm ci && npm run build:shared`
+- Start watch/dev loop from `backend/` (`npm run dev`) or repo root (`npm run dev:backend`)
+- Switch local persistence mode (`backend/`):
+    - `npm run use:memory` (fast, no external dependencies)
+    - `npm run use:cosmos` (requires Azure AD credentials via `az login`)
 
 ## Backend configuration quick reference
 
@@ -71,6 +68,6 @@ Configure Service Bus via:
 
 - Do not block HTTP handlers on long-running work; enqueue async events instead.
 - Do not create Cosmos/Service Bus clients per invocation; reuse module-scope singletons.
-- Keep `@piquet-h/shared` on published registry versions, not `file:` references (warned by `verify:invariants`).
+- Keep `"@piquet-h/shared": "*"` via npm workspaces — never `file:` references (`verify:invariants` enforces this). Run `npm run package:backend` to verify standalone Function packaging.
 - Long-lived retained timers should call `.unref()`; lint now warns via `timer-unref-required`.
 - **Macro geography is authoritative in JSON atlas files (ADR-010).** Do not write macro area context to Gremlin vertices and do not add graph traversals to resolve macro areas. Resolution goes through `resolveMacroGenerationContext()` in `services/macroGenerationContext.ts`, which reads `macro:area:` / `macro:route:` / `macro:water:` tags from location vertices stamped at seed time. If you need to extend this for multi-settlement or runtime AI minting, read the `TODO(#984)` at the top of that file first.

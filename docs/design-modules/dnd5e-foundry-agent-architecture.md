@@ -197,11 +197,11 @@ The following targets apply to the D&D 5e tool surface (from the M4c epic closur
 | Operation | Latency Target (p95) |
 |-----------|---------------------|
 | SRD reference lookup (monster, spell, condition) | <100 ms (cached reads; SRD API warm) |
-| Entity state query (player, NPC, location) | <50 ms (direct Cosmos SQL read) |
+| Entity state query (player, NPC, location) | <50 ms (direct state store read) |
 
 **Tool call success rate target**: ≥99% across basic SRD oracle queries and entity state retrieval.
 - **Caching first**: warm-cache Tier-1 SRD content (goblins, common spells, standard conditions) at startup to guarantee sub-100 ms p95 for the most frequent lookups.
-- **Asynchronous world effects**: SRD lookups are synchronous and blocking; downstream world mutations triggered by agent decisions are async (Service Bus queue) per `docs/tenets.md#5-performance-efficiency`.
+- **Asynchronous world effects**: SRD lookups are synchronous and blocking; downstream world mutations triggered by agent decisions are queued asynchronously per [Tenet #5: Performance Efficiency](../tenets.md#5-performance-efficiency).
 - **Telemetry gate**: if `MCP.Tool.Invoked` p95 latency for D&D tools exceeds 100 ms in the AI Operations dashboard, investigate caching coverage before scaling the backend.
 
 Reference: `docs/tenets.md#5-performance-efficiency`.
