@@ -96,6 +96,7 @@ export class InMemoryLocationRepository implements ILocationRepository, IExitRep
                 description: location.description ?? existing.description,
                 exits: sortedExits,
                 terrain: location.terrain ?? existing.terrain,
+                mapPosition: location.mapPosition ?? existing.mapPosition,
                 exitAvailability: location.exitAvailability ?? existing.exitAvailability,
                 tags: location.tags ?? existing.tags,
                 version: newVersion ?? location.version

@@ -99,3 +99,29 @@ test('seedWorld: auto-applies macro atlas tags to known local anchor names', asy
     assert.ok(storedGate?.tags?.includes('macro:route:mw-route-harbor-to-northgate'))
     assert.ok(storedGate?.tags?.includes('macro:water:fjord-sound-head'))
 })
+
+test('two-tier atlas bindings: removes village lane from Long Reach atlas and stamps local mw-area-* sub-zones across Mosswell', async () => {
+    const longReach = (await import('../../src/data/theLongReachMacroAtlas.json', { with: { type: 'json' } })).default
+    const nodeIds = longReach.macroGraph.nodes.map((node: { id: string }) => node.id)
+    assert.equal(
+        nodeIds.includes('lr-corridor-mosswell-harbor-road'),
+        false,
+        'Village street lr-corridor-mosswell-harbor-road must not live in 1:1,000,000 landmass atlas'
+    )
+
+    const starterLocations = (await import('../../src/data/villageLocations.json', { with: { type: 'json' } })).default as Location[]
+    const repo = new TestLocationRepository()
+    await seedWorld({ blueprint: starterLocations, locationRepository: repo })
+
+    const byName = new Map((await repo.listAll()).map((loc) => [loc.name, loc]))
+
+    assert.ok(byName.get('North Gate')?.tags?.includes('macro:area:mw-area-north-valley-mouth'))
+    assert.ok(byName.get('South Farms')?.tags?.includes('macro:area:mw-area-south-farm-flats'))
+    assert.ok(byName.get('River Mouth Dunes')?.tags?.includes('macro:area:mw-area-river-delta-edge'))
+    assert.ok(byName.get('East Cottage North')?.tags?.includes('macro:area:mw-area-east-shelf-foots'))
+    assert.ok(byName.get('Mosswell River Jetty')?.tags?.includes('macro:area:mw-area-fjord-sound-head'))
+    assert.ok(
+        byName.get('The Lantern & Ladle \u2014 Guest Rooms')?.tags?.includes('macro:area:mw-area-fjord-sound-head'),
+        'Interior rooms must inherit the same local mw-area-* sub-zone as their exterior structure'
+    )
+})

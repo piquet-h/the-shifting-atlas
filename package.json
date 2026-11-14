@@ -34,6 +34,7 @@
         "verify:runtime-behavior": "npm run test:runtime-invariants --workspace the-shifting-atlas-backend",
         "map:boundaries": "node scripts/render-boundary-map.mjs",
         "map:long-reach": "node scripts/long-reach-authoring.mjs render",
+        "map:mosswell": "node scripts/long-reach-authoring.mjs render-mosswell",
         "report:long-reach": "node scripts/long-reach-authoring.mjs queue",
         "concept:issues:dry": "node scripts/generate-concept-issues.mjs",
         "concept:issues:create": "cross-env CREATE_CONCEPT_ISSUES=true node scripts/generate-concept-issues.mjs",

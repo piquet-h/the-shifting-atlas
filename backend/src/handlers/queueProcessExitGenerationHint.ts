@@ -544,13 +544,23 @@ export class QueueProcessExitGenerationHintHandler {
         } else {
             // 11. Materialize: create stub neighbor location and bidirectional exit
             const stubId = uuidv4()
-            const futureLocationPlan = planAtlasAwareFutureLocation((origin.terrain ?? 'open-plain') as TerrainType, dir, origin.tags)
+            const futureLocationPlan = planAtlasAwareFutureLocation(
+                (origin.terrain ?? 'open-plain') as TerrainType,
+                dir,
+                origin.tags,
+                undefined,
+                {
+                    originMapPosition: origin.mapPosition,
+                    travelDurationMs
+                }
+            )
 
             await this.locationRepository.upsert({
                 id: stubId,
                 name: futureLocationPlan.name,
                 description: futureLocationPlan.description,
                 terrain: futureLocationPlan.terrain,
+                ...(futureLocationPlan.mapPosition ? { mapPosition: futureLocationPlan.mapPosition } : {}),
                 tags: futureLocationPlan.tags,
                 exits: [],
                 exitAvailability: futureLocationPlan.exitAvailability,

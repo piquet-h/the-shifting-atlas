@@ -19,6 +19,17 @@ import { computeContentHash, firstScalar } from './utils/index.js'
 /** Sentinel used by coalesce() when travelDurationMs is absent on an exit edge. */
 const TRAVEL_DURATION_ABSENT = -1
 
+function hydrateVertexMapPosition(v: Record<string, unknown>): { x: number; y: number } | undefined {
+    const rawX = Array.isArray(v.mapPositionX) ? v.mapPositionX[0] : v.mapPositionX
+    const rawY = Array.isArray(v.mapPositionY) ? v.mapPositionY[0] : v.mapPositionY
+    const x = typeof rawX === 'number' ? rawX : typeof rawX === 'string' && rawX !== '' ? Number(rawX) : Number.NaN
+    const y = typeof rawY === 'number' ? rawY : typeof rawY === 'string' && rawY !== '' ? Number(rawY) : Number.NaN
+    if (Number.isFinite(x) && x >= 0 && x <= 1 && Number.isFinite(y) && y >= 0 && y <= 1) {
+        return { x, y }
+    }
+    return undefined
+}
+
 /** Cosmos (Gremlin) implementation of ILocationRepository. */
 @injectable()
 export class CosmosLocationRepository extends CosmosGremlinRepository implements ILocationRepository {
@@ -164,6 +175,7 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
                 id: String(v.id || v['id']),
                 name: firstScalar(v.name) || 'Unknown Location',
                 description: firstScalar(v.description) || '',
+                mapPosition: hydrateVertexMapPosition(v),
                 exits,
                 tags: Array.isArray(v.tags) ? (v.tags as string[]) : undefined,
                 version: typeof v.version === 'number' ? v.version : undefined,
@@ -185,6 +197,7 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
                 id: String(v.id || v['id']),
                 name: firstScalar(v.name) || 'Unknown Location',
                 description: firstScalar(v.description) || '',
+                mapPosition: hydrateVertexMapPosition(v),
                 tags: Array.isArray(v.tags) ? (v.tags as string[]) : undefined,
                 version: typeof v.version === 'number' ? v.version : undefined
                 // exits omitted for listAll to reduce query volume – caller may refetch if needed
@@ -343,6 +356,22 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
                     bindings[`tag${i}`] = location.tags[i]
                     query = query + `.property('tags', tag${i})`
                 }
+            }
+
+            // Persist optional normalized map coordinates
+            query = query + ".sideEffect(properties('mapPositionX').drop()).sideEffect(properties('mapPositionY').drop())"
+            if (
+                location.mapPosition &&
+                Number.isFinite(location.mapPosition.x) &&
+                location.mapPosition.x >= 0 &&
+                location.mapPosition.x <= 1 &&
+                Number.isFinite(location.mapPosition.y) &&
+                location.mapPosition.y >= 0 &&
+                location.mapPosition.y <= 1
+            ) {
+                bindings['mapPositionX'] = location.mapPosition.x
+                bindings['mapPositionY'] = location.mapPosition.y
+                query = query + ".property('mapPositionX', mapPositionX).property('mapPositionY', mapPositionY)"
             }
 
             // Persist exitAvailability as JSON-string vertex properties (deterministic, queryable)

@@ -8,8 +8,8 @@
  *   { nodes: WorldGraphNode[], edges: WorldGraphEdge[] }
  */
 import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
-import type { Direction, ForbiddenExitEntry, ForbiddenExitMotif, ForbiddenExitReveal } from '@piquet-h/shared'
-import { normalizeForbiddenEntry } from '@piquet-h/shared'
+import type { Direction, ForbiddenExitEntry, ForbiddenExitMotif, ForbiddenExitReveal, MapPosition } from '@piquet-h/shared'
+import { isValidMapPosition, normalizeForbiddenEntry } from '@piquet-h/shared'
 import type { Container } from 'inversify'
 import { inject, injectable, optional } from 'inversify'
 import type { IGremlinClient } from '../gremlin/gremlinClient.js'
@@ -25,6 +25,8 @@ export interface WorldGraphNode {
     id: string
     name: string
     tags?: string[]
+    /** Optional normalized `[0, 1]` Long Reach map coordinates when anchored. */
+    mapPosition?: MapPosition
     /**
      * Structural classification for frontier nodes.
      *
@@ -151,6 +153,7 @@ export class WorldGraphHandler extends BaseHandler {
                             id: loc.id,
                             name: loc.name || 'Unknown',
                             tags: loc.tags,
+                            ...(loc.mapPosition && isValidMapPosition(loc.mapPosition) ? { mapPosition: loc.mapPosition } : {}),
                             structuralClass: deriveStructuralClassFromTags(loc.tags)
                         }
                     ])
@@ -285,8 +288,20 @@ export class WorldGraphHandler extends BaseHandler {
                 const id = String(v.id || v['id'])
                 const name = Array.isArray(v.name) ? String((v.name as unknown[])[0]) : String(v.name || 'Unknown')
                 const tags = Array.isArray(v.tags) ? (v.tags as string[]) : undefined
+                const rawMapX = Array.isArray(v.mapPositionX) ? v.mapPositionX[0] : v.mapPositionX
+                const rawMapY = Array.isArray(v.mapPositionY) ? v.mapPositionY[0] : v.mapPositionY
+                const parsedPosition = {
+                    x: typeof rawMapX === 'number' ? rawMapX : typeof rawMapX === 'string' && rawMapX !== '' ? Number(rawMapX) : Number.NaN,
+                    y: typeof rawMapY === 'number' ? rawMapY : typeof rawMapY === 'string' && rawMapY !== '' ? Number(rawMapY) : Number.NaN
+                }
 
-                nodesById.set(id, { id, name, tags, structuralClass: deriveStructuralClassFromTags(tags) })
+                nodesById.set(id, {
+                    id,
+                    name,
+                    tags,
+                    ...(isValidMapPosition(parsedPosition) ? { mapPosition: parsedPosition } : {}),
+                    structuralClass: deriveStructuralClassFromTags(tags)
+                })
 
                 const pendingRaw = Array.isArray(v.exitAvailabilityPendingJson)
                     ? v.exitAvailabilityPendingJson[0]

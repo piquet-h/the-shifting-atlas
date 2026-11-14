@@ -58,6 +58,7 @@
                 "name": "Mosswell Fjord/Sound Head",
                 "nodeClass": "area",
                 "areaType": "harbor-basin",
+                "authoringReadiness": "ready",
                 "terrainIdentity": [
                     "sheltered deepwater inlet",
                     "tidal-turn basin",
@@ -66,6 +67,20 @@
                 "tags": [
                     "mosswell-core",
                     "waterfront"
+                ],
+                "localAnchors": [
+                    "Mosswell River Jetty",
+                    "Market Row",
+                    "General Goods Store",
+                    "Tailor & Weaver",
+                    "The Lantern & Ladle",
+                    "The Lantern & Ladle \u2014 Common Room",
+                    "The Lantern & Ladle \u2014 Guest Rooms",
+                    "Smithy",
+                    "Carpenter & Fletcher",
+                    "Stables Courtyard",
+                    "Manor Overlook",
+                    "Manor Office"
                 ]
             },
             {
@@ -73,6 +88,7 @@
                 "name": "River Delta Edge",
                 "nodeClass": "area",
                 "areaType": "delta-edge",
+                "authoringReadiness": "partial",
                 "terrainIdentity": [
                     "silt fans",
                     "dune tongues",
@@ -81,6 +97,12 @@
                 "tags": [
                     "harbor-outflow",
                     "soft-ground"
+                ],
+                "localAnchors": [
+                    "Lower Jetty Landing",
+                    "Harbor Warehouse",
+                    "Fish Market Wharf",
+                    "River Mouth Dunes"
                 ]
             },
             {
@@ -88,6 +110,7 @@
                 "name": "North Valley Mouth",
                 "nodeClass": "area",
                 "areaType": "valley-mouth",
+                "authoringReadiness": "ready",
                 "terrainIdentity": [
                     "river-cut approach",
                     "broadening valley floor",
@@ -96,6 +119,42 @@
                 "tags": [
                     "north-approach",
                     "frontier-anchor"
+                ],
+                "localAnchors": [
+                    "North Road",
+                    "North Gate",
+                    "Stone Circle Shrine",
+                    "Herb Garden Wall",
+                    "Herbalist Cottage",
+                    "North Cottage West",
+                    "North Cottage East"
+                ]
+            },
+            {
+                "id": "mw-area-south-farm-flats",
+                "name": "South Farm & Valley Flats",
+                "nodeClass": "area",
+                "areaType": "valley-mouth",
+                "authoringReadiness": "ready",
+                "terrainIdentity": [
+                    "fenced river-valley paddocks",
+                    "hedgerow drainage ditches",
+                    "alluvial floodplain clearings"
+                ],
+                "tags": [
+                    "south-approach",
+                    "frontier-anchor"
+                ],
+                "localAnchors": [
+                    "South Road",
+                    "South Farms",
+                    "Field Edge Track",
+                    "Southwest Path Junction",
+                    "Granary",
+                    "Drying Shed",
+                    "SW Cottage West",
+                    "SW Cottage North",
+                    "SW Cottage South"
                 ]
             },
             {
@@ -103,6 +162,7 @@
                 "name": "West Fiord Wall",
                 "nodeClass": "area",
                 "areaType": "fiord-wall",
+                "authoringReadiness": "blocked",
                 "terrainIdentity": [
                     "near-vertical stone",
                     "wet cliff faces",
@@ -118,6 +178,7 @@
                 "name": "East Shelf Foots",
                 "nodeClass": "area",
                 "areaType": "upland-approach",
+                "authoringReadiness": "ready",
                 "terrainIdentity": [
                     "gentler shelf rise",
                     "terraced footslopes",
@@ -126,6 +187,11 @@
                 "tags": [
                     "east-approach",
                     "lower-relief"
+                ],
+                "localAnchors": [
+                    "East Cottage North",
+                    "East Cottage Middle",
+                    "East Cottage South"
                 ]
             },
             {
@@ -301,6 +367,12 @@
                 "traversal": "open"
             },
             {
+                "from": "mw-corridor-south-farm-road",
+                "to": "mw-area-south-farm-flats",
+                "relation": "connects-to",
+                "traversal": "open"
+            },
+            {
                 "from": "mw-area-north-valley-mouth",
                 "to": "lr-corridor-northgate-valley",
                 "relation": "macro-transition",
@@ -311,6 +383,81 @@
                     "destinationAreaRef": "lr-corridor-northgate-valley",
                     "destinationReadiness": "ready",
                     "entrySegmentRef": "lr-area-northwatch-ranges",
+                    "requiresRouteHandoff": false
+                }
+            },
+            {
+                "from": "mw-area-north-valley-mouth",
+                "to": "lr-corridor-northgate-valley",
+                "relation": "macro-transition",
+                "traversal": "open",
+                "transition": {
+                    "direction": "northeast",
+                    "threshold": "Northeast valley track climbs out of Mosswell North Valley Mouth into Northgate corridor",
+                    "destinationAreaRef": "lr-corridor-northgate-valley",
+                    "destinationReadiness": "ready",
+                    "entrySegmentRef": "lr-area-northwatch-ranges",
+                    "requiresRouteHandoff": true,
+                    "handoffRouteRef": "mw-route-harbor-to-northgate"
+                }
+            },
+            {
+                "from": "mw-area-south-farm-flats",
+                "to": "mw-area-east-shelf-foots",
+                "relation": "macro-transition",
+                "traversal": "open",
+                "transition": {
+                    "direction": "east",
+                    "threshold": "Pasture ditches rise eastward onto local Mosswell East Shelf footslopes before the alpine divide",
+                    "destinationAreaRef": "mw-area-east-shelf-foots",
+                    "destinationReadiness": "ready",
+                    "requiresRouteHandoff": false
+                }
+            },
+            {
+                "from": "mw-area-south-farm-flats",
+                "to": "mw-area-west-fiord-wall",
+                "relation": "macro-transition",
+                "traversal": "constrained",
+                "barrierRefs": [
+                    "mw-barrier-west-cliffwall"
+                ],
+                "transition": {
+                    "direction": "west",
+                    "threshold": "Western field edges terminate at the sheer granite base of West Cliffwall",
+                    "destinationAreaRef": "mw-area-west-fiord-wall",
+                    "destinationReadiness": "blocked",
+                    "requiresRouteHandoff": false
+                }
+            },
+            {
+                "from": "mw-area-south-farm-flats",
+                "to": "lr-corridor-southfork-vale",
+                "relation": "macro-transition",
+                "traversal": "open",
+                "transition": {
+                    "direction": "south",
+                    "threshold": "Mosswell valley paddocks narrow southward into Long Reach Southfork Vale",
+                    "destinationAreaRef": "lr-corridor-southfork-vale",
+                    "destinationReadiness": "partial",
+                    "requiresRouteHandoff": true,
+                    "handoffRouteRef": "lr-route-mosswell-southfork"
+                }
+            },
+            {
+                "from": "mw-area-river-delta-edge",
+                "to": "mw-area-west-fiord-wall",
+                "relation": "macro-transition",
+                "traversal": "constrained",
+                "barrierRefs": [
+                    "mw-barrier-sound-deeps",
+                    "mw-barrier-west-cliffwall"
+                ],
+                "transition": {
+                    "direction": "west",
+                    "threshold": "Delta channels meet deep sound water and sheer western fiord walls",
+                    "destinationAreaRef": "mw-area-west-fiord-wall",
+                    "destinationReadiness": "blocked",
                     "requiresRouteHandoff": false
                 }
             },
@@ -360,6 +507,29 @@
                     "north": "road continuity follows valley mouth and gate-linked route",
                     "south": "routes flatten into farm-road and marsh-edge transitions",
                     "east": "terrain opens onto gentler shelf footslopes"
+                }
+            },
+            {
+                "anchorNode": "mw-area-north-valley-mouth",
+                "trends": {
+                    "north": "river-cut valley floor widens gently along the north-road track",
+                    "northeast": "valley track climbs steadily toward highland saddles",
+                    "west": "granite escarpment walls press close along the valley edge"
+                }
+            },
+            {
+                "anchorNode": "mw-area-south-farm-flats",
+                "trends": {
+                    "south": "fenced valley flats give way to rougher riverside scrub and bog-edge trackways",
+                    "east": "pasture margins rise onto wooded shelf footslopes",
+                    "west": "alluvial flats narrow sharply against wet fiord cliff walls"
+                }
+            },
+            {
+                "anchorNode": "mw-area-east-shelf-foots",
+                "trends": {
+                    "east": "terraced bush slopes climb toward high alpine divide passes",
+                    "west": "gentle footslopes descend back toward Mosswell harbor and river flats"
                 }
             },
             {

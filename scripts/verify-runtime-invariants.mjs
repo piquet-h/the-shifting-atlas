@@ -15,9 +15,7 @@ function findRepoRoot(startDir) {
     }
 }
 
-const ROOT = process.env.VERIFY_RUNTIME_INVARIANTS_ROOT
-    ? resolve(process.env.VERIFY_RUNTIME_INVARIANTS_ROOT)
-    : findRepoRoot(process.cwd())
+const ROOT = process.env.VERIFY_RUNTIME_INVARIANTS_ROOT ? resolve(process.env.VERIFY_RUNTIME_INVARIANTS_ROOT) : findRepoRoot(process.cwd())
 const CONSUMER_PACKAGES = ['backend/package.json', 'frontend/package.json']
 const SHARED_PACKAGE_NAME = '@piquet-h/shared'
 const DATA_FILES = {
@@ -29,6 +27,7 @@ const ISSUE_TYPES = [
     'shared-file-reference',
     'seed-location-id-format',
     'seed-exit-target-id-format',
+    'seed-location-map-position',
     'atlas-semantic-id-format',
     'atlas-reference-integrity',
     'atlas-node-count-threshold',
@@ -41,7 +40,20 @@ const ISSUE_TYPES = [
 // See: docs/adr/ADR-010-macro-geography-persistence-strategy.md, issue #984.
 const ATLAS_NODE_COUNT_WARN_THRESHOLD = 200
 const GUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-const VALID_DIRECTIONS = new Set(['north', 'south', 'east', 'west', 'northeast', 'northwest', 'southeast', 'southwest', 'up', 'down', 'in', 'out'])
+const VALID_DIRECTIONS = new Set([
+    'north',
+    'south',
+    'east',
+    'west',
+    'northeast',
+    'northwest',
+    'southeast',
+    'southwest',
+    'up',
+    'down',
+    'in',
+    'out'
+])
 const VALID_READINESS_STATES = new Set(['ready', 'partial', 'blocked', 'deferred'])
 
 function readJson(relativePath) {
@@ -75,6 +87,30 @@ function collectSeedIdIssues(issues) {
                 value: location?.id,
                 message: `${DATA_FILES.villageLocations} location "${location?.name || '<unknown>'}" must use a GUID id; found ${JSON.stringify(location?.id)}.`
             })
+        }
+
+        if (location?.mapPosition !== undefined) {
+            const pos = location.mapPosition
+            const valid =
+                pos &&
+                typeof pos === 'object' &&
+                typeof pos.x === 'number' &&
+                Number.isFinite(pos.x) &&
+                pos.x >= 0 &&
+                pos.x <= 1 &&
+                typeof pos.y === 'number' &&
+                Number.isFinite(pos.y) &&
+                pos.y >= 0 &&
+                pos.y <= 1
+            if (!valid) {
+                pushIssue(issues, {
+                    type: 'seed-location-map-position',
+                    file: DATA_FILES.villageLocations,
+                    locationName: location?.name,
+                    value: location?.mapPosition,
+                    message: `${DATA_FILES.villageLocations} location "${location?.name || '<unknown>'}" mapPosition must have finite numeric x and y in [0, 1]; found ${JSON.stringify(location?.mapPosition)}.`
+                })
+            }
         }
 
         for (const exit of Array.isArray(location?.exits) ? location.exits : []) {
@@ -258,7 +294,9 @@ function collectAtlasIssues(issues) {
     const longReachAtlas = readOptionalJson(DATA_FILES.longReachAtlas)
     const mosswellAtlas = readOptionalJson(DATA_FILES.mosswellAtlas)
 
-    const longReachNodeIds = new Set((longReachAtlas?.macroGraph?.nodes || []).map((node) => node?.id).filter((id) => typeof id === 'string'))
+    const longReachNodeIds = new Set(
+        (longReachAtlas?.macroGraph?.nodes || []).map((node) => node?.id).filter((id) => typeof id === 'string')
+    )
 
     // Combined node IDs across all known atlases — used for cross-file transition reference checks.
     const mosswellNodeIds = new Set((mosswellAtlas?.macroGraph?.nodes || []).map((node) => node?.id).filter((id) => typeof id === 'string'))
@@ -287,7 +325,10 @@ function collectAtlasIssues(issues) {
 
         const nodeIds = new Set(nodes.map((node) => node?.id).filter((id) => typeof id === 'string'))
         const barrierIds = new Set(
-            nodes.filter((node) => node?.nodeClass === 'barrier').map((node) => node?.id).filter((id) => typeof id === 'string')
+            nodes
+                .filter((node) => node?.nodeClass === 'barrier')
+                .map((node) => node?.id)
+                .filter((id) => typeof id === 'string')
         )
 
         nodes.forEach((node, index) => {

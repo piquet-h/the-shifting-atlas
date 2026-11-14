@@ -1,7 +1,7 @@
 import type { Direction } from '@piquet-h/shared'
 
 import type { AreaReadinessState } from './macroGenerationContext.js'
-import { resolveAreaTransitionEdge } from './macroGenerationContext.js'
+import { extractOrderedAreaRefs, resolveAreaTransitionEdgeForTags } from './macroGenerationContext.js'
 
 /**
  * Three-way outcome of a macro-area transition check.
@@ -44,36 +44,12 @@ export type TransitionResolution =
           barrierRefs?: string[]
       }
 
-const MACRO_AREA_PREFIX = 'macro:area:'
-
-/**
- * Resolves the three-way transition outcome for a given set of source location
- * tags and an attempted expansion direction.
- *
- * Logic:
- * 1. Extract the first `macro:area:<ref>` tag from `sourceTags`.  If absent,
- *    return `stay` — no atlas context to resolve against.
- * 2. Look up an authored `macro-transition` edge for `(areaRef, direction)`.
- *    If none exists, return `stay` — current-area continuation mode.
- * 3. If the edge's `destinationReadiness` is `ready`, return `transition` with
- *    the full handoff metadata from the atlas edge.
- * 4. Otherwise (`partial` | `blocked` | `deferred`), return `blocked` with the
- *    reason and any barrier context so callers can surface an explicit boundary.
- *
- * This function is pure: it reads only from in-process atlas data and performs
- * no I/O, no GUID generation, and no tag computation.
- *
- * @param sourceTags - Tags on the source location (may be `undefined`).
- * @param direction  - The expansion direction being attempted.
- */
 export function resolveTransitionOutcome(sourceTags: string[] | undefined, direction: Direction): TransitionResolution {
-    const areaTag = (sourceTags ?? []).find((tag) => tag.startsWith(MACRO_AREA_PREFIX))
-    if (!areaTag) {
+    if (extractOrderedAreaRefs(sourceTags).length === 0) {
         return { outcome: 'stay' }
     }
 
-    const areaRef = areaTag.slice(MACRO_AREA_PREFIX.length)
-    const edge = resolveAreaTransitionEdge(areaRef, direction)
+    const edge = resolveAreaTransitionEdgeForTags(sourceTags, direction)
     if (!edge) {
         return { outcome: 'stay' }
     }

@@ -1,9 +1,16 @@
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { describe, test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
-import { buildAuthoringQueue, renderOverlay, validateOverlay } from '../long-reach-authoring.mjs'
+import {
+    buildAuthoringQueue,
+    computeExplorationCoverage,
+    renderMosswellDistrictOverlay,
+    renderOverlay,
+    validateOverlay
+} from '../long-reach-authoring.mjs'
 
 const execAsync = promisify(execFile)
 const SCRIPT_PATH = fileURLToPath(new URL('../long-reach-authoring.mjs', import.meta.url))
@@ -278,5 +285,97 @@ describe('Long Reach authoring overlay and expansion queue', () => {
             ['lr-overlay-east']
         )
         assert.equal(report.queue[0].runtimeBoundaryPressure.total, 0)
+    })
+
+    test('computes baseline vs user-expanded exploration coverage metrics and infers missing coordinates from edges', () => {
+        const load = (rel) => JSON.parse(readFileSync(new URL(`../../${rel}`, import.meta.url), 'utf8'))
+        const seed = load('backend/src/data/villageLocations.json')
+        const calibration = load('docs/architecture/mosswell-fiordhead-topo50.calibration.json')
+        const landformGrid = load('backend/src/data/longReachLandformGrid.json')
+
+        const baseline = computeExplorationCoverage(seed, seed, calibration, landformGrid)
+        assert.equal(baseline.seedLocations, 35)
+        assert.equal(baseline.userExpandedLocations, 0)
+        assert.ok(baseline.maxDistanceFromJettyKm > 0.1 && baseline.maxDistanceFromJettyKm < 0.4)
+        assert.ok(baseline.districtWalkableCoveragePct > 0 && baseline.districtWalkableCoveragePct < 5)
+
+        // Build synthetic WorldGraphResponse with 3 player-generated rooms (2 lacking mapPosition) + synthetic pending/forbidden nodes
+        const northGateId = 'd0b2a7ea-9f4c-41d5-9b2d-7b4a0e6f1c3a'
+        const gen1 = '11111111-2222-4333-8444-555555555501'
+        const gen2 = '11111111-2222-4333-8444-555555555502'
+        const gen3 = '11111111-2222-4333-8444-555555555503'
+        const snapshot = {
+            nodes: [
+                ...seed.map((loc) => ({ id: loc.id, name: loc.name, tags: loc.tags, mapPosition: loc.mapPosition })),
+                {
+                    id: gen1,
+                    name: 'North Road Northeast Reach',
+                    tags: ['macro:area:lr-corridor-northgate-valley', 'frontier:depth:1'],
+                    mapPosition: { x: 0.1912, y: 0.5601 }
+                },
+                {
+                    id: gen2,
+                    name: 'North Road Northeast Reach II',
+                    tags: ['macro:area:lr-corridor-northgate-valley', 'frontier:depth:2']
+                    // mapPosition omitted -> must be inferred via edge direction + travelDurationMs
+                },
+                {
+                    id: gen3,
+                    name: 'South Road Eastward Reach',
+                    tags: ['settlement:mosswell', 'macro:area:mw-area-east-shelf-foots', 'frontier:depth:1']
+                },
+                { id: `pending:${gen2}:north`, name: 'Unexplored Open Plain', tags: ['pending:synthetic'] },
+                { id: `forbidden:${northGateId}:west`, name: 'Impassable Cliff', tags: ['forbidden:synthetic'] }
+            ],
+            edges: [
+                { fromId: northGateId, toId: gen1, direction: 'northeast', travelDurationMs: 600_000 },
+                { fromId: gen1, toId: gen2, direction: 'north', travelDurationMs: 900_000 },
+                {
+                    fromId: 'ec88e970-9d2b-4a34-9804-6b2afd5adb9e',
+                    toId: gen3,
+                    direction: 'east',
+                    travelDurationMs: 600_000
+                },
+                { fromId: gen2, toId: `pending:${gen2}:north`, direction: 'north', pending: true },
+                { fromId: northGateId, toId: `forbidden:${northGateId}:west`, direction: 'west', forbidden: true }
+            ]
+        }
+
+        const expanded = computeExplorationCoverage(snapshot, seed, calibration, landformGrid)
+        assert.equal(expanded.seedLocations, 35)
+        assert.equal(expanded.userExpandedLocations, 3)
+        assert.equal(expanded.pendingFrontierHooks, 1)
+        assert.ok(expanded.maxDistanceFromJettyKm > baseline.maxDistanceFromJettyKm + 0.8)
+        assert.ok(expanded.districtWalkableCoveragePct > baseline.districtWalkableCoveragePct)
+        assert.equal(expanded.byArea['mw-area-east-shelf-foots'].userExpanded, 1)
+        assert.equal(expanded.byArea['lr-corridor-northgate-valley'].userExpanded, 2)
+    })
+
+    test('renders 1:50k Mosswell district overlay with hamlet street inset, user-expanded nodes, and synced PNG preview', () => {
+        const load = (rel) => JSON.parse(readFileSync(new URL(`../../${rel}`, import.meta.url), 'utf8'))
+        const seed = load('backend/src/data/villageLocations.json')
+        const mosswellAtlas = load('backend/src/data/mosswellMacroAtlas.json')
+        const calibration = load('docs/architecture/mosswell-fiordhead-topo50.calibration.json')
+        const landformGrid = load('backend/src/data/longReachLandformGrid.json')
+
+        const svg = renderMosswellDistrictOverlay({
+            worldGraph: seed,
+            seedLocations: seed,
+            mosswellAtlas,
+            calibration,
+            landformGrid,
+            sourceHref: 'mosswell-fiordhead-topo50.jpg'
+        })
+
+        assert.match(svg, /aria-label="Milford Sound 1:50,000 district map"/)
+        assert.match(svg, /aria-label="Mosswell hamlet street inset"/)
+        assert.match(svg, /aria-label="User exploration coverage summary"/)
+        assert.match(svg, /Player-expanded rooms:\s*0/)
+        assert.equal(readFileSync(new URL('../../docs/architecture/mosswell-fiordhead-overlay.svg', import.meta.url), 'utf8'), svg)
+
+        const pngHeader = readFileSync(new URL('../../docs/architecture/mosswell-fiordhead-overlay.png', import.meta.url))
+        assert.equal(pngHeader.toString('ascii', 1, 4), 'PNG')
+        assert.equal(pngHeader.readUInt32BE(16), 2400)
+        assert.equal(pngHeader.readUInt32BE(20), 1536)
     })
 })

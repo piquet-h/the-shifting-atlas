@@ -22,19 +22,33 @@ async function createFixtureRepo({ backendDependency, frontendDependency, dataFi
     await mkdir(resolve(root, 'frontend'), { recursive: true })
     await mkdir(resolve(root, 'backend/src/data'), { recursive: true })
 
-    await writeFile(resolve(root, 'backend/package.json'), JSON.stringify({
-        name: 'fixture-backend',
-        dependencies: {
-            '@piquet-h/shared': backendDependency
-        }
-    }, null, 2))
+    await writeFile(
+        resolve(root, 'backend/package.json'),
+        JSON.stringify(
+            {
+                name: 'fixture-backend',
+                dependencies: {
+                    '@piquet-h/shared': backendDependency
+                }
+            },
+            null,
+            2
+        )
+    )
 
-    await writeFile(resolve(root, 'frontend/package.json'), JSON.stringify({
-        name: 'fixture-frontend',
-        dependencies: {
-            '@piquet-h/shared': frontendDependency
-        }
-    }, null, 2))
+    await writeFile(
+        resolve(root, 'frontend/package.json'),
+        JSON.stringify(
+            {
+                name: 'fixture-frontend',
+                dependencies: {
+                    '@piquet-h/shared': frontendDependency
+                }
+            },
+            null,
+            2
+        )
+    )
 
     for (const [relativePath, content] of Object.entries(dataFiles)) {
         await mkdir(resolve(root, relativePath, '..'), { recursive: true })
@@ -260,8 +274,7 @@ test('verify-runtime-invariants: fails when an atlas semantic id is replaced wit
     dataFiles['backend/src/data/theLongReachMacroAtlas.json'].macroGraph.edges[0].to = '11111111-1111-1111-1111-111111111111'
     dataFiles['backend/src/data/theLongReachMacroAtlas.json'].macroGraph.directionalTrendProfiles[0].anchorNode =
         '11111111-1111-1111-1111-111111111111'
-    dataFiles['backend/src/data/theLongReachMacroAtlas.json'].mosswellPlacement.macroAreaRef =
-        '11111111-1111-1111-1111-111111111111'
+    dataFiles['backend/src/data/theLongReachMacroAtlas.json'].mosswellPlacement.macroAreaRef = '11111111-1111-1111-1111-111111111111'
 
     const root = await createFixtureRepo({
         backendDependency: '^0.3.141',
@@ -496,7 +509,10 @@ test('verify-runtime-invariants: fails when requiresRouteHandoff is true but han
 
         const payload = JSON.parse(result.stdout)
         assert.equal(payload.counts['atlas-transition-contradiction'], 1)
-        assert.match(payload.issues.find((i) => i.type === 'atlas-transition-contradiction').message, /requiresRouteHandoff.*handoffRouteRef/i)
+        assert.match(
+            payload.issues.find((i) => i.type === 'atlas-transition-contradiction').message,
+            /requiresRouteHandoff.*handoffRouteRef/i
+        )
     } finally {
         await rm(root, { recursive: true, force: true })
     }
@@ -585,6 +601,27 @@ test('verify-runtime-invariants: accepts npm workspace "*" dependency range for 
         assert.equal(result.exitCode, 0)
         const payload = JSON.parse(result.stdout)
         assert.equal(payload.counts['shared-file-reference'], 0)
+    } finally {
+        await rm(root, { recursive: true, force: true })
+    }
+})
+
+test('verify-runtime-invariants: rejects out-of-range seed mapPosition coordinates', async () => {
+    const dataFiles = buildValidAtlasData()
+    dataFiles['backend/src/data/villageLocations.json'][0].mapPosition = { x: 1.25, y: -0.05 }
+
+    const root = await createFixtureRepo({
+        backendDependency: '*',
+        frontendDependency: '*',
+        dataFiles
+    })
+
+    try {
+        const result = await runVerifier(root, ['--strict', '--json'])
+        assert.equal(result.exitCode, 1)
+        const payload = JSON.parse(result.stdout)
+        assert.equal(payload.counts['seed-location-map-position'], 1)
+        assert.match(payload.issues[0].message, /mapPosition/i)
     } finally {
         await rm(root, { recursive: true, force: true })
     }

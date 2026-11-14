@@ -4,6 +4,7 @@ import {
     type Direction,
     type ExitAvailabilityMetadata,
     type ForbiddenExitEntry,
+    type MapPosition,
     type TerrainType
 } from '@piquet-h/shared'
 // TODO(#984) ADR-010 revisit triggers T1/T2: if multi-settlement cross-area traversal queries
@@ -11,7 +12,9 @@ import {
 // this module must be replaced with a Gremlin-backed alternative. See ADR-010 and issue #984.
 import mosswellMacroAtlas from '../data/mosswellMacroAtlas.json' with { type: 'json' }
 import theLongReachMacroAtlas from '../data/theLongReachMacroAtlas.json' with { type: 'json' }
+import { defaultTravelDurationForDirection } from '../handlers/utils/travelDurationHeuristics.js'
 import { inferStructuralArchetype, type PendingExitMetadata } from './frontierContext.js'
+import { projectMapPosition, sampleLongReachLandform, type SampledGeographicCue } from './longReachLandformSampler.js'
 
 interface DirectionalTrendProfile {
     anchorNode: string
@@ -160,8 +163,10 @@ export interface MacroTransitionEdge {
 
 export interface MacroGenerationContext {
     expansionDirection: Direction
-    /** Atlas area reference key carried in tags like `macro:area:<ref>`. */
+    /** Most specific active atlas area reference key carried in tags like `macro:area:<ref>`. */
     areaRef?: string
+    /** Containing landmass macro area reference key when `areaRef` is a settlement sub-area (`mw-*`). */
+    parentAreaRef?: string
     /** Atlas route reference keys carried in tags like `macro:route:<ref>`. */
     routeRefs: string[]
     waterContext?: string
@@ -169,6 +174,14 @@ export interface MacroGenerationContext {
     routeContinuityHint?: string
     preferredFutureNodePrefix?: string
     barrierSemantics: string[]
+    /** Sampled physical relief/hydrography cue when normalized coordinates (`mapPosition`) are known. */
+    geographicCue?: SampledGeographicCue
+}
+
+export interface PlanFutureLocationSpatialOptions {
+    originMapPosition?: MapPosition
+    travelDurationMs?: number
+    speedMetersPerMinute?: number
 }
 
 export interface AtlasConstrainedExitAvailability {
@@ -200,6 +213,7 @@ export interface AtlasAwareFutureLocationPlan {
     name: string
     description: string
     tags: string[]
+    mapPosition?: MapPosition
     exitAvailability?: ExitAvailabilityMetadata
     /**
      * Structured frontier context for each pending exit direction.
@@ -249,6 +263,21 @@ function extractFirstTag(tags: string[] | undefined, prefix: string): string | u
 
 function extractAllTags(tags: string[] | undefined, prefix: string): string[] {
     return (tags || []).filter((tag) => tag.startsWith(prefix)).map((tag) => tag.slice(prefix.length))
+}
+
+function isSettlementSubAreaRef(areaRef: string): boolean {
+    return areaRef.startsWith('mw-')
+}
+
+/**
+ * Returns `macro:area:*` references ordered from most-specific settlement sub-area (`mw-*`)
+ * to broader landmass basin (`lr-*`), preserving insertion order within each tier.
+ */
+export function extractOrderedAreaRefs(tags: string[] | undefined): string[] {
+    const raw = unique(extractAllTags(tags, 'macro:area:'))
+    const local = raw.filter(isSettlementSubAreaRef)
+    const macro = raw.filter((ref) => !isSettlementSubAreaRef(ref))
+    return [...local, ...macro]
 }
 
 function extractFrontierDepth(tags: string[] | undefined): number {
@@ -329,13 +358,14 @@ function getPreferredFutureNodePrefix(routes: ContinuityRoute[]): string | undef
     return routes.find((route) => route.frontierPolicy?.preferredFutureNodePrefix)?.frontierPolicy?.preferredFutureNodePrefix
 }
 
-function buildBarrierSemantics(areaRef: string | undefined): string[] {
-    if (!areaRef) return []
+function buildBarrierSemantics(areaRefs: string[]): string[] {
+    if (areaRefs.length === 0) return []
+    const areaRefSet = new Set(areaRefs)
 
     const barrierIds = unique(
         ALL_ATLASES.flatMap((atlas) =>
             (atlas.macroGraph?.edges || [])
-                .filter((edge) => edge.from === areaRef || edge.to === areaRef)
+                .filter((edge) => areaRefSet.has(edge.from) || areaRefSet.has(edge.to))
                 .flatMap((edge) => edge.barrierRefs || [])
         )
     )
@@ -351,25 +381,34 @@ function buildBarrierSemantics(areaRef: string | undefined): string[] {
     return barrierIds.map((id) => barrierNamesById.get(id) || id)
 }
 
-export function resolveMacroGenerationContext(tags: string[] | undefined, expansionDirection: Direction): MacroGenerationContext {
-    const areaRef = extractFirstTag(tags, 'macro:area:')
+export function resolveMacroGenerationContext(
+    tags: string[] | undefined,
+    expansionDirection: Direction,
+    mapPosition?: MapPosition
+): MacroGenerationContext {
+    const orderedAreaRefs = extractOrderedAreaRefs(tags)
+    const areaRef = orderedAreaRefs[0]
+    const parentAreaRef = orderedAreaRefs.find((ref) => ref !== areaRef && !isSettlementSubAreaRef(ref))
     const routeRefs = extractAllTags(tags, 'macro:route:')
     const waterContext = extractFirstTag(tags, 'macro:water:')
     const routes = findRoutes(routeRefs)
-    const directionTerrainTrend = findDirectionalTrend(areaRef, expansionDirection)
+    const directionTerrainTrend = orderedAreaRefs.map((ref) => findDirectionalTrend(ref, expansionDirection)).find(Boolean)
     const routeContinuityHint = buildRouteContinuityHint(routes)
     const preferredFutureNodePrefix = getPreferredFutureNodePrefix(routes)
-    const barrierSemantics = buildBarrierSemantics(areaRef)
+    const barrierSemantics = buildBarrierSemantics(orderedAreaRefs)
+    const geographicCue = mapPosition ? sampleLongReachLandform(mapPosition) : undefined
 
     return {
         expansionDirection,
         areaRef,
+        ...(parentAreaRef ? { parentAreaRef } : {}),
         routeRefs,
         waterContext,
         directionTerrainTrend,
         routeContinuityHint,
         preferredFutureNodePrefix,
-        barrierSemantics
+        barrierSemantics,
+        ...(geographicCue ? { geographicCue } : {})
     }
 }
 
@@ -559,6 +598,19 @@ export function selectAtlasAwareTerrain(baseTerrain: TerrainType, context: Macro
         return 'hilltop'
     }
 
+    if (context.geographicCue) {
+        const { band, nearWater } = context.geographicCue
+        if (band === 'fiord-water' || band === 'open-water') {
+            return 'narrow-corridor'
+        }
+        if (band === 'alpine-ridge' || band === 'steep-escarpment' || band === 'upland-basin') {
+            return 'hilltop'
+        }
+        if (band === 'valley-floor' && nearWater) {
+            return 'riverbank'
+        }
+    }
+
     return baseTerrain
 }
 
@@ -601,7 +653,9 @@ export function buildAtlasConstrainedExitAvailability(
     terrain: TerrainType,
     context: MacroGenerationContext,
     backDirection: Direction,
-    tags?: string[]
+    tags?: string[],
+    currentMapPosition?: MapPosition,
+    stepDurationMs?: number
 ): AtlasConstrainedExitAvailability {
     const guidance = getTerrainGuidance(terrain)
     const candidateDirections =
@@ -629,12 +683,36 @@ export function buildAtlasConstrainedExitAvailability(
         }
     }
 
+    if (currentMapPosition) {
+        const probeDirs = unique([...pendingDirections, context.expansionDirection]).filter((dir) => dir !== backDirection)
+        for (const dir of probeDirs) {
+            if (forbidden[dir]) continue
+            const nextPos = projectMapPosition(currentMapPosition, dir, stepDurationMs ?? defaultTravelDurationForDirection(dir))
+            const nextCue = sampleLongReachLandform(nextPos)
+            if (nextCue.isWater) {
+                forbidden[dir] = {
+                    reason:
+                        nextCue.band === 'fiord-water'
+                            ? 'deep sound water bars overland passage without watercraft'
+                            : 'open sea water bars overland passage without watercraft',
+                    motif: 'water',
+                    reveal: 'onTryMove'
+                }
+            }
+        }
+    }
+
     const pending = pendingDirections.reduce<Partial<Record<Direction, string>>>((acc, direction) => {
         if (forbidden[direction]) {
             return acc
         }
 
-        const directionContext = tags ? resolveMacroGenerationContext(tags, direction) : { ...context, expansionDirection: direction }
+        const nextPos = currentMapPosition
+            ? projectMapPosition(currentMapPosition, direction, stepDurationMs ?? defaultTravelDurationForDirection(direction))
+            : undefined
+        const directionContext = tags
+            ? resolveMacroGenerationContext(tags, direction, nextPos)
+            : { ...context, expansionDirection: direction }
         acc[direction] = buildAtlasAwarePendingDescription(terrain, directionContext)
         return acc
     }, {})
@@ -728,6 +806,18 @@ export function resolveAreaTransitionEdge(areaRef: string | undefined, direction
     return undefined
 }
 
+/**
+ * Resolves the most-specific outbound {@link MacroTransitionEdge} across all `macro:area:*` tags,
+ * checking local settlement sub-areas (`mw-*`) before landmass areas (`lr-*`).
+ */
+export function resolveAreaTransitionEdgeForTags(tags: string[] | undefined, direction: Direction): MacroTransitionEdge | undefined {
+    for (const areaRef of extractOrderedAreaRefs(tags)) {
+        const edge = resolveAreaTransitionEdge(areaRef, direction)
+        if (edge) return edge
+    }
+    return undefined
+}
+
 export function getMacroPropagationTags(tags: string[] | undefined, realmKey?: string): string[] {
     const propagated = (tags || []).filter(
         (tag) =>
@@ -801,8 +891,15 @@ export function planAtlasAwareFutureLocation(
     baseTerrain: TerrainType,
     expansionDirection: Direction,
     sourceTags: string[] | undefined,
-    realmKey?: string
+    realmKey?: string,
+    spatialOptions?: PlanFutureLocationSpatialOptions
 ): AtlasAwareFutureLocationPlan {
+    const stepDurationMs = spatialOptions?.travelDurationMs ?? defaultTravelDurationForDirection(expansionDirection)
+    const projectedMapPosition = spatialOptions?.originMapPosition
+        ? projectMapPosition(spatialOptions.originMapPosition, expansionDirection, stepDurationMs, {
+              speedMetersPerMinute: spatialOptions.speedMetersPerMinute
+          })
+        : undefined
     const propagatedTags = getMacroPropagationTags(sourceTags, realmKey)
     const nextFrontierDepth = Math.max(extractFrontierDepth(propagatedTags) + 1, 1)
     const tags = unique([...propagatedTags.filter((tag) => !tag.startsWith('frontier:depth:')), `frontier:depth:${nextFrontierDepth}`])
@@ -828,19 +925,29 @@ export function planAtlasAwareFutureLocation(
     // - blocked / deferred: this node is an authoring boundary — runtime must not commit to
     //   the destination area.  Keep source area tags, generate boundary-specific content,
     //   and suppress pending exits to prevent endless filler node spawning.
-    const sourceAreaRef = extractFirstTag(tags, 'macro:area:')
-    const transitionEdge = resolveAreaTransitionEdge(sourceAreaRef, expansionDirection)
+    const transitionEdge = resolveAreaTransitionEdgeForTags(tags, expansionDirection)
     const isBoundaryBlocked =
         transitionEdge !== undefined &&
         (transitionEdge.transition.destinationReadiness === 'blocked' || transitionEdge.transition.destinationReadiness === 'deferred')
 
     if (transitionEdge && !isBoundaryBlocked) {
-        // Apply destination area: replace source area tag in-place.
-        const srcAreaIdx = tags.findIndex((tag) => tag.startsWith('macro:area:'))
-        const destAreaTag = `macro:area:${transitionEdge.transition.destinationAreaRef}`
-        if (srcAreaIdx !== -1) {
-            tags[srcAreaIdx] = destAreaTag
+        const destRef = transitionEdge.transition.destinationAreaRef
+        const destAreaTag = `macro:area:${destRef}`
+        if (isSettlementSubAreaRef(destRef)) {
+            // Local sub-area transition inside Mosswell: replace existing mw-* sub-area while keeping lr-* landmass tag
+            const localIdx = tags.findIndex((tag) => tag.startsWith('macro:area:mw-'))
+            if (localIdx !== -1) {
+                tags[localIdx] = destAreaTag
+            } else {
+                tags.push(destAreaTag)
+            }
         } else {
+            // Landmass-level transition: step out of settlement sub-areas and replace area tags with destination landmass area
+            for (let i = tags.length - 1; i >= 0; i--) {
+                if (tags[i].startsWith('macro:area:') || tags[i].startsWith('settlement:')) {
+                    tags.splice(i, 1)
+                }
+            }
             tags.push(destAreaTag)
         }
 
@@ -853,7 +960,7 @@ export function planAtlasAwareFutureLocation(
         }
     }
 
-    const macroContext = resolveMacroGenerationContext(tags, expansionDirection)
+    const macroContext = resolveMacroGenerationContext(tags, expansionDirection, projectedMapPosition)
     const selectedTerrain = selectAtlasAwareTerrain(baseTerrain, macroContext)
 
     // For blocked/deferred boundary nodes: generate boundary-specific name and description,
@@ -866,6 +973,7 @@ export function planAtlasAwareFutureLocation(
             name,
             description,
             tags,
+            ...(projectedMapPosition ? { mapPosition: projectedMapPosition } : {}),
             exitAvailability: undefined,
             pendingExitContext: undefined,
             macroContext,
@@ -881,7 +989,14 @@ export function planAtlasAwareFutureLocation(
     const name = suggestFutureNodeName(selectedTerrain, macroContext, nextFrontierDepth)
     const description = buildFutureLocationDescription(name, selectedTerrain, macroContext, nextFrontierDepth)
     const backDirection = getOppositeDirection(expansionDirection)
-    const availability = buildAtlasConstrainedExitAvailability(selectedTerrain, macroContext, backDirection, tags)
+    const availability = buildAtlasConstrainedExitAvailability(
+        selectedTerrain,
+        macroContext,
+        backDirection,
+        tags,
+        projectedMapPosition,
+        stepDurationMs
+    )
 
     // Build structured pending exit context alongside the legacy string reasons.
     // Keys correspond to directions in availability.pending.
@@ -892,7 +1007,10 @@ export function planAtlasAwareFutureLocation(
     if (availability.pending) {
         for (const [dir] of Object.entries(availability.pending)) {
             const direction = dir as Direction
-            const dirContext = resolveMacroGenerationContext(tags, direction)
+            const nextPos = projectedMapPosition
+                ? projectMapPosition(projectedMapPosition, direction, defaultTravelDurationForDirection(direction))
+                : undefined
+            const dirContext = resolveMacroGenerationContext(tags, direction, nextPos)
             pendingExitContext[direction] = buildAtlasAwarePendingMetadata(dirContext)
         }
     }
@@ -902,6 +1020,7 @@ export function planAtlasAwareFutureLocation(
         name,
         description,
         tags,
+        ...(projectedMapPosition ? { mapPosition: projectedMapPosition } : {}),
         exitAvailability: availability.pending || availability.forbidden ? availability : undefined,
         pendingExitContext: Object.keys(pendingExitContext).length > 0 ? pendingExitContext : undefined,
         macroContext

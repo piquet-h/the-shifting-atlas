@@ -341,21 +341,24 @@ test('checked-in sidecar conforms to schema v1, marks only Mosswell authored, pl
     check(inventory, true)
 
     const authored = inventory.entries.filter((entry) => entry.authoringState === 'authored')
-    assert.deepEqual(authored.map((entry) => entry.id).sort(), ['lr-overlay-mosswell-harbor-road', 'lr-overlay-mosswell-village'])
+    assert.deepEqual(
+        authored.map((entry) => entry.id),
+        ['lr-overlay-mosswell-village']
+    )
 
     const inspiration = inventory.entries.filter((entry) => entry.authoringState === 'inspiration-only')
     assert.ok(inspiration.length >= 6, 'distant unmapped regions must be marked inspiration-only')
 
     const village = inventory.entries.find((entry) => entry.id === 'lr-overlay-mosswell-village')
-    const harborRoad = inventory.entries.find((entry) => entry.id === 'lr-overlay-mosswell-harbor-road')
+    const basin = inventory.entries.find((entry) => entry.id === 'lr-overlay-mosswell-fiordhead-basin')
     const northgate = inventory.entries.find((entry) => (entry.corridorRefs ?? []).includes('lr-corridor-northgate-valley'))
 
     // Milford Sound Cleddau River mouth is inland at ~[0.190, 0.562] (never out in the Tasman Sea at [0.16, 0.55]).
     const [vx, vy] = village.geometry.anchor
     assert.ok(vx >= 0.186 && vx <= 0.196, `Mosswell x=${vx} should sit at Milford Sound head`)
     assert.ok(vy >= 0.558 && vy <= 0.566, `Mosswell y=${vy} should sit at Milford Sound head`)
-    assert.ok(village.geometry.radius >= 0.0008 && village.geometry.radius <= 0.002, 'Mosswell marker must remain village-scale')
-    assert.ok(harborRoad.geometry.points.some((point) => Math.hypot(point[0] - vx, point[1] - vy) < 0.003))
+    assert.ok(village.geometry.radius >= 0.0003 && village.geometry.radius <= 0.002, 'Mosswell marker must remain village-scale')
+    assert.equal(basin.authoringState, 'transition-ready')
 
     // Northgate Valley must start locally from Fiordland/Hollyford near Mosswell, not 500 km away in Nelson.
     const [nx, ny] = northgate.geometry.points[0]

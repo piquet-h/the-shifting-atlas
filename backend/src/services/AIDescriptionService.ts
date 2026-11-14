@@ -297,6 +297,11 @@ Example: "Windswept moorland stretches endlessly beneath vast sky. To the south,
         if (macroContext.barrierSemantics.length > 0) {
             lines.push(`- Nearby barriers to respect: ${macroContext.barrierSemantics.join('; ')}.`)
         }
+        if (macroContext.geographicCue) {
+            lines.push(
+                `- Sampled physical topography: ${macroContext.geographicCue.promptSummary} (~${macroContext.geographicCue.elevationMeters}m elevation).`
+            )
+        }
 
         return `${lines.join('\n')}\n`
     }

@@ -1,0 +1,38 @@
+{
+    "schemaVersion": 1,
+    "image": "docs/architecture/mosswell-fiordhead-topo50.jpg",
+    "scale": "1:50,000",
+    "sheetReference": "LINZ NZTopo50 CB08 Milford Sound (WebMercatorQuad z=14 x=15832..15837 y=10466..10471)",
+    "license": "CC BY 4.0",
+    "attribution": "Sourced from the Toitu Te Whenua Land Information New Zealand (LINZ) Data Service / Basemaps and licensed for reuse under CC BY 4.0.",
+    "pixelSize": {
+        "width": 1536,
+        "height": 1536
+    },
+    "wgs84Bounds": {
+        "westLon": 167.87109375,
+        "eastLon": 168.0029296875,
+        "northLat": -44.6217541,
+        "southLat": -44.71551373
+    },
+    "groundSpanMeters": {
+        "width": 10437,
+        "height": 10425,
+        "metersPerPixel": 6.79
+    },
+    "mosswellAnchor": {
+        "locationId": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21",
+        "name": "Mosswell River Jetty",
+        "districtUv": [0.428, 0.532],
+        "longReachPosition": {
+            "x": 0.19,
+            "y": 0.562
+        }
+    },
+    "longReachBounds": {
+        "left": 0.183655,
+        "top": 0.55546,
+        "right": 0.19848,
+        "bottom": 0.567754
+    }
+}

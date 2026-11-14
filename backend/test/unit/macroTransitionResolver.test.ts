@@ -123,3 +123,30 @@ test('resolveTransitionOutcome: blocked outcome carries traversal classification
 
     assert.equal(result.traversal, 'constrained', 'Blocked outcome must carry the traversal classification from the atlas edge')
 })
+
+test('resolveTransitionOutcome: local mw-area-* sub-zones mediate 1-3km local reaches before hitting Long Reach landmass boundaries', () => {
+    const fromSouthFarmsEast = resolveTransitionOutcome(
+        ['settlement:mosswell', 'macro:area:lr-area-mosswell-fiordhead', 'macro:area:mw-area-south-farm-flats'],
+        'east'
+    )
+    assert.equal(fromSouthFarmsEast.outcome, 'transition')
+    if (fromSouthFarmsEast.outcome === 'transition') {
+        assert.equal(fromSouthFarmsEast.destinationAreaRef, 'mw-area-east-shelf-foots')
+    }
+
+    const fromEastShelfEast = resolveTransitionOutcome(
+        ['settlement:mosswell', 'macro:area:lr-area-mosswell-fiordhead', 'macro:area:mw-area-east-shelf-foots'],
+        'east'
+    )
+    assert.equal(fromEastShelfEast.outcome, 'blocked')
+    if (fromEastShelfEast.outcome === 'blocked') {
+        assert.equal(fromEastShelfEast.destinationAreaRef, 'lr-area-eastfall-foothills')
+        assert.equal(fromEastShelfEast.reason, 'partial')
+    }
+
+    const fromSouthFarmsWest = resolveTransitionOutcome(
+        ['settlement:mosswell', 'macro:area:lr-area-mosswell-fiordhead', 'macro:area:mw-area-south-farm-flats'],
+        'west'
+    )
+    assert.equal(fromSouthFarmsWest.outcome, 'blocked')
+})

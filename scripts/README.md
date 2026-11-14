@@ -215,8 +215,9 @@ Validates the unified Schema v1 authoring overlay sidecar, renders a two-panel S
 
 ```bash
 npm run map:long-reach
-npm run report:long-reach
-npm run report:long-reach -- --signals=/tmp/frontier-events.json --format=json
+npm run map:mosswell
+npm run map:mosswell -- --world-graph=/tmp/world-graph.json
+npm run report:long-reach -- --world-graph=/tmp/world-graph.json --signals=/tmp/frontier-events.json --format=json
 node --test scripts/test/long-reach-authoring*.test.mjs
 ```
 
@@ -232,6 +233,8 @@ The single source contract is [the-long-reach-authoring-overlay.json](../docs/ar
 
 1. `docs/architecture/the-long-reach-authoring-overlay.svg` — deterministic, lightweight (<35 KB) two-panel vector view combining the full Long Reach overview on the left with a 4.5× zoomed Milford Sound / Mosswell Fiordhead inset (including the river trace feeding Mosswell, village-scale settlement marker, legend, and static queue summary) on the right.
 2. `docs/architecture/the-long-reach-authoring-overlay.png` — `2240×1696` full-canvas raster preview rendered via Playwright so GitHub PRs and Markdown previews show the complete map without relative-image stripping or viewport cropping. Pass `--no-png` when running custom SVG-only test outputs.
+
+`npm run map:mosswell` regenerates the `1:50,000` Milford Sound / Mosswell Fiordhead district overlay (`docs/architecture/mosswell-fiordhead-overlay.svg` and `2400×1536` `.png`) over the CC-BY 4.0 LINZ NZTopo50 CB08 base map (`docs/architecture/mosswell-fiordhead-topo50.jpg`), plotting the ~230m × 290m Mosswell hamlet street graph alongside any player-expanded rooms/edges from `--world-graph=<path>` and reporting walkable district + landmass exploration percentages.
 
 The queue command (`npm run report:long-reach`) lists `next-to-author` candidates ordered outward from authored Mosswell anchors, and accepts an optional JSON array of Application Insights events:
 
