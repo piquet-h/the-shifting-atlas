@@ -28,6 +28,10 @@ const VERB_MAP: Readonly<Record<string, IntentVerb>> = {
     examine: 'examine',
     look: 'examine',
     inspect: 'examine',
+    listen: 'examine',
+    smell: 'examine',
+    read: 'examine',
+    search: 'examine',
     take: 'take',
     pick: 'take',
     grab: 'take',
@@ -35,6 +39,8 @@ const VERB_MAP: Readonly<Record<string, IntentVerb>> = {
     talk: 'communicate',
     speak: 'communicate',
     say: 'communicate',
+    ask: 'communicate',
+    greet: 'communicate',
     defend: 'defend',
     block: 'defend',
     parry: 'defend',
@@ -48,7 +54,8 @@ const VERB_MAP: Readonly<Record<string, IntentVerb>> = {
     open: 'interact',
     close: 'interact',
     push: 'interact',
-    pull: 'interact'
+    pull: 'interact',
+    touch: 'interact'
 }
 
 /**

@@ -10,10 +10,12 @@
 
 import { STARTER_LOCATION_ID } from '@piquet-h/shared'
 import type { IPlayerRepository, PlayerRecord } from '@piquet-h/shared/types/playerRepository'
-import { inject, injectable } from 'inversify'
+import { inject, injectable, optional } from 'inversify'
+import { TOKENS } from '../di/tokens.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
 import { CosmosDbSqlRepository } from './base/CosmosDbSqlRepository.js'
 import type { ICosmosDbSqlClient } from './base/cosmosDbSqlClient.js'
+import { projectPlayerRecord, stripCosmosSystemFields } from './utils/playerDocumentProjection.js'
 
 /**
  * SQL API document schema for player (extends PlayerRecord with required fields)
@@ -24,15 +26,17 @@ interface PlayerSqlDocument extends PlayerRecord {
     updatedUtc: string
     guest: boolean
     currentLocationId: string
+    [key: string]: unknown
 }
 
 @injectable()
 export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerSqlDocument> implements IPlayerRepository {
     constructor(
         @inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient,
-        @inject(TelemetryService) protected telemetryService: TelemetryService
+        @inject(TelemetryService) protected telemetryService: TelemetryService,
+        @inject(TOKENS.CosmosContainerPlayers) @optional() containerName: string = 'players'
     ) {
-        super(sqlClient, 'players', telemetryService)
+        super(sqlClient, containerName, telemetryService)
     }
 
     async get(id: string): Promise<PlayerRecord | undefined> {
@@ -46,7 +50,7 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerSqlDo
                 source: 'sql',
                 latencyMs: Date.now() - startTime
             })
-            return sqlPlayer
+            return projectPlayerRecord(sqlPlayer)
         }
 
         this.telemetryService.trackGameEvent('Player.Get', {
@@ -118,8 +122,8 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerSqlDo
     ): Promise<{ updated: boolean; record?: PlayerRecord; conflict?: boolean; existingPlayerId?: string }> {
         const startTime = Date.now()
 
-        const existing = await this.get(id)
-        if (!existing) {
+        const rawExisting = await this.getById(id, id)
+        if (!rawExisting) {
             this.telemetryService.trackGameEvent('Player.LinkExternalId', {
                 playerId: id,
                 updated: false,
@@ -128,6 +132,7 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerSqlDo
             })
             return { updated: false }
         }
+        const existing = projectPlayerRecord(rawExisting)
 
         // Idempotent: if already linked to this externalId, no-op
         if (existing.externalId === externalId) {
@@ -153,8 +158,9 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerSqlDo
             return { updated: false, conflict: true, existingPlayerId: existingExternal.id }
         }
 
-        // Update player with external ID
+        // Merge-safe update preserving gameplay fields (clockTick, attributes, ttl, etc.)
         const updatedPlayer: PlayerSqlDocument = {
+            ...stripCosmosSystemFields(rawExisting),
             ...existing,
             externalId,
             guest: false,
@@ -168,15 +174,15 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerSqlDo
             latencyMs: Date.now() - startTime
         })
 
-        return { updated: true, record: resource }
+        return { updated: true, record: projectPlayerRecord(resource) }
     }
 
     async update(player: PlayerRecord): Promise<PlayerRecord> {
         const startTime = Date.now()
 
-        // Check if player exists
-        const existing = await this.get(player.id)
-        if (!existing) {
+        // Read full raw document so gameplay fields (clockTick, attributes, ttl) are preserved
+        const rawExisting = await this.getById(player.id, player.id)
+        if (!rawExisting) {
             this.telemetryService.trackGameEvent('Player.Update', {
                 playerId: player.id,
                 success: false,
@@ -188,10 +194,14 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerSqlDo
 
         const now = new Date().toISOString()
         const updated: PlayerSqlDocument = {
-            ...player,
+            ...stripCosmosSystemFields(rawExisting),
+            ...stripCosmosSystemFields(player),
             updatedUtc: now,
             guest: player.guest,
-            currentLocationId: player.currentLocationId || STARTER_LOCATION_ID
+            currentLocationId:
+                player.currentLocationId ||
+                (typeof rawExisting.currentLocationId === 'string' ? rawExisting.currentLocationId : '') ||
+                STARTER_LOCATION_ID
         } as PlayerSqlDocument
 
         try {
@@ -200,7 +210,7 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerSqlDo
                 playerId: player.id,
                 latencyMs: Date.now() - startTime
             })
-            return resource
+            return projectPlayerRecord(resource)
         } catch (error) {
             this.telemetryService.trackGameEvent('Player.Update', {
                 playerId: player.id,
@@ -224,7 +234,7 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerSqlDo
                 found: true,
                 latencyMs: Date.now() - startTime
             })
-            return items[0]
+            return projectPlayerRecord(items[0])
         }
 
         this.telemetryService.trackGameEvent('Player.FindByExternalId', {

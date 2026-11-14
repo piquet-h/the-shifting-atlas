@@ -214,5 +214,81 @@ describe('PlayerDocRepository', () => {
                 'expected one of the upserts to win'
             )
         })
+
+        test('getPlayer and listPlayersAtLocation strip auth externalId, guest, and Cosmos metadata from projection', async () => {
+            const playerId = crypto.randomUUID()
+            const locationId = crypto.randomUUID()
+            const mockClient = createMockCosmosDbSqlClient({
+                players: {
+                    [playerId]: {
+                        id: playerId,
+                        createdUtc: '2026-11-14T00:00:00.000Z',
+                        updatedUtc: '2026-11-14T00:05:00.000Z',
+                        currentLocationId: locationId,
+                        guest: false,
+                        externalId: 'entra:secret-sub-12345',
+                        name: 'Explorer Ada',
+                        attributes: { hp: 95 },
+                        clockTick: 42,
+                        _rid: 'cosmos-rid',
+                        _etag: '"cosmos-etag"',
+                        _ts: 1700000000
+                    }
+                }
+            })
+
+            const repo = new PlayerDocRepository(mockClient, createMockTelemetryService())
+            const single = await repo.getPlayer(playerId)
+            assert.ok(single)
+            assert.strictEqual('externalId' in (single as unknown as Record<string, unknown>), false)
+            assert.strictEqual('guest' in (single as unknown as Record<string, unknown>), false)
+            assert.strictEqual('_etag' in (single as unknown as Record<string, unknown>), false)
+            assert.strictEqual(single.clockTick, 42)
+            assert.deepStrictEqual(single.attributes, { hp: 95 })
+
+            const atLocation = await repo.listPlayersAtLocation(locationId)
+            assert.strictEqual(atLocation.length, 1)
+            assert.strictEqual('externalId' in (atLocation[0] as unknown as Record<string, unknown>), false)
+        })
+
+        test('upsertPlayer merges gameplay fields without wiping auth identity or custom container fields', async () => {
+            const playerId = crypto.randomUUID()
+            const customContainer = 'customPlayers'
+            const storageRecord: Record<string, unknown> = {
+                id: playerId,
+                createdUtc: '2026-11-14T00:00:00.000Z',
+                updatedUtc: '2026-11-14T00:00:00.000Z',
+                currentLocationId: 'loc-start',
+                guest: false,
+                externalId: 'entra:user-abc',
+                name: 'Aria',
+                ttl: -1
+            }
+
+            const mockClient = createMockCosmosDbSqlClient({
+                [customContainer]: {
+                    [playerId]: storageRecord
+                }
+            })
+
+            const repo = new PlayerDocRepository(mockClient, createMockTelemetryService(), customContainer)
+            await repo.upsertPlayer({
+                id: playerId,
+                createdUtc: '2026-11-14T00:00:00.000Z',
+                updatedUtc: '2026-11-14T00:10:00.000Z',
+                currentLocationId: 'loc-north',
+                clockTick: 120,
+                attributes: { hp: 88 }
+            })
+
+            const rawContainer = await mockClient.getContainer(customContainer)
+            const { resource: rawStored } = await rawContainer.item(playerId, playerId).read()
+            assert.strictEqual(rawStored.externalId, 'entra:user-abc')
+            assert.strictEqual(rawStored.guest, false)
+            assert.strictEqual(rawStored.name, 'Aria')
+            assert.strictEqual(rawStored.ttl, -1)
+            assert.strictEqual(rawStored.currentLocationId, 'loc-north')
+            assert.strictEqual(rawStored.clockTick, 120)
+        })
     })
 })

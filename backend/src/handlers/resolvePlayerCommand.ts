@@ -16,8 +16,9 @@
  *   {
  *     success: true,
  *     data: {
- *       actionKind: 'Move' | 'Look' | 'Unknown',
+ *       actionKind: 'Move' | 'Look' | 'Narrate' | 'Unknown',
  *       direction?: string,          // present for Move with resolved direction
+ *       narration?: string,          // bounded DM narration for Narrate (non-mutating RPG intents)
  *       presentationMode: 'Auto',
  *       responseTempo: 'Auto',
  *       canonicalWritesPlanned: boolean,
@@ -44,17 +45,21 @@
 import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 import type { ActionIntent, ActionIntentTarget, AmbiguityIssue, Intent, ParsedCommand } from '@piquet-h/shared'
 import type { Container } from 'inversify'
-import { inject, injectable } from 'inversify'
+import { inject, injectable, optional } from 'inversify'
+import { TOKENS } from '../di/tokens.js'
+import type { ILocationRepository } from '../repos/locationRepository.js'
+import type { IPlayerRepository } from '../repos/playerRepository.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { IntentParserHandler } from './mcp/intent-parser/intent-parser.js'
+import { NarrativeGeneratorHandler } from './mcp/narrative-generator/narrative-generator.js'
 import { errorResponse, okResponse } from './utils/responseBuilder.js'
 
 /** Maximum allowed input text length in characters. */
 const MAX_INPUT_LENGTH = 500
 
 /** Derived action kind for a resolved player command. */
-export type ActionKind = 'Move' | 'Look' | 'Unknown'
+export type ActionKind = 'Move' | 'Look' | 'Narrate' | 'Unknown'
 
 /** Resolution data returned by the resolve-player-command endpoint. */
 export type CommandResolutionData = {
@@ -62,13 +67,15 @@ export type CommandResolutionData = {
     actionKind: ActionKind
     /** Direction parameter for Move intents with a fully resolved direction. */
     direction?: string
+    /** Bounded Dungeon Master narration for non-mutating RPG actions / targeted inspections. */
+    narration?: string
     /** Presentation mode selection (Auto = caller decides). */
     presentationMode: 'Auto'
     /** Response tempo selection (Auto = caller decides). */
     responseTempo: 'Auto'
     /**
      * Whether executing this resolution would require a canonical write.
-     * true for Move (navigation mutates player state); false for Look and Unknown.
+     * true for Move (navigation mutates player state); false for Look, Narrate, and Unknown.
      */
     canonicalWritesPlanned: boolean
     /** Parsed intent detail – supports downstream ActionIntent adoption (issue #788). */
@@ -90,42 +97,156 @@ export type CommandResolutionData = {
     actionIntent: ActionIntent
 }
 
+const ROOM_WIDE_TARGETS = new Set([
+    '',
+    'around',
+    'surroundings',
+    'room',
+    'the room',
+    'area',
+    'the area',
+    'here',
+    'location',
+    'the location',
+    'environment',
+    'the environment'
+])
+
+const SENSORY_ONLY_VERBS = new Set(['listen', 'smell'])
+const MANNER_ADVERBS = new Set(['quietly', 'carefully', 'closely', 'slowly', 'quickly', 'around', 'intently'])
+
+const THIRD_PERSON_VERBS: Readonly<Record<string, string>> = {
+    examine: 'examines',
+    look: 'studies',
+    inspect: 'inspects',
+    listen: 'listens intently to',
+    smell: 'inhales the scent of',
+    read: 'reads',
+    search: 'searches',
+    take: 'reaches for',
+    pick: 'reaches to pick up',
+    grab: 'reaches for',
+    get: 'reaches for',
+    talk: 'speaks to',
+    speak: 'speaks to',
+    say: 'calls out toward',
+    ask: 'questions',
+    greet: 'greets',
+    defend: 'raises a defensive stance against',
+    block: 'braces to block',
+    parry: 'readies a parry against',
+    use: 'attempts to use',
+    equip: 'readies',
+    wield: 'readies',
+    flee: 'backs away from',
+    escape: 'looks for an escape route from',
+    run_away: 'backs away from',
+    interact: 'interacts with',
+    open: 'tests',
+    close: 'pushes against',
+    push: 'presses against',
+    pull: 'tugs at',
+    touch: 'reaches out to touch'
+}
+
+interface ExtractedCommandSurface {
+    leadingVerb: string
+    targetPhrase: string | null
+}
+
+function extractCommandSurface(trimmedInput: string, intent: Intent | undefined): ExtractedCommandSurface {
+    const match = trimmedInput.match(/^([a-z_]+)(?:\s+(.*))?$/i)
+    const leadingVerb = (match?.[1] ?? intent?.verb ?? '').toLowerCase()
+    const rawRemainder = (match?.[2] ?? '')
+        .trim()
+        .replace(/^(?:up|out|in|at|to|with|on|into|towards?|upon)\s+/i, '')
+        .replace(/[.!?]+$/, '')
+        .trim()
+
+    if (!rawRemainder || MANNER_ADVERBS.has(rawRemainder.toLowerCase())) {
+        return { leadingVerb, targetPhrase: null }
+    }
+
+    return { leadingVerb, targetPhrase: rawRemainder }
+}
+
 /**
  * Derives the high-level ActionKind from the primary PI-0 intent.
  *
  * Rules:
- * - move + resolved direction → Move (canonicalWritesPlanned: true)
- * - move without direction    → Unknown (direction is ambiguous, no safe target)
- * - examine / look            → Look (canonicalWritesPlanned: false)
- * - anything else / no intent → Unknown (canonicalWritesPlanned: false)
+ * - move + resolved direction                 → Move (canonicalWritesPlanned: true)
+ * - move without direction                    → Unknown (direction is ambiguous, no safe target)
+ * - room-wide examine / look ("look", etc.)   → Look (canonicalWritesPlanned: false)
+ * - targeted examine or other RPG intent verb → Narrate (canonicalWritesPlanned: false)
+ * - unrecognized verb / no intent             → Unknown (canonicalWritesPlanned: false)
  */
-function deriveActionKind(intent: Intent | undefined): ActionKind {
+function deriveActionKind(intent: Intent | undefined, surface: ExtractedCommandSurface): ActionKind {
     if (!intent) return 'Unknown'
     if (intent.verb === 'move') {
         return intent.direction ? 'Move' : 'Unknown'
     }
-    if (intent.verb === 'examine') return 'Look'
-    return 'Unknown'
+    if (intent.verb === 'examine') {
+        if (SENSORY_ONLY_VERBS.has(surface.leadingVerb)) {
+            return 'Narrate'
+        }
+        const normalizedTarget = (surface.targetPhrase ?? '').toLowerCase()
+        return ROOM_WIDE_TARGETS.has(normalizedTarget) ? 'Look' : 'Narrate'
+    }
+    return 'Narrate'
+}
+
+function buildNarrationCue(intent: Intent, surface: ExtractedCommandSurface): { actionVerb: string; targetName: string; outcome: string } {
+    const actionVerb = THIRD_PERSON_VERBS[surface.leadingVerb] ?? THIRD_PERSON_VERBS[intent.verb] ?? 'acts toward'
+
+    if (surface.leadingVerb === 'listen' && !surface.targetPhrase) {
+        return {
+            actionVerb,
+            targetName: 'the shifting quiet nearby',
+            outcome: 'faint ambient sounds carry across the space without revealing immediate danger'
+        }
+    }
+    if (surface.leadingVerb === 'smell' && !surface.targetPhrase) {
+        return {
+            actionVerb,
+            targetName: 'the surrounding air',
+            outcome: 'weathered stone and damp air linger without further change'
+        }
+    }
+
+    const fallbackNoun = intent.surfaceTargetName ?? intent.surfaceItemName ?? 'the immediate surroundings'
+    const targetName = surface.targetPhrase ?? fallbackNoun
+
+    switch (intent.verb) {
+        case 'examine':
+            return {
+                actionVerb,
+                targetName,
+                outcome: 'closer scrutiny reveals weathered detail without disturbing anything canonical'
+            }
+        case 'communicate':
+            return {
+                actionVerb,
+                targetName,
+                outcome: 'only guarded stillness answers in the immediate moment'
+            }
+        default:
+            return {
+                actionVerb,
+                targetName,
+                outcome: 'the scene holds steady without yielding a lasting change yet'
+            }
+    }
 }
 
 /**
  * Builds an ActionIntent-compatible structure from the resolved command.
- *
- * Rules:
- * - rawInput: the trimmed player input text
- * - parsedIntent.verb: canonical verb from PI-0, or 'unknown' as fallback
- * - parsedIntent.targets:
- *   - Move → [{ kind: 'direction', canonicalDirection }]
- *   - Look → [{ kind: 'location', name: 'current location' }]
- *   - Unknown → omitted
- * - validationResult.success: true for Move/Look; false for Unknown
- * - validationResult.errors: populated for Unknown with a descriptive message
  */
 function buildActionIntent(
     rawInput: string,
     actionKind: ActionKind,
     primaryIntent: Intent | undefined,
-    needsClarification: boolean
+    needsClarification: boolean,
+    surface: ExtractedCommandSurface
 ): ActionIntent {
     const verb = primaryIntent?.verb ?? 'unknown'
 
@@ -134,6 +255,9 @@ function buildActionIntent(
         firstTarget = { kind: 'direction', canonicalDirection: primaryIntent.direction }
     } else if (actionKind === 'Look') {
         firstTarget = { kind: 'location', name: 'current location' }
+    } else if (actionKind === 'Narrate') {
+        const latentText = surface.targetPhrase ?? primaryIntent?.surfaceTargetName ?? primaryIntent?.surfaceItemName
+        firstTarget = latentText ? { kind: 'latent-reference', surfaceText: latentText } : { kind: 'location', name: 'current location' }
     }
 
     const errors: string[] = []
@@ -164,9 +288,26 @@ function buildActionIntent(
 export class ResolvePlayerCommandHandler extends BaseHandler {
     constructor(
         @inject('ITelemetryClient') telemetry: ITelemetryClient,
-        @inject(IntentParserHandler) private readonly intentParser: IntentParserHandler
+        @inject(IntentParserHandler) private readonly intentParser: IntentParserHandler,
+        @inject(NarrativeGeneratorHandler) private readonly narrativeGenerator: NarrativeGeneratorHandler,
+        @inject(TOKENS.PlayerRepository) @optional() private readonly playerRepo?: IPlayerRepository,
+        @inject(TOKENS.LocationRepository) @optional() private readonly locationRepo?: ILocationRepository
     ) {
         super(telemetry)
+    }
+
+    private async resolveLocationName(playerId: string): Promise<string> {
+        if (!this.playerRepo || !this.locationRepo) {
+            return 'the surrounding area'
+        }
+        try {
+            const player = await this.playerRepo.get(playerId)
+            if (!player?.currentLocationId) return 'the surrounding area'
+            const location = await this.locationRepo.get(player.currentLocationId)
+            return location?.name || 'the surrounding area'
+        } catch {
+            return 'the surrounding area'
+        }
     }
 
     protected async execute(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
@@ -217,11 +358,32 @@ export class ResolvePlayerCommandHandler extends BaseHandler {
 
         // --- Derive resolution from primary intent ---
         const primaryIntent = parsed.intents[0] as Intent | undefined
-        const actionKind = deriveActionKind(primaryIntent)
+        const surface = extractCommandSurface(trimmedInput, primaryIntent)
+        const actionKind = deriveActionKind(primaryIntent, surface)
         const canonicalWritesPlanned = actionKind === 'Move'
+
+        let narration: string | undefined
+        if (actionKind === 'Narrate' && primaryIntent && !parsed.needsClarification) {
+            const locationName = await this.resolveLocationName(playerId)
+            const cue = buildNarrationCue(primaryIntent, surface)
+            const rawNarration = await this.narrativeGenerator.narrateAction(
+                {
+                    arguments: {
+                        actionVerb: cue.actionVerb,
+                        targetName: cue.targetName,
+                        locationName,
+                        outcome: cue.outcome
+                    }
+                },
+                context
+            )
+            const parsedNarration = JSON.parse(rawNarration) as { narrative?: string }
+            narration = parsedNarration.narrative
+        }
 
         const resolution: CommandResolutionData = {
             actionKind,
+            ...(narration !== undefined ? { narration } : {}),
             presentationMode: 'Auto',
             responseTempo: 'Auto',
             canonicalWritesPlanned,
@@ -230,7 +392,7 @@ export class ResolvePlayerCommandHandler extends BaseHandler {
                 confidence: primaryIntent?.confidence ?? 0,
                 needsClarification: parsed.needsClarification
             },
-            actionIntent: buildActionIntent(trimmedInput, actionKind, primaryIntent, parsed.needsClarification)
+            actionIntent: buildActionIntent(trimmedInput, actionKind, primaryIntent, parsed.needsClarification, surface)
         }
 
         if (actionKind === 'Move' && primaryIntent?.direction) {

@@ -8,6 +8,6 @@ import { generateAreaHandler } from '../handlers/generateArea.js'
 app.http('HttpGenerateArea', {
     route: 'world/generate-area',
     methods: ['POST'],
-    authLevel: 'anonymous',
+    authLevel: 'function',
     handler: generateAreaHandler
 })

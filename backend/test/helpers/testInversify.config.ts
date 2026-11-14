@@ -169,10 +169,9 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
             })
             container.bind<ICosmosDbSqlClient>(TOKENS.CosmosDbSqlClient).to(CosmosDbSqlClient).inSingletonScope()
 
-            // Use SQL-first player repository for Cosmos mode (Gremlin write cutover complete)
+            // Bind shared players container name + both role-scoped player repository interfaces
+            container.bind<string>(TOKENS.CosmosContainerPlayers).toConstantValue(sqlConfig.containers.players || 'players')
             container.bind<IPlayerRepository>(TOKENS.PlayerRepository).to(CosmosPlayerRepositorySql).inSingletonScope()
-
-            // Bind PlayerDocRepository (SQL API player projection)
             container.bind<IPlayerDocRepository>(TOKENS.PlayerDocRepository).to(PlayerDocRepository).inSingletonScope()
         } else {
             // Fallback to memory implementation if SQL config missing
@@ -273,7 +272,8 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
         container.bind<ILocationRepository>(TOKENS.LocationRepository).to(InMemoryLocationRepository).inSingletonScope()
         container.bind<IExitRepository>(TOKENS.ExitRepository).toService(TOKENS.LocationRepository)
         container.bind<IRealmRepository>(TOKENS.RealmRepository).to(InMemoryRealmRepository).inSingletonScope()
-        container.bind<IPlayerRepository>(TOKENS.PlayerRepository).to(InMemoryPlayerRepository).inSingletonScope()
+        container.bind(InMemoryPlayerRepository).toSelf().inSingletonScope()
+        container.bind<IPlayerRepository>(TOKENS.PlayerRepository).toService(InMemoryPlayerRepository)
         container.bind<IDescriptionRepository>(TOKENS.DescriptionRepository).to(InMemoryDescriptionRepository).inSingletonScope()
         container.bind<IInventoryRepository>(TOKENS.InventoryRepository).to(MemoryInventoryRepository).inSingletonScope()
         container.bind<ILayerRepository>(TOKENS.LayerRepository).to(MemoryLayerRepository).inSingletonScope()
@@ -282,7 +282,7 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
             .bind<IDeadLetterRepository>(TOKENS.DeadLetterRepository)
             .toDynamicValue(() => new MemoryDeadLetterRepository())
             .inSingletonScope()
-        container.bind<IPlayerDocRepository>(TOKENS.PlayerDocRepository).to(MemoryPlayerDocRepository).inSingletonScope()
+        container.bind<IPlayerDocRepository>(TOKENS.PlayerDocRepository).toService(InMemoryPlayerRepository)
         container
             .bind<IProcessedEventRepository>(TOKENS.ProcessedEventRepository)
             .toDynamicValue(() => new MemoryProcessedEventRepository(WORLD_EVENT_PROCESSED_EVENTS_TTL_SECONDS))

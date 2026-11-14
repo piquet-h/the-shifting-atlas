@@ -12,8 +12,9 @@ import type { Direction } from './hooks/useGameNavigationFlow'
 
 /** Resolution data returned by POST /api/player/command */
 interface CommandResolution {
-    actionKind: 'Move' | 'Look' | 'Unknown'
+    actionKind: 'Move' | 'Look' | 'Narrate' | 'Unknown'
     direction?: string
+    narration?: string
     canonicalWritesPlanned: boolean
     parsedIntent: {
         verb: string | null
@@ -337,6 +338,9 @@ const CommandInterface = forwardRef<CommandInterfaceHandle, CommandInterfaceProp
                                     error = 'Malformed location response'
                                 }
                             }
+                        } else if (resolution?.actionKind === 'Narrate' && resolution.narration) {
+                            latencyMs = Math.round(performance.now() - start)
+                            response = resolution.narration
                         } else {
                             // Unknown or clarification needed: safe feedback only, no canonical writes.
                             latencyMs = Math.round(performance.now() - start)

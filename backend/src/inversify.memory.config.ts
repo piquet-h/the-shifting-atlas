@@ -19,7 +19,6 @@ import { InMemoryLocationRepository } from './repos/locationRepository.memory.js
 import type { ILoreRepository } from './repos/loreRepository.js'
 import { MemoryLoreRepository } from './repos/loreRepository.memory.js'
 import type { IPlayerDocRepository } from './repos/PlayerDocRepository.js'
-import { MemoryPlayerDocRepository } from './repos/PlayerDocRepository.memory.js'
 import type { IPlayerRepository } from './repos/playerRepository.js'
 import { InMemoryPlayerRepository } from './repos/playerRepository.memory.js'
 import type { IProcessedEventRepository } from './repos/processedEventRepository.js'
@@ -50,8 +49,10 @@ export function bindMemoryPersistence(container: Container): void {
     container.bind<ILayerRepository>(TOKENS.LayerRepository).to(MemoryLayerRepository).inSingletonScope()
     container.bind<IWorldEventRepository>(TOKENS.WorldEventRepository).to(MemoryWorldEventRepository).inSingletonScope()
 
-    container.bind<IPlayerRepository>(TOKENS.PlayerRepository).to(InMemoryPlayerRepository).inSingletonScope()
-    container.bind<IPlayerDocRepository>(TOKENS.PlayerDocRepository).to(MemoryPlayerDocRepository).inSingletonScope()
+    // Shared backing player store implements both IPlayerRepository (auth/identity) and IPlayerDocRepository (gameplay/AI).
+    container.bind(InMemoryPlayerRepository).toSelf().inSingletonScope()
+    container.bind<IPlayerRepository>(TOKENS.PlayerRepository).toService(InMemoryPlayerRepository)
+    container.bind<IPlayerDocRepository>(TOKENS.PlayerDocRepository).toService(InMemoryPlayerRepository)
 
     container.bind<IExitHintDebounceRepository>(TOKENS.ExitHintDebounceRepository).to(MemoryExitHintDebounceRepository).inSingletonScope()
 

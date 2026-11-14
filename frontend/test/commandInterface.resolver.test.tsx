@@ -214,6 +214,54 @@ describe('CommandInterface – free-form resolver routing', () => {
         expect(canonicalMoveCalled).toBe(false)
     }, 15000)
 
+    it('Narrate actionKind: resolver returns bounded DM narration for RPG actions without calling move or look', async () => {
+        const user = userEvent.setup()
+        let moveCalled = false
+        let lookCalled = false
+
+        const input = await renderWithPlayer()
+
+        server.use(
+            http.post('/api/player/command', async ({ request }) => {
+                const body = (await request.json()) as { inputText: string }
+                expect(body.inputText).toBe('examine the rusted lantern')
+                return HttpResponse.json({
+                    success: true,
+                    data: {
+                        actionKind: 'Narrate',
+                        narration: 'At Mosswell Jetty, you examine the rusted lantern — salt crust clings to its cracked glass.',
+                        presentationMode: 'Auto',
+                        responseTempo: 'Auto',
+                        canonicalWritesPlanned: false,
+                        parsedIntent: { verb: 'examine', confidence: 0.85, needsClarification: false }
+                    }
+                })
+            }),
+            http.post('/api/player/:playerId/move', () => {
+                moveCalled = true
+                return HttpResponse.json({ success: false }, { status: 400 })
+            }),
+            http.get('/api/location/:locationId', () => {
+                lookCalled = true
+                return HttpResponse.json({ success: false }, { status: 400 })
+            })
+        )
+
+        await user.type(input, 'examine the rusted lantern')
+        await user.click(screen.getByRole('button', { name: /run/i }))
+
+        await waitFor(
+            () => {
+                const bodyText = document.body.textContent || ''
+                expect(bodyText).toMatch(/salt crust clings to its cracked glass/i)
+            },
+            { timeout: 5000 }
+        )
+
+        expect(moveCalled).toBe(false)
+        expect(lookCalled).toBe(false)
+    }, 15000)
+
     it('clarification needed: resolver returns needsClarification=true → safe feedback shown', async () => {
         const user = userEvent.setup()
 

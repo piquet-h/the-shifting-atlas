@@ -11,6 +11,6 @@ import { agentProposeHandler } from '../handlers/agentPropose.js'
 app.http('HttpAgentPropose', {
     route: 'agent/propose',
     methods: ['POST'],
-    authLevel: 'anonymous',
+    authLevel: 'function',
     handler: agentProposeHandler
 })

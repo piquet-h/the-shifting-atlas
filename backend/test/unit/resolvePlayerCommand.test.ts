@@ -554,3 +554,57 @@ describe('ResolvePlayerCommandHandler – telemetry', () => {
         assert.ok(typeof resolved.properties?.correlationId === 'string', 'correlationId should be a string')
     })
 })
+
+// ---------------------------------------------------------------------------
+// Bounded DM Action Narration for non-move / targeted RPG intents
+// ---------------------------------------------------------------------------
+
+describe('ResolvePlayerCommandHandler – bounded DM action narration', () => {
+    test('targeted examine ("examine the rusted lantern") resolves to Narrate with diegetic narration and latent-reference target', async () => {
+        const fixture = new UnitTestFixture()
+        const container = await fixture.getContainer()
+        const handler = container.get(ResolvePlayerCommandHandler)
+
+        const req = createMockRequest({ playerId: 'player-1', inputText: 'examine the rusted lantern' })
+        const ctx = createMockContext(container)
+
+        const response = await handler.handle(req, ctx)
+        assert.strictEqual(response.status, 200)
+
+        const body = response.jsonBody as {
+            data: {
+                actionKind: string
+                canonicalWritesPlanned: boolean
+                narration?: string
+                actionIntent: {
+                    parsedIntent: { verb: string; targets?: Array<{ kind: string; surfaceText?: string }> }
+                    validationResult: { success: boolean }
+                }
+            }
+        }
+        assert.strictEqual(body.data.actionKind, 'Narrate')
+        assert.strictEqual(body.data.canonicalWritesPlanned, false)
+        assert.ok(typeof body.data.narration === 'string' && body.data.narration.length > 10)
+        assert.match(body.data.narration, /lantern/i)
+        assert.strictEqual(body.data.actionIntent.validationResult.success, true)
+        assert.strictEqual(body.data.actionIntent.parsedIntent.targets?.[0]?.kind, 'latent-reference')
+    })
+
+    test('non-movement RPG verbs ("talk to the guard", "open the chest", "listen quietly") resolve to Narrate with canonicalWritesPlanned=false', async () => {
+        const fixture = new UnitTestFixture()
+        const container = await fixture.getContainer()
+        const handler = container.get(ResolvePlayerCommandHandler)
+        const ctx = createMockContext(container)
+
+        for (const cmd of ['talk to the guard', 'open the chest', 'listen quietly']) {
+            const response = await handler.handle(createMockRequest({ playerId: 'player-1', inputText: cmd }), ctx)
+            assert.strictEqual(response.status, 200)
+            const body = response.jsonBody as {
+                data: { actionKind: string; canonicalWritesPlanned: boolean; narration?: string }
+            }
+            assert.strictEqual(body.data.actionKind, 'Narrate', `Expected Narrate for "${cmd}"`)
+            assert.strictEqual(body.data.canonicalWritesPlanned, false)
+            assert.ok(typeof body.data.narration === 'string' && body.data.narration.length > 10)
+        }
+    })
+})

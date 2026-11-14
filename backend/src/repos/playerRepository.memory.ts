@@ -1,7 +1,9 @@
-import { STARTER_LOCATION_ID } from '@piquet-h/shared'
+import { STARTER_LOCATION_ID, type PlayerDoc } from '@piquet-h/shared'
 import type { IPlayerRepository, PlayerRecord } from '@piquet-h/shared/types/playerRepository'
 import crypto from 'crypto'
 import { injectable } from 'inversify'
+import type { IPlayerDocRepository } from './PlayerDocRepository.js'
+import { projectPlayerDoc, projectPlayerRecord } from './utils/playerDocumentProjection.js'
 
 /**
  * Validates that a string is a valid UUID v4.
@@ -16,15 +18,17 @@ function isValidUuidV4(value: string | undefined): boolean {
 }
 
 /**
- * In-memory implementation of IPlayerRepository.
- * Used for memory mode and integration tests.
+ * Shared in-memory backing store implementing both `IPlayerRepository` (Auth/Identity/Movement)
+ * and `IPlayerDocRepository` (Gameplay/Clocks/MCP) so local dev and integration tests keep
+ * identity and character state synchronized without leaking auth fields into `PlayerDoc`.
  */
 @injectable()
-export class InMemoryPlayerRepository implements IPlayerRepository {
-    private players = new Map<string, PlayerRecord>()
+export class InMemoryPlayerRepository implements IPlayerRepository, IPlayerDocRepository {
+    protected players = new Map<string, Record<string, unknown>>()
 
     async get(id: string): Promise<PlayerRecord | undefined> {
-        return this.players.get(id)
+        const stored = this.players.get(id)
+        return stored ? projectPlayerRecord(stored) : undefined
     }
 
     async getOrCreate(id?: string): Promise<{ record: PlayerRecord; created: boolean }> {
@@ -47,23 +51,23 @@ export class InMemoryPlayerRepository implements IPlayerRepository {
             }
         }
 
-        const rec = this.players.get(guid)!
-        if (!rec.currentLocationId) {
-            rec.currentLocationId = resolveStartLocationId()
-            rec.updatedUtc = new Date().toISOString()
+        const stored = this.players.get(guid)!
+        if (!stored.currentLocationId) {
+            stored.currentLocationId = resolveStartLocationId()
+            stored.updatedUtc = new Date().toISOString()
         }
-        return { record: rec, created }
+        return { record: projectPlayerRecord(stored), created }
     }
 
     async linkExternalId(
         id: string,
         externalId: string
     ): Promise<{ updated: boolean; record?: PlayerRecord; conflict?: boolean; existingPlayerId?: string }> {
-        const rec = this.players.get(id)
-        if (!rec) return { updated: false }
+        const stored = this.players.get(id)
+        if (!stored) return { updated: false }
 
-        if (rec.externalId === externalId) {
-            return { updated: false, record: rec }
+        if (stored.externalId === externalId) {
+            return { updated: false, record: projectPlayerRecord(stored) }
         }
 
         const existing = await this.findByExternalId(externalId)
@@ -71,15 +75,15 @@ export class InMemoryPlayerRepository implements IPlayerRepository {
             return { updated: false, conflict: true, existingPlayerId: existing.id }
         }
 
-        rec.externalId = externalId
-        rec.guest = false
-        rec.updatedUtc = new Date().toISOString()
-        return { updated: true, record: rec }
+        stored.externalId = externalId
+        stored.guest = false
+        stored.updatedUtc = new Date().toISOString()
+        return { updated: true, record: projectPlayerRecord(stored) }
     }
 
     async findByExternalId(externalId: string): Promise<PlayerRecord | undefined> {
         for (const p of this.players.values()) {
-            if (p.externalId === externalId) return p
+            if (p.externalId === externalId) return projectPlayerRecord(p)
         }
         return undefined
     }
@@ -90,16 +94,68 @@ export class InMemoryPlayerRepository implements IPlayerRepository {
             throw new Error(`Player ${player.id} not found`)
         }
 
-        const updated: PlayerRecord = {
+        const merged: Record<string, unknown> = {
+            ...existing,
             ...player,
             updatedUtc: new Date().toISOString()
         }
 
-        this.players.set(player.id, updated)
-        return updated
+        this.players.set(player.id, merged)
+        return projectPlayerRecord(merged)
     }
 
-    private make(id: string): PlayerRecord {
+    // --- IPlayerDocRepository implementation over the same backing Map ---
+
+    async getPlayer(playerId: string): Promise<PlayerDoc | null> {
+        const stored = this.players.get(playerId)
+        return stored ? projectPlayerDoc(stored) : null
+    }
+
+    async upsertPlayer(playerDoc: PlayerDoc): Promise<void> {
+        const existing = this.players.get(playerDoc.id)
+        const merged: Record<string, unknown> = {
+            ...(existing ?? { guest: true }),
+            ...playerDoc
+        }
+        this.players.set(playerDoc.id, merged)
+    }
+
+    async deletePlayer(playerId: string): Promise<boolean> {
+        return this.players.delete(playerId)
+    }
+
+    async listPlayerIdsByPrefixes(prefixes: string[], maxResults: number = 1000): Promise<string[]> {
+        if (prefixes.length === 0) return []
+        const results: string[] = []
+        for (const id of this.players.keys()) {
+            if (prefixes.some((p) => id.startsWith(p))) {
+                results.push(id)
+                if (results.length >= maxResults) break
+            }
+        }
+        return results
+    }
+
+    async listPlayersAtLocation(locationId: string, maxResults: number = 20): Promise<PlayerDoc[]> {
+        const results: PlayerDoc[] = []
+        for (const player of this.players.values()) {
+            if (player.currentLocationId === locationId) {
+                results.push(projectPlayerDoc(player))
+                if (results.length >= maxResults) break
+            }
+        }
+        return results
+    }
+
+    clear(): void {
+        this.players.clear()
+    }
+
+    getAllPlayers(): PlayerDoc[] {
+        return Array.from(this.players.values()).map((p) => projectPlayerDoc(p))
+    }
+
+    private make(id: string): Record<string, unknown> {
         const now = new Date().toISOString()
         return {
             id,

@@ -72,10 +72,9 @@ export function bindCosmosPersistence(container: Container, config: IPersistence
     container.bind<CosmosDbSqlClientConfig>(TOKENS.CosmosDbSqlConfig).toConstantValue({ endpoint: sqlEndpoint, database: sqlDatabase })
     container.bind<ICosmosDbSqlClient>(TOKENS.CosmosDbSqlClient).to(CosmosDbSqlClient).inSingletonScope()
 
-    // Bind PlayerDocRepository (SQL API player projection)
+    // Bind shared players container name + both role-scoped player repository interfaces
+    container.bind<string>(TOKENS.CosmosContainerPlayers).toConstantValue(config.cosmosSql?.containers.players || 'players')
     container.bind<IPlayerDocRepository>(TOKENS.PlayerDocRepository).to(PlayerDocRepository).inSingletonScope()
-
-    // Bind SQL player repository as primary (Gremlin player vertex deprecated per ADR-004)
     container.bind<IPlayerRepository>(TOKENS.PlayerRepository).to(CosmosPlayerRepositorySql).inSingletonScope()
 
     // === Cosmos Repositories ===
