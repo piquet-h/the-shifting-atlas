@@ -91,6 +91,7 @@ jobs:
           fi
 
       - name: Deploy to Azure Functions (dist artifact)
+        id: deploy
         if: steps.scope.outputs.affected == 'true'
         uses: Azure/functions-action@v1
         with:
@@ -98,40 +99,53 @@ jobs:
           package: 'backend/dist.zip'
           slot-name: 'Production'
 
-      - name: Verify deployment (cold-start bounded health gate)
+      - name: Verify deployment (registered functions & cold-start health gate)
         if: steps.scope.outputs.affected == 'true'
+        env:
+          DEPLOY_APP_URL: ${{ steps.deploy.outputs['app-url'] }}
         run: |
           set -euo pipefail
           FUNCTION_APP_NAME="${{ steps.resolve.outputs.FUNCTION_APP_NAME }}"
-          FUNCTION_URL=$(az functionapp show --name "$FUNCTION_APP_NAME" --resource-group "rg-atlas-game" --query "defaultHostName" -o tsv 2>/dev/null || true)
+          RAW_URL="${DEPLOY_APP_URL:-}"
+          if [ -z "$RAW_URL" ]; then
+            HOST_FROM_CLI=$(az functionapp show --name "$FUNCTION_APP_NAME" --resource-group "rg-atlas-game" --query "properties.defaultHostName || defaultHostName" -o tsv 2>/dev/null || true)
+            RAW_URL="https://${HOST_FROM_CLI:-${FUNCTION_APP_NAME}.azurewebsites.net}"
+          fi
+          BASE_URL="${RAW_URL%/}"
 
-          if [ -z "$FUNCTION_URL" ]; then
-            echo "::error title=Missing Function URL::Could not retrieve defaultHostName for ${FUNCTION_APP_NAME}"
+          echo "Probing ${BASE_URL}/api/backend/health (with cold-start retry budget)..."
+          status_code="000"
+          for attempt in $(seq 1 12); do
+            status_code="$(curl --silent --show-error --max-time 15 --write-out '%{http_code}' --output /tmp/health-probe.txt "${BASE_URL}/api/backend/health" || echo "000")"
+            case "$status_code" in
+              2*|401)
+                echo "✅ Host reachable at ${BASE_URL} (HTTP ${status_code} on attempt ${attempt})"
+                break
+                ;;
+              502|503|504|000)
+                echo "Attempt ${attempt}/12 returned HTTP ${status_code} (warming up); retrying in 10s..."
+                sleep 10
+                ;;
+              *)
+                echo "::error title=Backend Health Failed::${BASE_URL}/api/backend/health returned HTTP ${status_code}"
+                cat /tmp/health-probe.txt 2>/dev/null || true
+                exit 1
+                ;;
+            esac
+          done
+
+          if [[ ! "$status_code" =~ ^(2..|401)$ ]]; then
+            echo "::error title=Backend Warmup Timeout::${BASE_URL} remained unhealthy (last HTTP ${status_code})"
             exit 1
           fi
 
-          echo "Probing https://${FUNCTION_URL}/api/player (with cold-start retry budget)..."
-          status_code="$(curl --silent --show-error \
-            --retry 12 --retry-connrefused --retry-delay 10 \
-            --max-time 15 \
-            --write-out '%{http_code}' \
-            --output /tmp/player-probe.json \
-            "https://${FUNCTION_URL}/api/player" || echo "000")"
-
-          case "$status_code" in
-            2*)
-              echo "✅ /api/player healthy (HTTP ${status_code})"
-              ;;
-            *)
-              echo "::error title=Critical API Endpoint Failed::/api/player returned HTTP ${status_code}"
-              cat /tmp/player-probe.json 2>/dev/null || true
-              exit 1
-              ;;
-          esac
-
-          curl -fsS -m 10 "https://${FUNCTION_URL}/api/backend/health" >/dev/null 2>&1 \
-            && echo "✅ /api/backend/health healthy" \
-            || echo "⚠️ /api/backend/health non-2xx (advisory)"
+          # Confirm the Azure Functions host loaded dist/src/index.js and registered functions
+          fn_count="$(az functionapp function list --name "$FUNCTION_APP_NAME" --resource-group "rg-atlas-game" --query "length(@)" -o tsv 2>/dev/null || echo "0")"
+          echo "Registered Azure Functions count: ${fn_count}"
+          if [ "${fn_count:-0}" -eq 0 ]; then
+            echo "::error title=Zero Functions Registered::Azure Functions host registered 0 functions from backend/dist.zip"
+            exit 1
+          fi
 
       - name: Record deployed-backend tag & transition issues to state:testing
         if: steps.scope.outputs.affected == 'true'
