@@ -1,251 +1,494 @@
 {
+    "$schema": "./long-reach-authoring-overlay.schema.json",
     "schemaVersion": 1,
-    "map": {
-        "source": "the-long-reach.jpg",
-        "width": 7040,
-        "height": 8480
-    },
-    "segments": [
+    "image": "the-long-reach.jpg",
+    "atlas": "backend/src/data/theLongReachMacroAtlas.json",
+    "entries": [
         {
-            "ref": "lr-area-fiordmarch-west",
-            "label": "Fiordmarch West",
-            "kind": "area",
-            "coverage": "planned",
-            "priority": 1,
-            "geometry": { "type": "marker", "anchor": [0.27, 0.61] }
+            "id": "lr-overlay-mosswell-village",
+            "label": "Mosswell Village",
+            "kind": "region",
+            "geometry": {
+                "type": "marker",
+                "anchor": [0.19, 0.562],
+                "radius": 0.0012,
+                "labelAnchor": [0.115, 0.558]
+            },
+            "authoringState": "authored",
+            "coverage": "complete",
+            "authoringReadiness": "ready",
+            "areaRefs": ["lr-area-mosswell-fiordhead"],
+            "entryAnchorId": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21",
+            "notes": "35 hand-authored Mosswell settlement locations anchored at Mosswell River Jetty on the Cleddau-like river mouth at the head of Milford Sound."
         },
         {
-            "ref": "lr-area-mosswell-fiordhead",
-            "label": "Mosswell village",
-            "kind": "area",
-            "coverage": "authored",
-            "geometry": { "type": "marker", "anchor": [0.16, 0.55], "radius": 0.001 }
-        },
-        {
-            "ref": "lr-area-rainward-escarpments",
-            "label": "Rainward Escarpments",
-            "kind": "area",
-            "coverage": "in-progress",
-            "priority": 3,
-            "geometry": { "type": "marker", "anchor": [0.34, 0.47] }
-        },
-        {
-            "ref": "lr-area-crownspine-divide",
-            "label": "Crownspine Divide",
-            "kind": "area",
-            "coverage": "in-progress",
-            "priority": 2,
-            "geometry": { "type": "marker", "anchor": [0.49, 0.39] }
-        },
-        {
-            "ref": "lr-area-northwatch-ranges",
-            "label": "Northwatch Ranges",
-            "kind": "area",
-            "coverage": "in-progress",
-            "priority": 2,
-            "geometry": { "type": "marker", "anchor": [0.59, 0.12] }
-        },
-        {
-            "ref": "lr-area-icefall-uplands",
-            "label": "Icefall Uplands",
-            "kind": "area",
-            "coverage": "planned",
-            "priority": 5,
-            "geometry": { "type": "marker", "anchor": [0.55, 0.27] }
-        },
-        {
-            "ref": "lr-area-eastfall-foothills",
-            "label": "Eastfall Foothills",
-            "kind": "area",
-            "coverage": "in-progress",
-            "priority": 1,
-            "geometry": { "type": "marker", "anchor": [0.67, 0.41] }
-        },
-        {
-            "ref": "lr-area-braidwater-basin",
-            "label": "Braidwater Basin",
-            "kind": "area",
-            "coverage": "planned",
-            "priority": 2,
-            "geometry": { "type": "marker", "anchor": [0.68, 0.53] }
-        },
-        {
-            "ref": "lr-area-sunmere-plains",
-            "label": "Sunmere Plains",
-            "kind": "area",
-            "coverage": "planned",
-            "priority": 4,
-            "geometry": { "type": "marker", "anchor": [0.71, 0.29] }
-        },
-        {
-            "ref": "lr-area-eastshelf-coast",
-            "label": "Eastshelf Coast",
-            "kind": "area",
-            "coverage": "planned",
-            "priority": 5,
-            "geometry": { "type": "marker", "anchor": [0.78, 0.32] }
-        },
-        {
-            "ref": "lr-area-southbreak-uplands",
-            "label": "Southbreak Uplands",
-            "kind": "area",
-            "coverage": "planned",
-            "priority": 3,
-            "geometry": { "type": "marker", "anchor": [0.56, 0.69] }
-        },
-        {
-            "ref": "lr-area-southtangle-coast",
-            "label": "Southtangle Coast",
-            "kind": "area",
-            "coverage": "planned",
-            "priority": 4,
-            "geometry": { "type": "marker", "anchor": [0.41, 0.77] }
-        },
-        {
-            "ref": "lr-area-emberfen-lowlands",
-            "label": "Emberfen Lowlands",
-            "kind": "area",
-            "coverage": "planned",
-            "priority": 5,
-            "geometry": { "type": "marker", "anchor": [0.69, 0.73] }
-        },
-        {
-            "ref": "lr-corridor-mosswell-harbor-road",
+            "id": "lr-overlay-mosswell-harbor-road",
             "label": "Mosswell Harbor Road",
             "kind": "corridor",
-            "coverage": "authored",
             "geometry": {
                 "type": "line",
-                "points": [[0.15, 0.555], [0.16, 0.55], [0.17, 0.545]],
-                "labelAnchor": [0.19, 0.57]
-            }
+                "points": [
+                    [0.1885, 0.5635],
+                    [0.19, 0.562],
+                    [0.1945, 0.5565]
+                ],
+                "labelAnchor": [0.214, 0.551]
+            },
+            "authoringState": "authored",
+            "coverage": "complete",
+            "authoringReadiness": "ready",
+            "areaRefs": ["lr-area-mosswell-fiordhead"],
+            "corridorRefs": ["lr-corridor-mosswell-harbor-road"],
+            "entryAnchorId": "d0b2a7ea-9f4c-41d5-9b2d-7b4a0e6f1c3a",
+            "notes": "Seeded local harbor-to-gate spine linking Lower Jetty Landing, Mosswell River Jetty, North Road, and North Gate."
         },
         {
-            "ref": "lr-corridor-northgate-valley",
+            "id": "lr-overlay-northgate-valley",
             "label": "Northgate Valley",
             "kind": "corridor",
-            "coverage": "authored",
             "geometry": {
                 "type": "line",
-                "points": [[0.58, 0.19], [0.59, 0.15], [0.6, 0.12]],
-                "labelAnchor": [0.64, 0.17]
-            }
+                "points": [
+                    [0.1945, 0.5565],
+                    [0.205, 0.543],
+                    [0.216, 0.521],
+                    [0.238, 0.495]
+                ],
+                "labelAnchor": [0.223, 0.523]
+            },
+            "authoringState": "transition-ready",
+            "coverage": "partial",
+            "authoringReadiness": "partial",
+            "areaRefs": ["lr-area-northwatch-ranges"],
+            "corridorRefs": ["lr-corridor-northgate-valley"],
+            "entrySegmentRef": "lr-corridor-northgate-valley",
+            "entryAnchorId": "d0b2a7ea-9f4c-41d5-9b2d-7b4a0e6f1c3a",
+            "notes": "North/northeast valley route departing Mosswell North Gate along the Hollyford-like valley floor; atlas route continuity is ready while broader Northwatch highland content remains partial."
         },
         {
-            "ref": "lr-corridor-westwall-shelf",
-            "label": "Westwall Shelf",
-            "kind": "corridor",
-            "coverage": "in-progress",
-            "priority": 1,
+            "id": "lr-overlay-northwatch-ranges",
+            "label": "Northwatch Ranges",
+            "kind": "region",
             "geometry": {
-                "type": "line",
-                "points": [[0.29, 0.57], [0.32, 0.61], [0.35, 0.65]],
-                "labelAnchor": [0.28, 0.63]
-            }
+                "type": "polygon",
+                "points": [
+                    [0.192, 0.522],
+                    [0.242, 0.468],
+                    [0.312, 0.458],
+                    [0.295, 0.522],
+                    [0.222, 0.538]
+                ],
+                "labelAnchor": [0.256, 0.482]
+            },
+            "authoringState": "transition-ready",
+            "coverage": "partial",
+            "authoringReadiness": "partial",
+            "areaRefs": ["lr-area-northwatch-ranges"],
+            "entrySegmentRef": "lr-corridor-northgate-valley",
+            "entryAnchorId": "d0b2a7ea-9f4c-41d5-9b2d-7b4a0e6f1c3a",
+            "notes": "Northern approach highlands reached via Northgate Valley; transition metadata is wired, awaiting hand-authored mountain saddles and landmarks."
         },
         {
-            "ref": "lr-corridor-lantern-notch-pass",
-            "label": "Lantern Notch",
-            "kind": "corridor",
-            "coverage": "planned",
-            "priority": 3,
-            "geometry": {
-                "type": "line",
-                "points": [[0.48, 0.35], [0.51, 0.38], [0.54, 0.41]],
-                "labelAnchor": [0.48, 0.33]
-            }
-        },
-        {
-            "ref": "lr-corridor-ashen-step-pass",
-            "label": "Ashen Step",
-            "kind": "corridor",
-            "coverage": "planned",
-            "priority": 3,
-            "geometry": {
-                "type": "line",
-                "points": [[0.51, 0.43], [0.54, 0.45], [0.57, 0.46]],
-                "labelAnchor": [0.57, 0.43]
-            }
-        },
-        {
-            "ref": "lr-corridor-braidwater-run",
-            "label": "Braidwater Run",
-            "kind": "corridor",
-            "coverage": "planned",
-            "priority": 2,
-            "geometry": {
-                "type": "line",
-                "points": [[0.65, 0.49], [0.68, 0.52], [0.72, 0.55]],
-                "labelAnchor": [0.69, 0.48]
-            }
-        },
-        {
-            "ref": "lr-corridor-eastshelf-road",
-            "label": "Eastshelf Road",
-            "kind": "corridor",
-            "coverage": "planned",
-            "priority": 4,
-            "geometry": {
-                "type": "line",
-                "points": [[0.72, 0.34], [0.76, 0.35], [0.79, 0.38]],
-                "labelAnchor": [0.77, 0.32]
-            }
-        },
-        {
-            "ref": "lr-corridor-southfork-vale",
+            "id": "lr-overlay-southfork-vale",
             "label": "Southfork Vale",
             "kind": "corridor",
-            "coverage": "planned",
-            "priority": 1,
             "geometry": {
                 "type": "line",
-                "points": [[0.51, 0.66], [0.55, 0.69], [0.59, 0.72]],
-                "labelAnchor": [0.55, 0.66]
-            }
+                "points": [
+                    [0.192, 0.566],
+                    [0.202, 0.588],
+                    [0.192, 0.625],
+                    [0.184, 0.662],
+                    [0.206, 0.695]
+                ],
+                "labelAnchor": [0.22, 0.635]
+            },
+            "authoringState": "next-to-author",
+            "coverage": "none",
+            "authoringReadiness": "partial",
+            "areaRefs": ["lr-area-southbreak-uplands"],
+            "corridorRefs": ["lr-corridor-southfork-vale"],
+            "entrySegmentRef": "lr-corridor-southfork-vale",
+            "entryAnchorId": "ec88e970-9d2b-4a34-9804-6b2afd5adb9e",
+            "priority": 1,
+            "notes": "Highest-priority overland expansion south from Mosswell South Farms down the Eglinton/Te Anau-like interior valley; currently blocked at runtime (destinationReadiness: partial)."
         },
         {
-            "ref": "lr-barrier-fiord-deeps",
+            "id": "lr-overlay-eastfall-foothills",
+            "label": "Eastfall Foothills",
+            "kind": "region",
+            "geometry": {
+                "type": "polygon",
+                "points": [
+                    [0.226, 0.538],
+                    [0.315, 0.518],
+                    [0.326, 0.616],
+                    [0.236, 0.628]
+                ],
+                "labelAnchor": [0.282, 0.568]
+            },
+            "authoringState": "next-to-author",
+            "coverage": "none",
+            "authoringReadiness": "partial",
+            "areaRefs": ["lr-area-eastfall-foothills"],
+            "corridorRefs": ["lr-corridor-lantern-notch-pass", "lr-corridor-ashen-step-pass"],
+            "entrySegmentRef": "lr-area-braidwater-basin",
+            "entryAnchorId": "ec88e970-9d2b-4a34-9804-6b2afd5adb9e",
+            "priority": 2,
+            "notes": "Descending eastern foothill valleys beyond the alpine divide saddles; currently blocked at runtime (destinationReadiness: partial)."
+        },
+        {
+            "id": "lr-overlay-divide-passes",
+            "label": "Lantern Notch & Ashen Step",
+            "kind": "corridor",
+            "geometry": {
+                "type": "line",
+                "points": [
+                    [0.193, 0.564],
+                    [0.208, 0.574],
+                    [0.232, 0.578],
+                    [0.258, 0.575]
+                ],
+                "labelAnchor": [0.223, 0.587]
+            },
+            "authoringState": "next-to-author",
+            "coverage": "none",
+            "authoringReadiness": "partial",
+            "areaRefs": ["lr-area-eastfall-foothills"],
+            "corridorRefs": ["lr-corridor-lantern-notch-pass", "lr-corridor-ashen-step-pass"],
+            "entryAnchorId": "ec88e970-9d2b-4a34-9804-6b2afd5adb9e",
+            "priority": 3,
+            "notes": "High alpine saddles (Homer/Greenstone analogues) crossing from the Mosswell fiordhead canyon into Eastfall Foothills."
+        },
+        {
+            "id": "lr-overlay-fiordmarch-west",
+            "label": "Fiordmarch West",
+            "kind": "region",
+            "geometry": {
+                "type": "polygon",
+                "points": [
+                    [0.173, 0.548],
+                    [0.188, 0.568],
+                    [0.162, 0.635],
+                    [0.115, 0.725],
+                    [0.055, 0.735],
+                    [0.085, 0.64],
+                    [0.138, 0.575]
+                ],
+                "labelAnchor": [0.108, 0.655]
+            },
+            "authoringState": "next-to-author",
+            "coverage": "none",
+            "authoringReadiness": "blocked",
+            "areaRefs": ["lr-area-fiordmarch-west"],
+            "corridorRefs": ["lr-corridor-westwall-shelf"],
+            "barrierRefs": ["lr-barrier-fiord-deeps", "lr-barrier-rainward-cliffwall"],
+            "entrySegmentRef": "lr-corridor-westwall-shelf",
+            "entryAnchorId": "e82c9f17-ffc0-4b27-bcfe-5b8e3b2ea5f3",
+            "priority": 4,
+            "notes": "Outer sea-cut Fiordland coast west/southwest of Mosswell; explicitly blocked by Fiord Deeps and Rainward Cliffwall until Westwall Shelf or watercraft routes are authored."
+        },
+        {
+            "id": "lr-overlay-southbreak-uplands",
+            "label": "Southbreak Uplands",
+            "kind": "region",
+            "geometry": {
+                "type": "polygon",
+                "points": [
+                    [0.175, 0.655],
+                    [0.305, 0.645],
+                    [0.32, 0.735],
+                    [0.175, 0.735]
+                ],
+                "labelAnchor": [0.248, 0.702]
+            },
+            "authoringState": "next-to-author",
+            "coverage": "none",
+            "authoringReadiness": "partial",
+            "areaRefs": ["lr-area-southbreak-uplands"],
+            "entrySegmentRef": "lr-corridor-southfork-vale",
+            "priority": 5,
+            "notes": "Weather-cut southern uplands downstream of Southfork Vale; second-ring expansion queued behind Southfork Vale."
+        },
+        {
+            "id": "lr-overlay-westwall-shelf",
+            "label": "Westwall Shelf",
+            "kind": "corridor",
+            "geometry": {
+                "type": "line",
+                "points": [
+                    [0.188, 0.565],
+                    [0.168, 0.576],
+                    [0.148, 0.594],
+                    [0.132, 0.614]
+                ],
+                "labelAnchor": [0.156, 0.592]
+            },
+            "authoringState": "blocked",
+            "coverage": "none",
+            "authoringReadiness": "blocked",
+            "areaRefs": ["lr-area-fiordmarch-west"],
+            "corridorRefs": ["lr-corridor-westwall-shelf"],
+            "barrierRefs": ["lr-barrier-rainward-cliffwall"],
+            "notes": "Hazardous cliff-foot coastal track along the outer fiord walls; closed until Fiordmarch barrier mechanics and encounters are authored."
+        },
+        {
+            "id": "lr-overlay-rainward-escarpments",
+            "label": "Rainward Escarpments",
+            "kind": "region",
+            "geometry": {
+                "type": "polygon",
+                "points": [
+                    [0.188, 0.535],
+                    [0.225, 0.53],
+                    [0.225, 0.625],
+                    [0.165, 0.635],
+                    [0.175, 0.575]
+                ],
+                "labelAnchor": [0.212, 0.538]
+            },
+            "authoringState": "blocked",
+            "coverage": "none",
+            "authoringReadiness": "blocked",
+            "areaRefs": ["lr-area-rainward-escarpments"],
+            "barrierRefs": ["lr-barrier-rainward-cliffwall", "lr-barrier-crownspine-ridge"],
+            "notes": "Sheer waterfall-cut granite escarpments (Darran/Franklin mountains) enclosing Mosswell Fiordhead and funneling travel into valley corridors."
+        },
+        {
+            "id": "lr-overlay-fiord-deeps",
             "label": "Fiord Deeps",
             "kind": "barrier",
-            "coverage": "authored",
             "geometry": {
                 "type": "line",
-                "points": [[0.22, 0.63], [0.24, 0.67], [0.26, 0.71]],
-                "labelAnchor": [0.18, 0.68]
-            }
+                "points": [
+                    [0.19, 0.562],
+                    [0.181, 0.555],
+                    [0.171, 0.548]
+                ],
+                "labelAnchor": [0.164, 0.542]
+            },
+            "authoringState": "blocked",
+            "coverage": "none",
+            "authoringReadiness": "blocked",
+            "barrierRefs": ["lr-barrier-fiord-deeps"],
+            "notes": "Deep Milford Sound channel out to the Tasman Sea; blocks foot travel without watercraft."
         },
         {
-            "ref": "lr-barrier-rainward-cliffwall",
+            "id": "lr-overlay-rainward-cliffwall",
             "label": "Rainward Cliffwall",
             "kind": "barrier",
-            "coverage": "authored",
             "geometry": {
                 "type": "line",
-                "points": [[0.28, 0.48], [0.3, 0.54], [0.31, 0.61]],
-                "labelAnchor": [0.25, 0.52]
-            }
+                "points": [
+                    [0.197, 0.54],
+                    [0.197, 0.558],
+                    [0.184, 0.58],
+                    [0.172, 0.608]
+                ],
+                "labelAnchor": [0.175, 0.571]
+            },
+            "authoringState": "blocked",
+            "coverage": "none",
+            "authoringReadiness": "blocked",
+            "barrierRefs": ["lr-barrier-rainward-cliffwall"],
+            "notes": "Near-vertical fiord sidewalls preventing direct cross-country climbs out of Mosswell."
         },
         {
-            "ref": "lr-barrier-crownspine-ridge",
-            "label": "Crownspine Ridge",
+            "id": "lr-overlay-crownspine-ridge",
+            "label": "Crownspine Knifeback",
             "kind": "barrier",
-            "coverage": "authored",
             "geometry": {
                 "type": "line",
-                "points": [[0.48, 0.2], [0.5, 0.37], [0.53, 0.56]],
-                "labelAnchor": [0.47, 0.25]
-            }
+                "points": [
+                    [0.228, 0.555],
+                    [0.295, 0.485],
+                    [0.395, 0.395],
+                    [0.515, 0.295],
+                    [0.615, 0.215]
+                ],
+                "labelAnchor": [0.37, 0.365]
+            },
+            "authoringState": "blocked",
+            "coverage": "none",
+            "authoringReadiness": "blocked",
+            "barrierRefs": ["lr-barrier-crownspine-ridge"],
+            "notes": "Main Southern Alps crestline dividing western rainforest/fiords from eastern interior basins; pass-limited crossing only."
         },
         {
-            "ref": "lr-barrier-emberfen-break",
-            "label": "Emberfen Marsh Break",
-            "kind": "barrier",
-            "coverage": "authored",
+            "id": "lr-overlay-crownspine-divide",
+            "label": "Crownspine Divide",
+            "kind": "region",
             "geometry": {
-                "type": "line",
-                "points": [[0.66, 0.7], [0.7, 0.72], [0.73, 0.74]],
-                "labelAnchor": [0.73, 0.68]
-            }
+                "type": "polygon",
+                "points": [
+                    [0.245, 0.505],
+                    [0.585, 0.215],
+                    [0.635, 0.235],
+                    [0.285, 0.525]
+                ],
+                "labelAnchor": [0.455, 0.335]
+            },
+            "authoringState": "inspiration-only",
+            "coverage": "none",
+            "areaRefs": ["lr-area-crownspine-divide"],
+            "notes": "Macro alpine spine modeled in the atlas for terrain coherence; no hand-authored high-alpine traversal zones yet."
+        },
+        {
+            "id": "lr-overlay-icefall-uplands",
+            "label": "Icefall Uplands",
+            "kind": "region",
+            "geometry": {
+                "type": "polygon",
+                "points": [
+                    [0.305, 0.435],
+                    [0.445, 0.335],
+                    [0.485, 0.375],
+                    [0.345, 0.475]
+                ],
+                "labelAnchor": [0.395, 0.415]
+            },
+            "authoringState": "inspiration-only",
+            "coverage": "none",
+            "areaRefs": ["lr-area-icefall-uplands"],
+            "notes": "Glacial basins and high tarn shelves (Aspiring/Aoraki inspiration); atlas concept only, unauthored."
+        },
+        {
+            "id": "lr-overlay-braidwater-basin",
+            "label": "Braidwater Basin & Run",
+            "kind": "region",
+            "geometry": {
+                "type": "polygon",
+                "points": [
+                    [0.325, 0.495],
+                    [0.485, 0.425],
+                    [0.495, 0.585],
+                    [0.335, 0.635]
+                ],
+                "labelAnchor": [0.415, 0.535]
+            },
+            "authoringState": "inspiration-only",
+            "coverage": "none",
+            "areaRefs": ["lr-area-braidwater-basin"],
+            "corridorRefs": ["lr-corridor-braidwater-run"],
+            "notes": "Wide inland braided-river basins (Mackenzie/Central Otago inspiration); unauthored distant interior."
+        },
+        {
+            "id": "lr-overlay-sunmere-plains",
+            "label": "Sunmere Plains",
+            "kind": "region",
+            "geometry": {
+                "type": "polygon",
+                "points": [
+                    [0.495, 0.365],
+                    [0.675, 0.355],
+                    [0.635, 0.475],
+                    [0.49, 0.495]
+                ],
+                "labelAnchor": [0.58, 0.425]
+            },
+            "authoringState": "inspiration-only",
+            "coverage": "none",
+            "areaRefs": ["lr-area-sunmere-plains"],
+            "notes": "Broad eastern low country inspired by the Canterbury Plains; unauthored future region."
+        },
+        {
+            "id": "lr-overlay-eastshelf-coast",
+            "label": "Eastshelf Coast & Road",
+            "kind": "region",
+            "geometry": {
+                "type": "polygon",
+                "points": [
+                    [0.645, 0.255],
+                    [0.785, 0.22],
+                    [0.725, 0.445],
+                    [0.525, 0.545],
+                    [0.505, 0.505],
+                    [0.655, 0.435]
+                ],
+                "labelAnchor": [0.705, 0.335]
+            },
+            "authoringState": "inspiration-only",
+            "coverage": "none",
+            "areaRefs": ["lr-area-eastshelf-coast"],
+            "corridorRefs": ["lr-corridor-eastshelf-road"],
+            "notes": "Eastern coastal shelves and headland road; unauthored distant coastline."
+        },
+        {
+            "id": "lr-overlay-emberfen-lowlands",
+            "label": "Emberfen Lowlands",
+            "kind": "region",
+            "geometry": {
+                "type": "polygon",
+                "points": [
+                    [0.275, 0.725],
+                    [0.465, 0.675],
+                    [0.475, 0.755],
+                    [0.295, 0.785]
+                ],
+                "labelAnchor": [0.385, 0.735]
+            },
+            "authoringState": "inspiration-only",
+            "coverage": "none",
+            "areaRefs": ["lr-area-emberfen-lowlands"],
+            "barrierRefs": ["lr-barrier-emberfen-break"],
+            "notes": "Southeastern reed marshes, tidal creeks, and soft-ground breaks; unauthored distant lowlands."
+        },
+        {
+            "id": "lr-overlay-southtangle-coast",
+            "label": "Southtangle Coast",
+            "kind": "region",
+            "geometry": {
+                "type": "polygon",
+                "points": [
+                    [0.095, 0.74],
+                    [0.285, 0.755],
+                    [0.375, 0.78],
+                    [0.355, 0.81],
+                    [0.115, 0.785]
+                ],
+                "labelAnchor": [0.235, 0.795]
+            },
+            "authoringState": "inspiration-only",
+            "coverage": "none",
+            "areaRefs": ["lr-area-southtangle-coast"],
+            "notes": "Storm-beaten southern coves along Foveaux/Catlins inspiration coast; unauthored."
+        },
+        {
+            "id": "lr-overlay-unmapped-northern-reach",
+            "label": "Unmapped Northern Reach",
+            "kind": "region",
+            "geometry": {
+                "type": "polygon",
+                "points": [
+                    [0.525, 0.255],
+                    [0.675, 0.04],
+                    [0.885, 0.105],
+                    [0.785, 0.22],
+                    [0.635, 0.235]
+                ],
+                "labelAnchor": [0.715, 0.155]
+            },
+            "authoringState": "inspiration-only",
+            "coverage": "none",
+            "notes": "Northern third of the inspiration map (Buller/Tasman/Marlborough); intentionally unmapped in the first-pass macro atlas."
+        },
+        {
+            "id": "lr-overlay-unmapped-southern-isle",
+            "label": "Unmapped Southern Isle",
+            "kind": "region",
+            "geometry": {
+                "type": "polygon",
+                "points": [
+                    [0.15, 0.818],
+                    [0.248, 0.818],
+                    [0.242, 0.908],
+                    [0.15, 0.908]
+                ],
+                "labelAnchor": [0.198, 0.868]
+            },
+            "authoringState": "inspiration-only",
+            "coverage": "none",
+            "notes": "Offshore southern island (Stewart Island inspiration); no macro-atlas area assigned yet."
         }
     ]
 }

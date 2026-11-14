@@ -86,6 +86,10 @@ export class MemoryLocationClockRepository implements ILocationClockRepository {
         return Array.from(this.store.values())
     }
 
+    async deleteClock(locationId: string): Promise<boolean> {
+        return this.store.delete(locationId)
+    }
+
     /**
      * Clear all data (test helper)
      */

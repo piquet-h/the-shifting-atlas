@@ -26,4 +26,5 @@ export interface IPlayerRepository {
         externalId: string
     ): Promise<{ updated: boolean; record?: PlayerRecord; conflict?: boolean; existingPlayerId?: string }>
     findByExternalId(externalId: string): Promise<PlayerRecord | undefined>
+    listAll(): Promise<PlayerRecord[]>
 }

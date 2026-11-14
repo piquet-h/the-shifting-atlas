@@ -1,123 +1,210 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 7040 8480" width="7040" height="8480" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 11200 8480" width="11200" height="8480" role="img" aria-labelledby="title description">
 <title id="title">The Long Reach authoring readiness overlay</title>
-<desc id="description">Approximate authoring annotations over the inspiration map. The JSON atlas remains authoritative for runtime transitions.</desc>
+<desc id="description">Two-panel authoring readiness overview and zoomed Milford Sound / Mosswell Fiordhead inset. The JSON macro atlas and seed locations remain authoritative for runtime transitions.</desc>
+<style>
+text{font-family:Arial,Helvetica,sans-serif;font-weight:700;fill:#13202c}
+.corridor-line{stroke-width:38;stroke-linecap:round;stroke-linejoin:round}
+.barrier-line{stroke-width:30;stroke-dasharray:44 26;stroke-linecap:round}
+.label{font-size:52px;paint-order:stroke;stroke:#ffffff;stroke-width:11px;stroke-linejoin:round}
+.label-muted{fill:#37474f;font-size:46px}
+.inset-label{font-size:15px;paint-order:stroke;stroke:#ffffff;stroke-width:3.8px;stroke-linejoin:round}
+.inset-village{fill:#0d5323;font-size:16.5px}
+.panel-title{font-size:70px;fill:#0f172a}
+.panel-sub{font-size:44px;font-weight:600;fill:#334155}
+.legend{font-size:48px}
+.legend-note{font-size:41px;font-weight:600;fill:#334155}
+.queue-row{font-size:39px;font-weight:600;fill:#1e293b}
+</style>
+<rect x="0" y="0" width="11200" height="8480" fill="#eef2f6"/>
+<g aria-label="Full Long Reach overview">
 <image href="../../the-long-reach.jpg" x="0" y="0" width="7040" height="8480" preserveAspectRatio="none"/>
-<style>text{font-family:Arial,sans-serif;font-weight:700;paint-order:stroke;stroke:#fff;stroke-width:8px;stroke-linejoin:round}.area circle{fill-opacity:.25}.corridor polyline{stroke-width:50;stroke-linecap:round;stroke-linejoin:round}.barrier polyline{stroke-width:36;stroke-dasharray:48 28;stroke-linecap:round}.label{font-size:42px}.legend{font-size:38px;stroke-width:7px}</style>
 <g aria-label="Authoring segments">
-<g class="area runtime-blocked" data-ref="lr-area-fiordmarch-west" data-status="next-to-author" data-readiness="blocked"><title>Fiordmarch West: coverage planned; runtime readiness blocked</title>
-<circle cx="1900.8" cy="5172.8" r="161.9" fill="#e6a700" stroke="#c62828" stroke-width="38"/>
+<g class="region runtime-blocked" data-ref="lr-overlay-northwatch-ranges" data-status="transition-ready" data-readiness="partial"><title>Northwatch Ranges: coverage partial; readiness snapshot partial; Northern approach highlands reached via Northgate Valley; transition metadata is wired, awaiting hand-authored mountain saddles and landmarks.</title>
+<polygon points="1351.7,4426.6 1703.7,3968.6 2196.5,3883.8 2076.8,4426.6 1562.9,4562.2" fill="#1565c0" fill-opacity=".24" stroke="#c62828" stroke-width="22"/>
 </g>
-<g class="area" data-ref="lr-area-mosswell-fiordhead" data-status="authored" data-readiness="unspecified"><title>Mosswell village: coverage authored; runtime readiness unspecified</title>
-<circle cx="1126.4" cy="4664.0" r="7.0" fill="#218739" stroke="#218739" stroke-width="1.8"/>
+<g class="region runtime-blocked" data-ref="lr-overlay-eastfall-foothills" data-status="next-to-author" data-readiness="partial"><title>Eastfall Foothills: coverage none; readiness snapshot partial; Descending eastern foothill valleys beyond the alpine divide saddles; currently blocked at runtime (destinationReadiness: partial).</title>
+<polygon points="1591.0,4562.2 2217.6,4392.6 2295.0,5223.7 1661.4,5325.4" fill="#e09100" fill-opacity=".24" stroke="#c62828" stroke-width="22"/>
 </g>
-<g class="area" data-ref="lr-area-rainward-escarpments" data-status="in-progress" data-readiness="unspecified"><title>Rainward Escarpments: coverage in-progress; runtime readiness unspecified</title>
-<circle cx="2393.6" cy="3985.6" r="161.9" fill="#1769aa" stroke="#1769aa" stroke-width="18"/>
+<g class="region runtime-blocked" data-ref="lr-overlay-fiordmarch-west" data-status="next-to-author" data-readiness="blocked"><title>Fiordmarch West: coverage none; readiness snapshot blocked; Outer sea-cut Fiordland coast west/southwest of Mosswell; explicitly blocked by Fiord Deeps and Rainward Cliffwall until Westwall Shelf or watercraft routes are authored.</title>
+<polygon points="1217.9,4647.0 1323.5,4816.6 1140.5,5384.8 809.6,6148.0 387.2,6232.8 598.4,5427.2 971.5,4876.0" fill="#e09100" fill-opacity=".24" stroke="#c62828" stroke-width="22"/>
 </g>
-<g class="area" data-ref="lr-area-crownspine-divide" data-status="in-progress" data-readiness="unspecified"><title>Crownspine Divide: coverage in-progress; runtime readiness unspecified</title>
-<circle cx="3449.6" cy="3307.2" r="161.9" fill="#1769aa" stroke="#1769aa" stroke-width="18"/>
+<g class="region runtime-blocked" data-ref="lr-overlay-southbreak-uplands" data-status="next-to-author" data-readiness="partial"><title>Southbreak Uplands: coverage none; readiness snapshot partial; Weather-cut southern uplands downstream of Southfork Vale; second-ring expansion queued behind Southfork Vale.</title>
+<polygon points="1232.0,5554.4 2147.2,5469.6 2252.8,6232.8 1232.0,6232.8" fill="#e09100" fill-opacity=".24" stroke="#c62828" stroke-width="22"/>
 </g>
-<g class="area runtime-blocked" data-ref="lr-area-northwatch-ranges" data-status="in-progress" data-readiness="partial"><title>Northwatch Ranges: coverage in-progress; runtime readiness partial</title>
-<circle cx="4153.6" cy="1017.6" r="161.9" fill="#1769aa" stroke="#c62828" stroke-width="38"/>
+<g class="region runtime-blocked" data-ref="lr-overlay-rainward-escarpments" data-status="blocked" data-readiness="blocked"><title>Rainward Escarpments: coverage none; readiness snapshot blocked; Sheer waterfall-cut granite escarpments (Darran/Franklin mountains) enclosing Mosswell Fiordhead and funneling travel into valley corridors.</title>
+<polygon points="1323.5,4536.8 1584.0,4494.4 1584.0,5300.0 1161.6,5384.8 1232.0,4876.0" fill="#c62828" fill-opacity=".24" stroke="#c62828" stroke-width="22"/>
 </g>
-<g class="area" data-ref="lr-area-icefall-uplands" data-status="next-to-author" data-readiness="unspecified"><title>Icefall Uplands: coverage planned; runtime readiness unspecified</title>
-<circle cx="3872.0" cy="2289.6" r="161.9" fill="#e6a700" stroke="#e6a700" stroke-width="18"/>
+<g class="region" data-ref="lr-overlay-crownspine-divide" data-status="inspiration-only" data-readiness="unspecified"><title>Crownspine Divide: coverage none; readiness snapshot unspecified; Macro alpine spine modeled in the atlas for terrain coherence; no hand-authored high-alpine traversal zones yet.</title>
+<polygon points="1724.8,4282.4 4118.4,1823.2 4470.4,1992.8 2006.4,4452.0" fill="#607d8b" fill-opacity=".15" stroke="#607d8b" stroke-width="14" stroke-dasharray="36 26"/>
 </g>
-<g class="area runtime-blocked" data-ref="lr-area-eastfall-foothills" data-status="in-progress" data-readiness="partial"><title>Eastfall Foothills: coverage in-progress; runtime readiness partial</title>
-<circle cx="4716.8" cy="3476.8" r="161.9" fill="#1769aa" stroke="#c62828" stroke-width="38"/>
+<g class="region" data-ref="lr-overlay-icefall-uplands" data-status="inspiration-only" data-readiness="unspecified"><title>Icefall Uplands: coverage none; readiness snapshot unspecified; Glacial basins and high tarn shelves (Aspiring/Aoraki inspiration); atlas concept only, unauthored.</title>
+<polygon points="2147.2,3688.8 3132.8,2840.8 3414.4,3180.0 2428.8,4028.0" fill="#607d8b" fill-opacity=".15" stroke="#607d8b" stroke-width="14" stroke-dasharray="36 26"/>
 </g>
-<g class="area runtime-blocked" data-ref="lr-area-braidwater-basin" data-status="next-to-author" data-readiness="partial"><title>Braidwater Basin: coverage planned; runtime readiness partial</title>
-<circle cx="4787.2" cy="4494.4" r="161.9" fill="#e6a700" stroke="#c62828" stroke-width="38"/>
+<g class="region" data-ref="lr-overlay-braidwater-basin" data-status="inspiration-only" data-readiness="unspecified"><title>Braidwater Basin &amp; Run: coverage none; readiness snapshot unspecified; Wide inland braided-river basins (Mackenzie/Central Otago inspiration); unauthored distant interior.</title>
+<polygon points="2288.0,4197.6 3414.4,3604.0 3484.8,4960.8 2358.4,5384.8" fill="#607d8b" fill-opacity=".15" stroke="#607d8b" stroke-width="14" stroke-dasharray="36 26"/>
 </g>
-<g class="area" data-ref="lr-area-sunmere-plains" data-status="next-to-author" data-readiness="unspecified"><title>Sunmere Plains: coverage planned; runtime readiness unspecified</title>
-<circle cx="4998.4" cy="2459.2" r="161.9" fill="#e6a700" stroke="#e6a700" stroke-width="18"/>
+<g class="region" data-ref="lr-overlay-sunmere-plains" data-status="inspiration-only" data-readiness="unspecified"><title>Sunmere Plains: coverage none; readiness snapshot unspecified; Broad eastern low country inspired by the Canterbury Plains; unauthored future region.</title>
+<polygon points="3484.8,3095.2 4752.0,3010.4 4470.4,4028.0 3449.6,4197.6" fill="#607d8b" fill-opacity=".15" stroke="#607d8b" stroke-width="14" stroke-dasharray="36 26"/>
 </g>
-<g class="area" data-ref="lr-area-eastshelf-coast" data-status="next-to-author" data-readiness="unspecified"><title>Eastshelf Coast: coverage planned; runtime readiness unspecified</title>
-<circle cx="5491.2" cy="2713.6" r="161.9" fill="#e6a700" stroke="#e6a700" stroke-width="18"/>
+<g class="region" data-ref="lr-overlay-eastshelf-coast" data-status="inspiration-only" data-readiness="unspecified"><title>Eastshelf Coast &amp; Road: coverage none; readiness snapshot unspecified; Eastern coastal shelves and headland road; unauthored distant coastline.</title>
+<polygon points="4540.8,2162.4 5526.4,1865.6 5104.0,3773.6 3696.0,4621.6 3555.2,4282.4 4611.2,3688.8" fill="#607d8b" fill-opacity=".15" stroke="#607d8b" stroke-width="14" stroke-dasharray="36 26"/>
 </g>
-<g class="area" data-ref="lr-area-southbreak-uplands" data-status="next-to-author" data-readiness="unspecified"><title>Southbreak Uplands: coverage planned; runtime readiness unspecified</title>
-<circle cx="3942.4" cy="5851.2" r="161.9" fill="#e6a700" stroke="#e6a700" stroke-width="18"/>
+<g class="region" data-ref="lr-overlay-emberfen-lowlands" data-status="inspiration-only" data-readiness="unspecified"><title>Emberfen Lowlands: coverage none; readiness snapshot unspecified; Southeastern reed marshes, tidal creeks, and soft-ground breaks; unauthored distant lowlands.</title>
+<polygon points="1936.0,6148.0 3273.6,5724.0 3344.0,6402.4 2076.8,6656.8" fill="#607d8b" fill-opacity=".15" stroke="#607d8b" stroke-width="14" stroke-dasharray="36 26"/>
 </g>
-<g class="area" data-ref="lr-area-southtangle-coast" data-status="next-to-author" data-readiness="unspecified"><title>Southtangle Coast: coverage planned; runtime readiness unspecified</title>
-<circle cx="2886.4" cy="6529.6" r="161.9" fill="#e6a700" stroke="#e6a700" stroke-width="18"/>
+<g class="region" data-ref="lr-overlay-southtangle-coast" data-status="inspiration-only" data-readiness="unspecified"><title>Southtangle Coast: coverage none; readiness snapshot unspecified; Storm-beaten southern coves along Foveaux/Catlins inspiration coast; unauthored.</title>
+<polygon points="668.8,6275.2 2006.4,6402.4 2640.0,6614.4 2499.2,6868.8 809.6,6656.8" fill="#607d8b" fill-opacity=".15" stroke="#607d8b" stroke-width="14" stroke-dasharray="36 26"/>
 </g>
-<g class="area" data-ref="lr-area-emberfen-lowlands" data-status="next-to-author" data-readiness="unspecified"><title>Emberfen Lowlands: coverage planned; runtime readiness unspecified</title>
-<circle cx="4857.6" cy="6190.4" r="161.9" fill="#e6a700" stroke="#e6a700" stroke-width="18"/>
+<g class="region" data-ref="lr-overlay-unmapped-northern-reach" data-status="inspiration-only" data-readiness="unspecified"><title>Unmapped Northern Reach: coverage none; readiness snapshot unspecified; Northern third of the inspiration map (Buller/Tasman/Marlborough); intentionally unmapped in the first-pass macro atlas.</title>
+<polygon points="3696.0,2162.4 4752.0,339.2 6230.4,890.4 5526.4,1865.6 4470.4,1992.8" fill="#607d8b" fill-opacity=".15" stroke="#607d8b" stroke-width="14" stroke-dasharray="36 26"/>
 </g>
-<g class="corridor" data-ref="lr-corridor-mosswell-harbor-road" data-status="authored" data-readiness="unspecified"><title>Mosswell Harbor Road: coverage authored; runtime readiness unspecified</title>
-<polyline points="1056.0,4706.4 1126.4,4664.0 1196.8,4621.6" stroke="#218739" fill="none"/>
+<g class="region" data-ref="lr-overlay-unmapped-southern-isle" data-status="inspiration-only" data-readiness="unspecified"><title>Unmapped Southern Isle: coverage none; readiness snapshot unspecified; Offshore southern island (Stewart Island inspiration); no macro-atlas area assigned yet.</title>
+<polygon points="1056.0,6936.6 1745.9,6936.6 1703.7,7699.8 1056.0,7699.8" fill="#607d8b" fill-opacity=".15" stroke="#607d8b" stroke-width="14" stroke-dasharray="36 26"/>
 </g>
-<g class="corridor" data-ref="lr-corridor-northgate-valley" data-status="authored" data-readiness="ready"><title>Northgate Valley: coverage authored; runtime readiness ready</title>
-<polyline points="4083.2,1611.2 4153.6,1272.0 4224.0,1017.6" stroke="#218739" fill="none"/>
+<g class="corridor" data-ref="lr-overlay-mosswell-harbor-road" data-status="authored" data-readiness="ready"><title>Mosswell Harbor Road: coverage complete; readiness snapshot ready; Seeded local harbor-to-gate spine linking Lower Jetty Landing, Mosswell River Jetty, North Road, and North Gate.</title>
+<polyline class="corridor-line" points="1327.0,4778.5 1337.6,4765.8 1369.3,4719.1" stroke="#1b8a3d" fill="none"/>
 </g>
-<g class="corridor runtime-blocked" data-ref="lr-corridor-westwall-shelf" data-status="in-progress" data-readiness="blocked"><title>Westwall Shelf: coverage in-progress; runtime readiness blocked</title>
-<polyline points="2041.6,4833.6 2252.8,5172.8 2464.0,5512.0" stroke="#c62828" style="stroke-width:76" fill="none"/>
-<polyline points="2041.6,4833.6 2252.8,5172.8 2464.0,5512.0" stroke="#1769aa" fill="none"/>
+<g class="corridor runtime-blocked" data-ref="lr-overlay-northgate-valley" data-status="transition-ready" data-readiness="partial"><title>Northgate Valley: coverage partial; readiness snapshot partial; North/northeast valley route departing Mosswell North Gate along the Hollyford-like valley floor; atlas route continuity is ready while broader Northwatch highland content remains partial.</title>
+<polyline points="1369.3,4719.1 1443.2,4604.6 1520.6,4418.1 1675.5,4197.6" stroke="#c62828" style="stroke-width:58" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline class="corridor-line" points="1369.3,4719.1 1443.2,4604.6 1520.6,4418.1 1675.5,4197.6" stroke="#1565c0" fill="none"/>
 </g>
-<g class="corridor" data-ref="lr-corridor-lantern-notch-pass" data-status="next-to-author" data-readiness="unspecified"><title>Lantern Notch: coverage planned; runtime readiness unspecified</title>
-<polyline points="3379.2,2968.0 3590.4,3222.4 3801.6,3476.8" stroke="#e6a700" fill="none"/>
+<g class="corridor runtime-blocked" data-ref="lr-overlay-southfork-vale" data-status="next-to-author" data-readiness="partial"><title>Southfork Vale: coverage none; readiness snapshot partial; Highest-priority overland expansion south from Mosswell South Farms down the Eglinton/Te Anau-like interior valley; currently blocked at runtime (destinationReadiness: partial).</title>
+<polyline points="1351.7,4799.7 1422.1,4986.2 1351.7,5300.0 1295.4,5613.8 1450.2,5893.6" stroke="#c62828" style="stroke-width:58" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline class="corridor-line" points="1351.7,4799.7 1422.1,4986.2 1351.7,5300.0 1295.4,5613.8 1450.2,5893.6" stroke="#e09100" fill="none"/>
 </g>
-<g class="corridor" data-ref="lr-corridor-ashen-step-pass" data-status="next-to-author" data-readiness="unspecified"><title>Ashen Step: coverage planned; runtime readiness unspecified</title>
-<polyline points="3590.4,3646.4 3801.6,3816.0 4012.8,3900.8" stroke="#e6a700" fill="none"/>
+<g class="corridor runtime-blocked" data-ref="lr-overlay-divide-passes" data-status="next-to-author" data-readiness="partial"><title>Lantern Notch &amp; Ashen Step: coverage none; readiness snapshot partial; High alpine saddles (Homer/Greenstone analogues) crossing from the Mosswell fiordhead canyon into Eastfall Foothills.</title>
+<polyline points="1358.7,4782.7 1464.3,4867.5 1633.3,4901.4 1816.3,4876.0" stroke="#c62828" style="stroke-width:58" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline class="corridor-line" points="1358.7,4782.7 1464.3,4867.5 1633.3,4901.4 1816.3,4876.0" stroke="#e09100" fill="none"/>
 </g>
-<g class="corridor" data-ref="lr-corridor-braidwater-run" data-status="next-to-author" data-readiness="unspecified"><title>Braidwater Run: coverage planned; runtime readiness unspecified</title>
-<polyline points="4576.0,4155.2 4787.2,4409.6 5068.8,4664.0" stroke="#e6a700" fill="none"/>
+<g class="corridor runtime-blocked" data-ref="lr-overlay-westwall-shelf" data-status="blocked" data-readiness="blocked"><title>Westwall Shelf: coverage none; readiness snapshot blocked; Hazardous cliff-foot coastal track along the outer fiord walls; closed until Fiordmarch barrier mechanics and encounters are authored.</title>
+<polyline points="1323.5,4791.2 1182.7,4884.5 1041.9,5037.1 929.3,5206.7" stroke="#c62828" style="stroke-width:58" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline class="corridor-line" points="1323.5,4791.2 1182.7,4884.5 1041.9,5037.1 929.3,5206.7" stroke="#c62828" fill="none"/>
 </g>
-<g class="corridor" data-ref="lr-corridor-eastshelf-road" data-status="next-to-author" data-readiness="unspecified"><title>Eastshelf Road: coverage planned; runtime readiness unspecified</title>
-<polyline points="5068.8,2883.2 5350.4,2968.0 5561.6,3222.4" stroke="#e6a700" fill="none"/>
+<g class="barrier runtime-blocked" data-ref="lr-overlay-fiord-deeps" data-status="blocked" data-readiness="blocked"><title>Fiord Deeps: coverage none; readiness snapshot blocked; Deep Milford Sound channel out to the Tasman Sea; blocks foot travel without watercraft.</title>
+<polyline class="barrier-line" points="1337.6,4765.8 1274.2,4706.4 1203.8,4647.0" stroke="#c62828" fill="none"/>
 </g>
-<g class="corridor runtime-blocked" data-ref="lr-corridor-southfork-vale" data-status="next-to-author" data-readiness="partial"><title>Southfork Vale: coverage planned; runtime readiness partial</title>
-<polyline points="3590.4,5596.8 3872.0,5851.2 4153.6,6105.6" stroke="#c62828" style="stroke-width:76" fill="none"/>
-<polyline points="3590.4,5596.8 3872.0,5851.2 4153.6,6105.6" stroke="#e6a700" fill="none"/>
+<g class="barrier runtime-blocked" data-ref="lr-overlay-rainward-cliffwall" data-status="blocked" data-readiness="blocked"><title>Rainward Cliffwall: coverage none; readiness snapshot blocked; Near-vertical fiord sidewalls preventing direct cross-country climbs out of Mosswell.</title>
+<polyline class="barrier-line" points="1386.9,4579.2 1386.9,4731.8 1295.4,4918.4 1210.9,5155.8" stroke="#c62828" fill="none"/>
 </g>
-<g class="barrier" data-ref="lr-barrier-fiord-deeps" data-status="authored" data-readiness="unspecified"><title>Fiord Deeps: coverage authored; runtime readiness unspecified</title>
-<polyline points="1548.8,5342.4 1689.6,5681.6 1830.4,6020.8" stroke="#218739" fill="none"/>
+<g class="barrier runtime-blocked" data-ref="lr-overlay-crownspine-ridge" data-status="blocked" data-readiness="blocked"><title>Crownspine Knifeback: coverage none; readiness snapshot blocked; Main Southern Alps crestline dividing western rainforest/fiords from eastern interior basins; pass-limited crossing only.</title>
+<polyline class="barrier-line" points="1605.1,4706.4 2076.8,4112.8 2780.8,3349.6 3625.6,2501.6 4329.6,1823.2" stroke="#c62828" fill="none"/>
 </g>
-<g class="barrier" data-ref="lr-barrier-rainward-cliffwall" data-status="authored" data-readiness="unspecified"><title>Rainward Cliffwall: coverage authored; runtime readiness unspecified</title>
-<polyline points="1971.2,4070.4 2112.0,4579.2 2182.4,5172.8" stroke="#218739" fill="none"/>
-</g>
-<g class="barrier" data-ref="lr-barrier-crownspine-ridge" data-status="authored" data-readiness="unspecified"><title>Crownspine Ridge: coverage authored; runtime readiness unspecified</title>
-<polyline points="3379.2,1696.0 3520.0,3137.6 3731.2,4748.8" stroke="#218739" fill="none"/>
-</g>
-<g class="barrier" data-ref="lr-barrier-emberfen-break" data-status="authored" data-readiness="unspecified"><title>Emberfen Marsh Break: coverage authored; runtime readiness unspecified</title>
-<polyline points="4646.4,5936.0 4928.0,6105.6 5139.2,6275.2" stroke="#218739" fill="none"/>
+<g class="region" data-ref="lr-overlay-mosswell-village" data-status="authored" data-readiness="ready"><title>Mosswell Village: coverage complete; readiness snapshot ready; 35 hand-authored Mosswell settlement locations anchored at Mosswell River Jetty on the Cleddau-like river mouth at the head of Milford Sound.</title>
+<circle cx="1337.6" cy="4765.8" r="8.4" fill="#1b8a3d" fill-opacity=".88" stroke="#ffffff" stroke-width="2.4"/>
 </g>
 </g>
-<g aria-label="Segment labels">
-<text class="label" x="1900.8" y="5380.7" text-anchor="middle">Fiordmarch West</text>
-<text class="label" x="1126.4" y="4717.0" text-anchor="middle">Mosswell village</text>
-<text class="label" x="2393.6" y="4193.5" text-anchor="middle">Rainward Escarpments</text>
-<text class="label" x="3449.6" y="3515.1" text-anchor="middle">Crownspine Divide</text>
-<text class="label" x="4153.6" y="1225.5" text-anchor="middle">Northwatch Ranges</text>
-<text class="label" x="3872.0" y="2497.5" text-anchor="middle">Icefall Uplands</text>
-<text class="label" x="4716.8" y="3684.7" text-anchor="middle">Eastfall Foothills</text>
-<text class="label" x="4787.2" y="4702.3" text-anchor="middle">Braidwater Basin</text>
-<text class="label" x="4998.4" y="2667.1" text-anchor="middle">Sunmere Plains</text>
-<text class="label" x="5491.2" y="2921.5" text-anchor="middle">Eastshelf Coast</text>
-<text class="label" x="3942.4" y="6059.1" text-anchor="middle">Southbreak Uplands</text>
-<text class="label" x="2886.4" y="6737.5" text-anchor="middle">Southtangle Coast</text>
-<text class="label" x="4857.6" y="6398.3" text-anchor="middle">Emberfen Lowlands</text>
-<text class="label" x="1337.6" y="4809.6" text-anchor="middle">Mosswell Harbor Road</text>
-<text class="label" x="4505.6" y="1417.6" text-anchor="middle">Northgate Valley</text>
-<text class="label" x="1971.2" y="5318.4" text-anchor="middle">Westwall Shelf</text>
-<text class="label" x="3379.2" y="2774.4" text-anchor="middle">Lantern Notch</text>
-<text class="label" x="4012.8" y="3622.4" text-anchor="middle">Ashen Step</text>
-<text class="label" x="4857.6" y="4046.4" text-anchor="middle">Braidwater Run</text>
-<text class="label" x="5420.8" y="2689.6" text-anchor="middle">Eastshelf Road</text>
-<text class="label" x="3872.0" y="5572.8" text-anchor="middle">Southfork Vale</text>
-<text class="label" x="1267.2" y="5742.4" text-anchor="middle">Fiord Deeps</text>
-<text class="label" x="1760.0" y="4385.6" text-anchor="middle">Rainward Cliffwall</text>
-<text class="label" x="3308.8" y="2096.0" text-anchor="middle">Crownspine Ridge</text>
-<text class="label" x="5139.2" y="5742.4" text-anchor="middle">Emberfen Marsh Break</text>
+<g aria-label="Overview labels">
+<text class="label" x="1802.2" y="4087.4" text-anchor="middle">Northwatch Ranges</text>
+<text class="label" x="1985.3" y="4816.6" text-anchor="middle">Eastfall Foothills</text>
+<text class="label" x="760.3" y="5554.4" text-anchor="middle">Fiordmarch West</text>
+<text class="label" x="1745.9" y="5953.0" text-anchor="middle">Southbreak Uplands</text>
+<text class="label label-muted" x="3203.2" y="2840.8" text-anchor="middle">Crownspine Divide</text>
+<text class="label label-muted" x="2780.8" y="3519.2" text-anchor="middle">Icefall Uplands</text>
+<text class="label label-muted" x="2921.6" y="4536.8" text-anchor="middle">Braidwater Basin &amp; Run</text>
+<text class="label label-muted" x="4083.2" y="3604.0" text-anchor="middle">Sunmere Plains</text>
+<text class="label label-muted" x="4963.2" y="2840.8" text-anchor="middle">Eastshelf Coast &amp; Road</text>
+<text class="label label-muted" x="2710.4" y="6232.8" text-anchor="middle">Emberfen Lowlands</text>
+<text class="label label-muted" x="1654.4" y="6741.6" text-anchor="middle">Southtangle Coast</text>
+<text class="label label-muted" x="5033.6" y="1314.4" text-anchor="middle">Unmapped Northern Reach</text>
+<text class="label label-muted" x="1393.9" y="7360.6" text-anchor="middle">Unmapped Southern Isle</text>
+<text class="label" x="1548.8" y="5384.8" text-anchor="middle">Southfork Vale</text>
+<text class="label" x="2604.8" y="3095.2" text-anchor="middle">Crownspine Knifeback</text>
+<text class="label" x="809.6" y="4731.8" text-anchor="middle">Mosswell Village</text>
 </g>
-<g transform="translate(300 180)" aria-label="Legend">
-<rect width="2300" height="650" rx="20" fill="white" fill-opacity=".94" stroke="#333" stroke-width="6"/>
-<circle cx="40" cy="46" r="18" fill="#218739" stroke="#218739" stroke-width="2"/><text class="legend" x="78" y="58">authored</text>
-<circle cx="40" cy="108" r="18" fill="#1769aa" stroke="#1769aa" stroke-width="2"/><text class="legend" x="78" y="120">in-progress (legacy coverage)</text>
-<circle cx="40" cy="170" r="18" fill="#e6a700" stroke="#e6a700" stroke-width="2"/><text class="legend" x="78" y="182">next-to-author</text>
-<circle cx="40" cy="232" r="18" fill="#c62828" stroke="#c62828" stroke-width="2"/><text class="legend" x="78" y="244">blocked</text>
-<circle cx="40" cy="294" r="18" fill="white" stroke="#c62828" stroke-width="7"/><text class="legend" x="78" y="306">runtime handoff currently blocked</text>
-<text class="legend" x="40" y="505">Approximate footprints — not surveyed boundaries.</text>
-<text class="legend" x="40" y="560">transition-ready = partial snapshot, not runtime permission.</text>
-<text class="legend" x="40" y="615">Atlas/runtime policy remains authoritative; coverage is independent.</text>
+<g aria-label="Milford Sound inset callout">
+<rect x="915.2" y="4324.8" width="844.8" height="975.2" fill="none" stroke="#0f172a" stroke-width="18" stroke-dasharray="36 22" rx="14"/>
+<text class="label" x="1337.6" y="4290.8" text-anchor="middle">Milford Sound / Mosswell Inset →</text>
+<line x1="1760.0" y1="4324.8" x2="7220" y2="340" stroke="#0f172a" stroke-width="10" stroke-dasharray="28 20" stroke-opacity=".55"/>
+<line x1="1760.0" y1="5300.0" x2="7220" y2="4726" stroke="#0f172a" stroke-width="10" stroke-dasharray="28 20" stroke-opacity=".55"/>
+</g>
+</g>
+<line x1="7040" y1="0" x2="7040" y2="8480" stroke="#1e293b" stroke-width="12"/>
+<g aria-label="Milford Sound and Mosswell inset">
+<text class="panel-title" x="7220" y="150">Milford Sound &amp; Mosswell Fiordhead (4.5× Inset)</text>
+<text class="panel-sub" x="7220" y="220">Mosswell sits at small-town scale on the river mouth at the head of Milford Sound</text>
+<rect x="7212" y="282" width="3816" height="4452" rx="20" fill="#ffffff" stroke="#1e293b" stroke-width="10"/>
+<svg x="7220" y="290" width="3800" height="4436" viewBox="915.2 4324.8 844.8 975.2">
+<image href="../../the-long-reach.jpg" x="0" y="0" width="7040" height="8480" preserveAspectRatio="none"/>
+<polyline data-feature="mosswell-river-trace" points="1415.0,4859.0 1376.3,4816.6 1337.6,4765.8" stroke="#ffffff" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<polyline points="1415.0,4859.0 1376.3,4816.6 1337.6,4765.8" stroke="#0288d1" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<polygon points="1351.7,4426.6 1703.7,3968.6 2196.5,3883.8 2076.8,4426.6 1562.9,4562.2" fill="#1565c0" fill-opacity=".07" stroke="#c62828" stroke-width="2.6" stroke-opacity=".55" stroke-dasharray="10 7"/>
+<polygon points="1591.0,4562.2 2217.6,4392.6 2295.0,5223.7 1661.4,5325.4" fill="#e09100" fill-opacity=".07" stroke="#c62828" stroke-width="2.6" stroke-opacity=".55" stroke-dasharray="10 7"/>
+<polygon points="1217.9,4647.0 1323.5,4816.6 1140.5,5384.8 809.6,6148.0 387.2,6232.8 598.4,5427.2 971.5,4876.0" fill="#e09100" fill-opacity=".07" stroke="#c62828" stroke-width="2.6" stroke-opacity=".55" stroke-dasharray="10 7"/>
+<polygon points="1232.0,5554.4 2147.2,5469.6 2252.8,6232.8 1232.0,6232.8" fill="#e09100" fill-opacity=".07" stroke="#c62828" stroke-width="2.6" stroke-opacity=".55" stroke-dasharray="10 7"/>
+<polygon points="1323.5,4536.8 1584.0,4494.4 1584.0,5300.0 1161.6,5384.8 1232.0,4876.0" fill="#c62828" fill-opacity=".07" stroke="#c62828" stroke-width="2.6" stroke-opacity=".55" stroke-dasharray="10 7"/>
+<polygon points="1724.8,4282.4 4118.4,1823.2 4470.4,1992.8 2006.4,4452.0" fill="#607d8b" fill-opacity=".07" stroke="#607d8b" stroke-width="2.6" stroke-opacity=".55" stroke-dasharray="10 7"/>
+<polyline points="1327.0,4778.5 1337.6,4765.8 1369.3,4719.1" stroke="#1b8a3d" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<polyline points="1369.3,4719.1 1443.2,4604.6 1520.6,4418.1 1675.5,4197.6" stroke="#c62828" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<polyline points="1369.3,4719.1 1443.2,4604.6 1520.6,4418.1 1675.5,4197.6" stroke="#1565c0" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<polyline points="1351.7,4799.7 1422.1,4986.2 1351.7,5300.0 1295.4,5613.8 1450.2,5893.6" stroke="#c62828" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<polyline points="1351.7,4799.7 1422.1,4986.2 1351.7,5300.0 1295.4,5613.8 1450.2,5893.6" stroke="#e09100" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<polyline points="1358.7,4782.7 1464.3,4867.5 1633.3,4901.4 1816.3,4876.0" stroke="#c62828" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<polyline points="1358.7,4782.7 1464.3,4867.5 1633.3,4901.4 1816.3,4876.0" stroke="#e09100" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<polyline points="1323.5,4791.2 1182.7,4884.5 1041.9,5037.1 929.3,5206.7" stroke="#c62828" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<polyline points="1323.5,4791.2 1182.7,4884.5 1041.9,5037.1 929.3,5206.7" stroke="#c62828" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<polyline points="1337.6,4765.8 1274.2,4706.4 1203.8,4647.0" stroke="#c62828" stroke-width="7.5" stroke-dasharray="14 9" stroke-linecap="round" fill="none"/>
+<polyline points="1386.9,4579.2 1386.9,4731.8 1295.4,4918.4 1210.9,5155.8" stroke="#c62828" stroke-width="7.5" stroke-dasharray="14 9" stroke-linecap="round" fill="none"/>
+<polyline points="1605.1,4706.4 2076.8,4112.8 2780.8,3349.6 3625.6,2501.6 4329.6,1823.2" stroke="#c62828" stroke-width="7.5" stroke-dasharray="14 9" stroke-linecap="round" fill="none"/>
+<circle cx="1337.6" cy="4765.8" r="8.4" fill="#1b8a3d" fill-opacity=".9" stroke="#ffffff" stroke-width="2.4"/>
+<circle cx="1337.6" cy="4765.8" r="17.7" fill="none" stroke="#1b8a3d" stroke-width="2.2" stroke-dasharray="5 4"/>
+<text class="inset-label" x="1492.5" y="4562.2" text-anchor="middle">Rainward Escarpments</text>
+<text class="inset-label" x="1506.6" y="4672.5" text-anchor="middle">Mosswell Harbor Road</text>
+<text class="inset-label" x="1569.9" y="4435.0" text-anchor="middle">Northgate Valley</text>
+<text class="inset-label" x="1548.8" y="5232.2" text-anchor="middle">Southfork Vale</text>
+<text class="inset-label" x="1569.9" y="4977.8" text-anchor="middle">Lantern Notch &amp; Ashen Step</text>
+<text class="inset-label" x="1098.2" y="5020.2" text-anchor="middle">Westwall Shelf</text>
+<text class="inset-label" x="1154.6" y="4596.2" text-anchor="middle">Fiord Deeps</text>
+<text class="inset-label" x="1232.0" y="4842.1" text-anchor="middle">Rainward Cliffwall</text>
+<text class="inset-label" x="1661.4" y="4426.6" text-anchor="middle">Crownspine Knifeback</text>
+<text class="inset-label inset-village" x="1359.6" y="4769.8" text-anchor="start">Mosswell Village (authored)</text>
+<g transform="translate(943.2 5258.0)" aria-label="Inset scale bar">
+<rect x="-10" y="-22" width="215" height="44" rx="6" fill="#ffffff" fill-opacity=".9" stroke="#334155" stroke-width="1.8"/>
+<line x1="6" y1="8" x2="186" y2="8" stroke="#0f172a" stroke-width="3.5"/>
+<line x1="6" y1="0" x2="6" y2="14" stroke="#0f172a" stroke-width="3"/>
+<line x1="96" y1="2" x2="96" y2="14" stroke="#0f172a" stroke-width="2.5"/>
+<line x1="186" y1="0" x2="186" y2="14" stroke="#0f172a" stroke-width="3"/>
+<text class="inset-label" x="96" y="-4" text-anchor="middle">~20 km (1:1,000,000 base)</text>
+</g>
+</svg>
+</g>
+<g transform="translate(7220 4860)" aria-label="Legend">
+<rect width="3800" height="1580" rx="22" fill="#ffffff" stroke="#1e293b" stroke-width="8"/>
+<text class="panel-title" x="60" y="92">Authoring Status Legend</text>
+<circle cx="94" cy="171" r="22" fill="#1b8a3d" stroke="#1b8a3d" stroke-width="3"/>
+<text class="legend" x="142" y="185">authored</text>
+<circle cx="94" cy="276" r="22" fill="#1565c0" stroke="#1565c0" stroke-width="3"/>
+<text class="legend" x="142" y="290">transition-ready</text>
+<circle cx="94" cy="381" r="22" fill="#e09100" stroke="#e09100" stroke-width="3"/>
+<text class="legend" x="142" y="395">next-to-author</text>
+<circle cx="94" cy="486" r="22" fill="#c62828" stroke="#c62828" stroke-width="3"/>
+<text class="legend" x="142" y="500">blocked</text>
+<rect x="1932" y="149" width="44" height="44" rx="6" fill="#607d8b" fill-opacity=".22" stroke="#607d8b" stroke-width="5" stroke-dasharray="10 7"/>
+<text class="legend" x="2002" y="185">inspiration-only</text>
+<circle cx="1954" cy="276" r="22" fill="#ffffff" stroke="#c62828" stroke-width="9"/>
+<text class="legend" x="2002" y="290">runtime handoff currently blocked</text>
+<line x1="1930" y1="381" x2="1978" y2="381" stroke="#0288d1" stroke-width="11" stroke-linecap="round"/>
+<text class="legend" x="2002" y="395">river feeding fiordhead (inset)</text>
+<line x1="60" y1="640" x2="3740" y2="640" stroke="#cbd5e1" stroke-width="4"/>
+<text class="legend-note" x="60" y="735">Counts — authored: 2 | transition-ready: 2 | next-to-author: 5 | blocked: 5 | inspiration-only: 9</text>
+<text class="legend-note" x="60" y="830">• Approximate footprints — not surveyed GIS boundaries.</text>
+<text class="legend-note" x="60" y="920">• transition-ready = partial readiness snapshot, not automatic runtime permission.</text>
+<text class="legend-note" x="60" y="1010">• Only Mosswell Fiordhead (35 local locations) is hand-authored; rest is frontier or inspiration.</text>
+<text class="legend-note" x="60" y="1100">• Atlas/runtime policy (theLongReachMacroAtlas.json) remains authoritative; coverage is independent.</text>
+</g>
+<g transform="translate(7220 6560)" aria-label="Expansion queue summary">
+<rect width="3800" height="1760" rx="22" fill="#ffffff" stroke="#1e293b" stroke-width="8"/>
+<text class="panel-title" x="60" y="92">Next-to-Author Expansion Queue (Static Default)</text>
+<text class="panel-sub" x="60" y="160">Ordered outward from Mosswell; combine with runtime boundary signals via npm run report:long-reach</text>
+<line x1="60" y1="205" x2="3740" y2="205" stroke="#cbd5e1" stroke-width="4"/>
+<text class="legend" x="60" y="290">#1  Southfork Vale [south] — priority 1 (atlas: partial)</text>
+<text class="queue-row" x="120" y="352">Departure: from South Farms  |  Refs: lr-area-southbreak-uplands, lr-corridor-southfork-vale</text>
+<text class="legend" x="60" y="515">#2  Eastfall Foothills [east] — priority 2 (atlas: partial)</text>
+<text class="queue-row" x="120" y="577">Departure: from South Farms  |  Refs: lr-area-eastfall-foothills, lr-corridor-lantern-notch-pass, lr-corridor-ashen-step-pass, lr-area-braidwater-basin</text>
+<text class="legend" x="60" y="740">#3  Lantern Notch &amp; Ashen Step [east] — priority 3 (atlas: partial)</text>
+<text class="queue-row" x="120" y="802">Departure: from South Farms  |  Refs: lr-area-eastfall-foothills, lr-corridor-lantern-notch-pass, lr-corridor-ashen-step-pass</text>
+<text class="legend" x="60" y="965">#4  Fiordmarch West [west] — priority 4 (atlas: blocked)</text>
+<text class="queue-row" x="120" y="1027">Departure: from Field Edge Track  |  Refs: lr-area-fiordmarch-west, lr-corridor-westwall-shelf, lr-barrier-fiord-deeps, lr-barrier-rainward-cliffwall</text>
+<text class="legend" x="60" y="1190">#5  Southbreak Uplands [south] — priority 5 (atlas: partial)</text>
+<text class="queue-row" x="120" y="1252">Departure: via lr-corridor-southfork-vale  |  Refs: lr-area-southbreak-uplands, lr-corridor-southfork-vale</text>
 </g>
 </svg>

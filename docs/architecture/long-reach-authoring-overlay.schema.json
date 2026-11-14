@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "title": "Long Reach authoring overlay sidecar",
-    "description": "Design-time authoring annotations, not runtime transition authority. Semantic review rules accompany this schema in macro-atlas-and-seed-redesign.md.",
+    "description": "Design-time authoring annotations over the-long-reach.jpg, never runtime transition authority. Semantic review rules accompany this schema in macro-atlas-and-seed-redesign.md.",
     "type": "object",
     "additionalProperties": false,
     "required": ["schemaVersion", "image", "atlas", "entries"],
@@ -30,10 +30,62 @@
             "items": { "$ref": "#/definitions/ref" }
         },
         "coordinate": { "type": "number", "minimum": 0, "maximum": 1 },
+        "point": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": { "$ref": "#/definitions/coordinate" }
+        },
+        "markerGeometry": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "anchor"],
+            "properties": {
+                "type": { "const": "marker" },
+                "anchor": { "$ref": "#/definitions/point" },
+                "radius": { "type": "number", "exclusiveMinimum": 0, "maximum": 0.1 },
+                "labelAnchor": { "$ref": "#/definitions/point" }
+            }
+        },
+        "lineGeometry": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "points"],
+            "properties": {
+                "type": { "const": "line" },
+                "points": {
+                    "type": "array",
+                    "minItems": 2,
+                    "items": { "$ref": "#/definitions/point" }
+                },
+                "labelAnchor": { "$ref": "#/definitions/point" }
+            }
+        },
+        "polygonGeometry": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "points"],
+            "properties": {
+                "type": { "const": "polygon" },
+                "points": {
+                    "type": "array",
+                    "minItems": 3,
+                    "items": { "$ref": "#/definitions/point" }
+                },
+                "labelAnchor": { "$ref": "#/definitions/point" }
+            }
+        },
+        "geometry": {
+            "oneOf": [
+                { "$ref": "#/definitions/markerGeometry" },
+                { "$ref": "#/definitions/lineGeometry" },
+                { "$ref": "#/definitions/polygonGeometry" }
+            ]
+        },
         "entry": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["id", "label", "kind", "bounds", "authoringState", "coverage", "notes"],
+            "required": ["id", "label", "kind", "geometry", "authoringState", "coverage", "notes"],
             "properties": {
                 "id": {
                     "type": "string",
@@ -41,19 +93,8 @@
                     "pattern": "^lr-overlay-[a-z0-9]+(?:-[a-z0-9]+)*$"
                 },
                 "label": { "$ref": "#/definitions/text" },
-                "kind": { "enum": ["region", "corridor"] },
-                "bounds": {
-                    "type": "object",
-                    "description": "Coarse normalized image bounds; origin top-left, x rightward, y downward. Review left < right and top < bottom.",
-                    "additionalProperties": false,
-                    "required": ["left", "top", "right", "bottom"],
-                    "properties": {
-                        "left": { "$ref": "#/definitions/coordinate" },
-                        "top": { "$ref": "#/definitions/coordinate" },
-                        "right": { "$ref": "#/definitions/coordinate" },
-                        "bottom": { "$ref": "#/definitions/coordinate" }
-                    }
-                },
+                "kind": { "enum": ["region", "corridor", "barrier"] },
+                "geometry": { "$ref": "#/definitions/geometry" },
                 "authoringState": {
                     "enum": ["authored", "transition-ready", "next-to-author", "blocked", "inspiration-only"]
                 },
@@ -67,6 +108,7 @@
                 },
                 "areaRefs": { "$ref": "#/definitions/refs" },
                 "corridorRefs": { "$ref": "#/definitions/refs" },
+                "barrierRefs": { "$ref": "#/definitions/refs" },
                 "segmentRefs": { "$ref": "#/definitions/refs" },
                 "entrySegmentRef": { "$ref": "#/definitions/ref" },
                 "entryAnchorId": {
@@ -115,7 +157,7 @@
                 },
                 {
                     "if": { "properties": { "authoringState": { "enum": ["blocked", "next-to-author"] } } },
-                    "then": { "properties": { "authoringReadiness": { "enum": ["blocked", "deferred"] } } }
+                    "then": { "properties": { "authoringReadiness": { "enum": ["partial", "blocked", "deferred"] } } }
                 },
                 {
                     "if": { "properties": { "authoringState": { "const": "next-to-author" } } },

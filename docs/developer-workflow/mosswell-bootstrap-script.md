@@ -55,11 +55,11 @@ npm run seed:production
 
 The bootstrap script is **safe to run multiple times**. It will:
 
--   ✅ Create missing location vertices
--   ✅ Create missing exit edges
--   ✅ Skip existing vertices and edges (no duplicates)
-    // (Removed) Create demo player – seeding no longer provisions a player. Use player bootstrap flow for test users.
--   ✅ Update location content if changed (based on content hash)
+- ✅ Create missing location vertices
+- ✅ Create missing exit edges
+- ✅ Skip existing vertices and edges (no duplicates)
+  // (Removed) Create demo player – seeding no longer provisions a player. Use player bootstrap flow for test users.
+- ✅ Update location content if changed (based on content hash)
 
 **No destructive operations**: Never deletes or overwrites existing world data.
 
@@ -166,9 +166,9 @@ npx tsx scripts/seed-production.ts
 
 The script performs pre-flight validation:
 
--   ❌ Aborts if `NODE_ENV=test` (prevents seeding test partition)
--   ❌ Aborts if `PARTITION_SCOPE=test` (same reason)
--   ❌ Aborts if `PERSISTENCE_MODE` is not `cosmos`
+- ❌ Aborts if `NODE_ENV=test` (prevents seeding test partition)
+- ❌ Aborts if `PARTITION_SCOPE=test` (same reason)
+- ❌ Aborts if `PERSISTENCE_MODE` is not `cosmos`
 
 These checks prevent accidental test partition pollution.
 
@@ -313,9 +313,9 @@ npm run seed:production
 
 **Possible Causes**:
 
--   Cosmos endpoint unreachable
--   Missing authentication (Managed Identity or Key Vault secret)
--   Network firewall blocking Cosmos port (443)
+- Cosmos endpoint unreachable
+- Missing authentication (Managed Identity or Key Vault secret)
+- Network firewall blocking Cosmos port (443)
 
 **Solution**:
 
@@ -359,30 +359,30 @@ az cosmosdb gremlin graph throughput show \
 
 **Factors**:
 
--   Number of locations (34 in default blueprint)
--   Number of exits (90 in default blueprint)
--   Cosmos RU/s provisioned (400 RU/s for dev tier)
--   Geographic proximity to Cosmos region
+- Number of locations (34 in default blueprint)
+- Number of exits (90 in default blueprint)
+- Cosmos RU/s provisioned (400 RU/s for dev tier)
+- Geographic proximity to Cosmos region
 
 ### RU Consumption
 
 **Per Location**:
 
--   Upsert (new): ~10 RU
--   Upsert (existing, no change): ~5 RU (read + compare)
--   Exit creation: ~5 RU per edge
+- Upsert (new): ~10 RU
+- Upsert (existing, no change): ~5 RU (read + compare)
+- Exit creation: ~5 RU per edge
 
 **Total for Full Seed** (first run):
 
--   34 locations × 10 RU = 340 RU
--   90 exits × 5 RU = 450 RU
--   **Total**: ~800 RU (~2 seconds at 400 RU/s)
+- 34 locations × 10 RU = 340 RU
+- 90 exits × 5 RU = 450 RU
+- **Total**: ~800 RU (~2 seconds at 400 RU/s)
 
 **Idempotent Run** (no changes):
 
--   34 locations × 5 RU = 170 RU
--   90 exits × 3 RU (edge existence check) = 270 RU
--   **Total**: ~440 RU (~1 second at 400 RU/s)
+- 34 locations × 5 RU = 170 RU
+- 90 exits × 3 RU (edge existence check) = 270 RU
+- **Total**: ~440 RU (~1 second at 400 RU/s)
 
 ## Integration with CI/CD
 
@@ -402,6 +402,26 @@ az cosmosdb gremlin graph throughput show \
 **Current**: Manual execution after infrastructure provisioning.
 
 ## Related Scripts
+
+### Clean-Start Mosswell Reset (`reconcile-world.ts`)
+
+When frontier generation or iterative playtesting has created extra rooms beyond the 35 hand-authored Mosswell blueprint locations and moved characters into generated rooms, use `backend/scripts/reconcile-world.ts` (`--clean-start`) or the **Reset Mosswell World (Clean Start)** GitHub Actions workflow (`reset-mosswell-world.yml`) to return Mosswell to a clean baseline:
+
+```bash
+cd backend
+
+# Preview clean-start reset (read-only dry run)
+npm run reset:mosswell:dry
+
+# Apply clean-start reset:
+# 1. Restores the 35 Mosswell blueprint locations with macro-atlas tags and pending/forbidden frontier availability
+# 2. Relocates all characters' currentLocationId back to STARTER_LOCATION_ID (Mosswell River Jetty)
+# 3. Prunes non-blueprint exits, generated frontier vertices, and orphaned location clocks
+# 4. Purges generated location description layers (loc:*) while preserving realm layers
+npm run reset:mosswell
+```
+
+Use `--reset-players=orphaned` instead of `--clean-start` if you only want to relocate characters standing on pruned/missing locations while leaving characters already inside Mosswell in place.
 
 ### Test Data Seeding
 
@@ -459,35 +479,35 @@ g.V('loc-mosswell-entrance')
 
 **Properties**:
 
--   **Label**: Direction string (enables efficient direction-based queries)
--   **description**: Optional prose for exit flavor text
--   **kind**: (Future) 'door', 'archway', 'passage'
--   **state**: (Future) 'locked', 'hidden', 'open'
+- **Label**: Direction string (enables efficient direction-based queries)
+- **description**: Optional prose for exit flavor text
+- **kind**: (Future) 'door', 'archway', 'passage'
+- **state**: (Future) 'locked', 'hidden', 'open'
 
 ## Best Practices
 
 ### Do's ✅
 
--   Run bootstrap script after infrastructure changes (new Cosmos account, partition migration)
--   Use idempotency to recover from partial failures (re-run is safe)
--   Verify output metrics (locations/exits created should match expectations)
--   Test with memory mode first, then Cosmos mode
+- Run bootstrap script after infrastructure changes (new Cosmos account, partition migration)
+- Use idempotency to recover from partial failures (re-run is safe)
+- Verify output metrics (locations/exits created should match expectations)
+- Test with memory mode first, then Cosmos mode
 
 ### Don'ts ❌
 
--   Don't modify `villageLocations.json` in place for custom worlds (create new migration files)
--   Don't assume bootstrap creates any players (use player bootstrap endpoint)
--   Don't run with `PARTITION_SCOPE=test` in production environment variables
--   Don't rely on bootstrap for runtime player onboarding (use `POST /api/player/bootstrap`)
+- Don't modify `villageLocations.json` in place for custom worlds (create new migration files)
+- Don't assume bootstrap creates any players (use player bootstrap endpoint)
+- Don't run with `PARTITION_SCOPE=test` in production environment variables
+- Don't rely on bootstrap for runtime player onboarding (use `POST /api/player/bootstrap`)
 
 ## Related Documentation
 
--   [Repository Interfaces](./mosswell-repository-interfaces.md) – Persistence contract details
--   [Player Bootstrap Flow](./player-bootstrap-flow.md) – Player creation sequence
--   [Migration Workflow](./mosswell-migration-workflow.md) – Migration scaffold usage
--   [Local Dev Setup](./local-dev-setup.md) – Environment configuration
--   [ADR-001: Mosswell Persistence](../adr/ADR-001-mosswell-persistence-layering.md) – Design rationale
--   [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) – Partition key evolution
+- [Repository Interfaces](./mosswell-repository-interfaces.md) – Persistence contract details
+- [Player Bootstrap Flow](./player-bootstrap-flow.md) – Player creation sequence
+- [Migration Workflow](./mosswell-migration-workflow.md) – Migration scaffold usage
+- [Local Dev Setup](./local-dev-setup.md) – Environment configuration
+- [ADR-001: Mosswell Persistence](../adr/ADR-001-mosswell-persistence-layering.md) – Design rationale
+- [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) – Partition key evolution
 
 ---
 

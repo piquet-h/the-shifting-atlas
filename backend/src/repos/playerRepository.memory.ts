@@ -88,6 +88,10 @@ export class InMemoryPlayerRepository implements IPlayerRepository, IPlayerDocRe
         return undefined
     }
 
+    async listAll(): Promise<PlayerRecord[]> {
+        return Array.from(this.players.values()).map((player) => projectPlayerRecord(player))
+    }
+
     async update(player: PlayerRecord): Promise<PlayerRecord> {
         const existing = this.players.get(player.id)
         if (!existing) {
