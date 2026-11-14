@@ -70,7 +70,7 @@ jobs:
 
       - name: Upload what-if artifact
         if: steps.scope.outputs.affected == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: infra-whatif
           path: whatif.txt

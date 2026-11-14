@@ -35,7 +35,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/verify-todo-issue-alignment.mjs --json > todo-verify.json
       - name: Upload verification artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: todo-issue-alignment
           path: todo-verify.json
