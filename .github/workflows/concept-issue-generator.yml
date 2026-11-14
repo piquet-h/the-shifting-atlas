@@ -35,7 +35,7 @@ jobs:
           node scripts/generate-concept-issues.mjs > concept-draft.txt || true
           echo 'draftPath=concept-draft.txt' >> $GITHUB_OUTPUT
       - name: Comment Draft on PR
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
