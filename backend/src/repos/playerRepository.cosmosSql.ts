@@ -197,7 +197,7 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerSqlDo
             ...stripCosmosSystemFields(rawExisting),
             ...stripCosmosSystemFields(player),
             updatedUtc: now,
-            guest: player.guest,
+            guest: player.guest ?? (typeof rawExisting.guest === 'boolean' ? rawExisting.guest : true),
             currentLocationId:
                 player.currentLocationId ||
                 (typeof rawExisting.currentLocationId === 'string' ? rawExisting.currentLocationId : '') ||
@@ -243,5 +243,10 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerSqlDo
         })
 
         return undefined
+    }
+
+    async listAll(): Promise<PlayerRecord[]> {
+        const { items } = await this.query('SELECT * FROM c')
+        return items.map((item) => projectPlayerRecord(item))
     }
 }

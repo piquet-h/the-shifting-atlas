@@ -45,4 +45,11 @@ export interface ILocationClockRepository {
      * @returns Array of all LocationClock documents
      */
     listAll(): Promise<LocationClock[]>
+
+    /**
+     * Delete a location clock document by location ID (idempotent)
+     * @param locationId - Location unique identifier
+     * @returns true if deleted, false if not found
+     */
+    deleteClock(locationId: string): Promise<boolean>
 }

@@ -82,6 +82,10 @@ export class MockPlayerRepository implements IPlayerRepository {
         return this.mockPlayers.get(playerId)
     }
 
+    async listAll(): Promise<PlayerRecord[]> {
+        return Array.from(this.mockPlayers.values()).map((player) => ({ ...player }))
+    }
+
     async update(player: PlayerRecord): Promise<PlayerRecord> {
         const existing = this.mockPlayers.get(player.id)
         if (!existing) {

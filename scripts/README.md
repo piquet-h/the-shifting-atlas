@@ -211,50 +211,46 @@ node scripts/render-boundary-map.mjs --scope=boundary --output=/tmp/mosswell-bou
 
 ### `long-reach-authoring.mjs`
 
-Validates the authoring overlay sidecar, renders an SVG over `the-long-reach.jpg`, and reports the next-to-author queue.
+Validates the unified Schema v1 authoring overlay sidecar, renders a two-panel SVG and full-canvas PNG preview over `the-long-reach.jpg`, and generates the next-to-author expansion queue report.
 
 ```bash
 npm run map:long-reach
 npm run report:long-reach
 npm run report:long-reach -- --signals=/tmp/frontier-events.json --format=json
-```
-
-The source contract is `docs/architecture/the-long-reach-authoring-overlay.json`. Each atlas node has a matching segment with:
-
-- `coverage`: `authored`, `in-progress`, or `planned`, maintained independently of runtime readiness.
-- `priority`: positive integer for any segment that is not authored; lower numbers are earlier static priorities.
-- `geometry`: normalized marker, line, or polygon coordinates, approximate for planning rather than GIS.
-
-The default inventory above predates the [schema v1 sidecar](../docs/architecture/long-reach-authoring-overlay.schema.json).
-The renderer also accepts that documented `entries` format without requiring an entry for every atlas node:
-
-```bash
-npm run map:long-reach -- --overlay=the-long-reach.overlay.json --output=/tmp/long-reach.svg
 node --test scripts/test/long-reach-authoring*.test.mjs
 ```
 
-Schema entries use green `authored`, blue `transition-ready`, amber `next-to-author`, red `blocked`, and gray dashed `inspiration-only` footprints. Readiness is a reviewed snapshot (`ready`, `partial`, `blocked`, `deferred`), not runtime permission: `transition-ready` means `partial`, never an automatically open boundary. Authored-but-blocked entries retain green coverage with a red outline. Inspiration-only entries need no readiness or resolved mapping. Bounds are coarse, translucent rectangles; regions render below corridors and labels render above all footprints regardless of entry order. Schema, unique IDs, positive-area bounds, and supplied atlas references/classes are checked before rendering; the remaining [semantic review gate](../docs/architecture/macro-atlas-and-seed-redesign.md#validation-and-review-gate) still applies.
+The single source contract is [the-long-reach-authoring-overlay.json](../docs/architecture/the-long-reach-authoring-overlay.json), validated against [long-reach-authoring-overlay.schema.json](../docs/architecture/long-reach-authoring-overlay.schema.json):
 
-For the legacy inventory, the renderer reads runtime readiness from `theLongReachMacroAtlas.json`; green/blue/amber retain their authored/in-progress/planned coverage meaning. Partial, blocked, or deferred handoffs receive a red outline under the current runtime policy. Neither format alters the atlas, runtime transitions, or source JPG. The queue command continues to accept only the legacy inventory.
+- `authoringState`: `authored` (green), `transition-ready` (blue), `next-to-author` (amber), `blocked` (red), or `inspiration-only` (dashed slate).
+- `coverage`: `complete`, `partial`, or `none`, maintained independently of runtime readiness.
+- `authoringReadiness`: reviewed `AreaReadinessState` snapshot (`ready`, `partial`, `blocked`, `deferred`) — required except on `inspiration-only` entries. `transition-ready` means `partial`, never an automatically open boundary.
+- `geometry`: normalized `marker`, `line`, or `polygon` coordinates in `[0, 1]`, approximate for planning rather than GIS.
+- `entryAnchorId`, `areaRefs`, `corridorRefs`, `barrierRefs`, `entrySegmentRef`: validated against `theLongReachMacroAtlas.json` and `villageLocations.json` before rendering or reporting.
 
-The default generated SVG is `docs/architecture/the-long-reach-authoring-overlay.svg` (text-only, no embedded JPG, deterministic and under 25 KB). Regenerate it with `npm run map:long-reach` and review the diff. View it as a standalone SVG through a local static server with the repository paths intact; embedded-image previews may suppress its relative JPG link. The on-map legend explains approximate geometry and the separation between coverage and runtime authority.
+`npm run map:long-reach` regenerates **both** tracked artifacts from the sidecar:
 
-The queue accepts an optional JSON array of Application Insights events:
+1. `docs/architecture/the-long-reach-authoring-overlay.svg` — deterministic, lightweight (<35 KB) two-panel vector view combining the full Long Reach overview on the left with a 4.5× zoomed Milford Sound / Mosswell Fiordhead inset (including the river trace feeding Mosswell, village-scale settlement marker, legend, and static queue summary) on the right.
+2. `docs/architecture/the-long-reach-authoring-overlay.png` — `2240×1696` full-canvas raster preview rendered via Playwright so GitHub PRs and Markdown previews show the complete map without relative-image stripping or viewport cropping. Pass `--no-png` when running custom SVG-only test outputs.
+
+The queue command (`npm run report:long-reach`) lists `next-to-author` candidates ordered outward from authored Mosswell anchors, and accepts an optional JSON array of Application Insights events:
 
 ```json
 [
     {
         "name": "World.Frontier.BoundaryReached",
         "customDimensions": {
-            "destinationAreaRef": "lr-area-fiordmarch-west",
-            "destinationReadiness": "blocked",
-            "entrySegmentRef": "lr-corridor-westwall-shelf"
+            "sourceAreaRef": "lr-area-mosswell-fiordhead",
+            "dir": "east",
+            "destinationAreaRef": "lr-area-eastfall-foothills",
+            "destinationReadiness": "partial",
+            "entrySegmentRef": "lr-area-braidwater-basin"
         }
     }
 ]
 ```
 
-Only `World.Frontier.BoundaryReached` and `World.Frontier.BoundaryApproach` signals with non-ready destinations contribute pressure. Queue ordering is pressure count descending, then sidecar priority ascending, then semantic reference. Markdown is the default report format; use `--format=json` for structured output.
+Non-ready `World.Frontier.BoundaryReached` and `World.Frontier.BoundaryApproach` signals roll up onto their canonical outbound transition, rank pressured candidates ahead of static priority, and dynamically promote any `blocked` or `transition-ready` boundary that receives live player pressure. Markdown is the default report format; use `--format=json` for structured output.
 
 ---
 

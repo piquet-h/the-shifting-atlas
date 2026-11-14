@@ -1,0 +1,124 @@
+name: Reset Mosswell World (Clean Start)
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Preview changes only without mutating Cosmos DB'
+        required: true
+        type: boolean
+        default: true
+      reset_players:
+        description: 'Character location reset policy (relocate to Mosswell River Jetty)'
+        required: true
+        type: choice
+        options:
+          - all
+          - orphaned
+        default: all
+      purge_layers:
+        description: 'Purge generated location description layers for a clean narrative slate'
+        required: true
+        type: boolean
+        default: true
+      confirm:
+        description: 'Type "RESET MOSSWELL" when dry_run is false'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: reset-mosswell-world-prod
+  cancel-in-progress: false
+
+jobs:
+  reset-mosswell:
+    name: Reconcile Mosswell & Reset Character Locations
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PERSISTENCE_MODE: cosmos
+      PERSISTENCE_STRICT: '1'
+      COSMOS_GREMLIN_ENDPOINT: ${{ vars.COSMOS_GREMLIN_ENDPOINT }}
+      COSMOS_GREMLIN_DATABASE: ${{ vars.COSMOS_GREMLIN_DATABASE }}
+      COSMOS_GREMLIN_GRAPH: ${{ vars.COSMOS_GREMLIN_GRAPH }}
+      COSMOS_SQL_ENDPOINT: ${{ vars.COSMOS_SQL_ENDPOINT }}
+      COSMOS_SQL_DATABASE: ${{ vars.COSMOS_SQL_DATABASE }}
+      COSMOS_SQL_CONTAINER_PLAYERS: ${{ vars.COSMOS_SQL_CONTAINER_PLAYERS }}
+      COSMOS_SQL_CONTAINER_INVENTORY: ${{ vars.COSMOS_SQL_CONTAINER_INVENTORY }}
+      COSMOS_SQL_CONTAINER_LAYERS: ${{ vars.COSMOS_SQL_CONTAINER_LAYERS }}
+      COSMOS_SQL_CONTAINER_EVENTS: ${{ vars.COSMOS_SQL_CONTAINER_EVENTS }}
+      COSMOS_SQL_CONTAINER_PROCESSED_EVENTS: ${{ vars.COSMOS_SQL_CONTAINER_PROCESSED_EVENTS || vars.COSMOS_SQL_CONTAINER_PROCESSEDEVENTS }}
+      COSMOS_SQL_CONTAINER_DEADLETTERS: ${{ vars.COSMOS_SQL_CONTAINER_DEADLETTERS }}
+    steps:
+      - name: Validate destructive confirmation guard
+        if: inputs.dry_run == false
+        env:
+          CONFIRM_TEXT: ${{ inputs.confirm }}
+        run: |
+          if [ "${CONFIRM_TEXT}" != "RESET MOSSWELL" ]; then
+            echo "::error title=Confirmation Required::Set confirm to 'RESET MOSSWELL' when dry_run is false."
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node & install workspaces
+        uses: ./.github/actions/setup-node-install
+
+      - name: Build shared & backend
+        run: |
+          npm run build:shared
+          npm run build:backend
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Reconcile Mosswell blueprint & reset character locations
+        id: reconcile
+        run: |
+          set -euo pipefail
+          FLAGS="--mode=cosmos --prune-exits --prune-locations --reset-players=${{ inputs.reset_players }}"
+          if [ "${{ inputs.purge_layers }}" = "true" ]; then
+            FLAGS="${FLAGS} --purge-layers"
+          fi
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            FLAGS="${FLAGS} --dry-run"
+          fi
+
+          cd backend
+          npx tsx scripts/reconcile-world.ts ${FLAGS} | tee reconcile-summary.log
+
+          {
+            echo "## Mosswell World Clean-Start Reconciliation"
+            echo ""
+            echo "- **Dry run:** \`${{ inputs.dry_run }}\`"
+            echo "- **Reset players policy:** \`${{ inputs.reset_players }}\`"
+            echo "- **Purge location layers:** \`${{ inputs.purge_layers }}\`"
+            echo ""
+            echo '```text'
+            cat reconcile-summary.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify exit graph consistency
+        if: inputs.dry_run == false
+        run: |
+          set -euo pipefail
+          node scripts/scan-exits-consistency.mjs --output=/tmp/exit-consistency.json
+          {
+            echo ""
+            echo "### Post-Reset Exit Consistency Audit"
+            echo '```json'
+            cat /tmp/exit-consistency.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

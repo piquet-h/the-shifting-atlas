@@ -100,4 +100,8 @@ export class LocationClockRepositoryCosmos extends CosmosDbSqlRepository<Locatio
         const { items } = await this.query(queryText)
         return items
     }
+
+    async deleteClock(locationId: string): Promise<boolean> {
+        return this.delete(locationId, locationId)
+    }
 }
