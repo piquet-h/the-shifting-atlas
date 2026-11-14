@@ -200,7 +200,7 @@ jobs:
 
           # 3. Instruction freshness, milestone script tests & advisory docs/catalog reports
           node scripts/verify-instructions.mjs
-          node --test scripts/reanalyze-milestone.test.mjs scripts/ensure-milestone-has-delivery-slices.test.mjs scripts/test/pipeline-scope.test.mjs scripts/test/package-backend-function.test.mjs
+          node --test scripts/reanalyze-milestone.test.mjs scripts/ensure-milestone-has-delivery-slices.test.mjs scripts/test/pipeline-scope.test.mjs scripts/test/package-backend-function.test.mjs scripts/test/milestone-board.test.mjs
           npm run verify:docs-policy
           npm run catalog:check || true
 

@@ -1,0 +1,113 @@
+name: Milestone Delivery Sweep
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Execution mode: snapshot (read-only), refine (New -> Ready), or sweep (Refine + Dispatch Ready)'
+        required: true
+        type: choice
+        default: 'snapshot'
+        options:
+          - snapshot
+          - refine
+          - sweep
+      apply:
+        description: 'Apply issue state/label transitions on GitHub (false = dry-run preview)'
+        required: false
+        type: boolean
+        default: false
+      milestone:
+        description: 'Optional GitHub milestone number override (blank = highest-priority open milestone)'
+        required: false
+        type: string
+        default: ''
+
+concurrency:
+  group: milestone-delivery-sweep
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  snapshot-and-refine:
+    name: Board Snapshot & Backlog Refiner
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Render milestone board snapshot
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MILESTONE_OVERRIDE: ${{ inputs.milestone }}
+        run: |
+          set -euo pipefail
+          args=(snapshot)
+          if [[ "$MILESTONE_OVERRIDE" =~ ^[0-9]+$ ]]; then
+            args+=(--milestone "$MILESTONE_OVERRIDE")
+          fi
+          node scripts/milestone-board.mjs "${args[@]}"
+
+      - name: Refine top unblocked New issues to state:ready
+        if: inputs.mode == 'refine' || inputs.mode == 'sweep'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLY_CHANGES: ${{ inputs.apply }}
+          MILESTONE_OVERRIDE: ${{ inputs.milestone }}
+        run: |
+          set -euo pipefail
+          args=(refine --max 2)
+          if [ "$APPLY_CHANGES" = "true" ]; then
+            args+=(--apply)
+          fi
+          if [[ "$MILESTONE_OVERRIDE" =~ ^[0-9]+$ ]]; then
+            args+=(--milestone "$MILESTONE_OVERRIDE")
+          fi
+          node scripts/milestone-board.mjs "${args[@]}"
+
+  ready-builder:
+    name: Ready Builder Dispatch (worker ${{ matrix.worker }})
+    needs: snapshot-and-refine
+    if: inputs.mode == 'sweep'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        worker: [1, 2]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Claim & dispatch unblocked state:ready issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COPILOT_AGENT_TOKEN: ${{ secrets.COPILOT_AGENT_TOKEN }}
+          APPLY_CHANGES: ${{ inputs.apply }}
+          MILESTONE_OVERRIDE: ${{ inputs.milestone }}
+          WORKER_ID: ${{ matrix.worker }}
+        run: |
+          set -euo pipefail
+          args=(dispatch-ready --max 1 --worker "$WORKER_ID")
+          if [ "$APPLY_CHANGES" = "true" ]; then
+            args+=(--apply)
+          fi
+          if [[ "$MILESTONE_OVERRIDE" =~ ^[0-9]+$ ]]; then
+            args+=(--milestone "$MILESTONE_OVERRIDE")
+          fi
+          node scripts/milestone-board.mjs "${args[@]}"

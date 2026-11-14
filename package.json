@@ -57,6 +57,9 @@
         "format:check:backend": "npm run format:check --workspace the-shifting-atlas-backend",
         "format:check:frontend": "npm run format:check --workspace the-shifting-atlas-frontend",
         "format:check": "npm run format:check:shared && npm run format:check:backend && npm run format:check:frontend",
+        "board:snapshot": "node scripts/milestone-board.mjs snapshot",
+        "board:refine": "node scripts/milestone-board.mjs refine",
+        "board:pulse": "node scripts/board-pulse.mjs prove",
         "validate:partitions": "tsx scripts/validate-partition-distribution.ts"
     },
     "engines": {
