@@ -1,8 +1,7 @@
 import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
-import type { PlayerBootstrapResponse, PlayerDoc } from '@piquet-h/shared'
+import type { PlayerBootstrapResponse } from '@piquet-h/shared'
 import type { Container } from 'inversify'
 import { inject, injectable } from 'inversify'
-import type { IPlayerDocRepository } from '../repos/PlayerDocRepository.js'
 import type { IPlayerRepository } from '../repos/playerRepository.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
@@ -25,15 +24,13 @@ function isValidUuidV4(value: string | null | undefined): boolean {
 export class BootstrapPlayerHandler extends BaseHandler {
     constructor(
         @inject('ITelemetryClient') telemetry: ITelemetryClient,
-        @inject('IPlayerRepository') private playerRepo: IPlayerRepository,
-        @inject('IPlayerDocRepository') private playerDocRepo: IPlayerDocRepository
+        @inject('IPlayerRepository') private playerRepo: IPlayerRepository
     ) {
         super(telemetry)
     }
 
     protected async execute(request: HttpRequest): Promise<HttpResponseInit> {
         const playerRepo = this.playerRepo
-        const playerDocRepo = this.playerDocRepo
         const headerGuid = request.headers.get(HEADER_PLAYER_GUID) || undefined
         const validatedGuid = isValidUuidV4(headerGuid) ? headerGuid : undefined
         const clientHadValidGuid = validatedGuid !== undefined
@@ -45,17 +42,6 @@ export class BootstrapPlayerHandler extends BaseHandler {
 
         if (created) {
             this.track('Onboarding.GuestGuid.Created', { phase: 'bootstrap' })
-            // SQL is authoritative post ADR-004; create initial PlayerDoc projection.
-            const playerDoc: PlayerDoc = {
-                id: record.id,
-                createdUtc: record.createdUtc,
-                updatedUtc: record.updatedUtc || record.createdUtc,
-                currentLocationId: record.currentLocationId || 'unknown',
-                attributes: {},
-                inventoryVersion: 0
-            }
-            // Failure here should surface (no silent dual persistence fallback).
-            await playerDocRepo.upsertPlayer(playerDoc)
         }
         this.track('Onboarding.GuestGuid.Completed', { created: reportedCreated })
 

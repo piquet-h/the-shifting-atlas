@@ -8,6 +8,6 @@ import { linkRoomsHandler } from '../handlers/linkRooms.js'
 app.http('HttpLinkRooms', {
     route: 'location/link-rooms',
     methods: ['POST'],
-    authLevel: 'anonymous',
+    authLevel: 'function',
     handler: linkRoomsHandler
 })

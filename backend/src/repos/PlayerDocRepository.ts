@@ -9,10 +9,12 @@
  */
 
 import type { PlayerDoc } from '@piquet-h/shared'
-import { inject, injectable } from 'inversify'
+import { inject, injectable, optional } from 'inversify'
+import { TOKENS } from '../di/tokens.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
 import { CosmosDbSqlRepository } from './base/CosmosDbSqlRepository.js'
 import type { ICosmosDbSqlClient } from './base/cosmosDbSqlClient.js'
+import { projectPlayerDoc, stripCosmosSystemFields } from './utils/playerDocumentProjection.js'
 
 /**
  * Repository interface for PlayerDoc operations
@@ -55,16 +57,19 @@ export interface IPlayerDocRepository {
     listPlayersAtLocation(locationId: string, maxResults?: number): Promise<PlayerDoc[]>
 }
 
+type StoredPlayerDocument = Record<string, unknown> & { id: string }
+
 /**
  * Cosmos SQL API implementation of PlayerDoc repository
  */
 @injectable()
-export class PlayerDocRepository extends CosmosDbSqlRepository<PlayerDoc> implements IPlayerDocRepository {
+export class PlayerDocRepository extends CosmosDbSqlRepository<StoredPlayerDocument> implements IPlayerDocRepository {
     constructor(
         @inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient,
-        @inject(TelemetryService) protected telemetryService: TelemetryService
+        @inject(TelemetryService) protected telemetryService: TelemetryService,
+        @inject(TOKENS.CosmosContainerPlayers) @optional() containerName: string = 'players'
     ) {
-        super(sqlClient, 'players', telemetryService)
+        super(sqlClient, containerName, telemetryService)
     }
 
     /**
@@ -75,7 +80,8 @@ export class PlayerDocRepository extends CosmosDbSqlRepository<PlayerDoc> implem
 
         try {
             // PlayerDoc uses id as partition key
-            const player = await this.getById(playerId, playerId)
+            const rawPlayer = await this.getById(playerId, playerId)
+            const player = rawPlayer ? projectPlayerDoc(rawPlayer) : null
 
             this.telemetryService.trackGameEventStrict('PlayerDoc.Read', {
                 playerId,
@@ -96,14 +102,19 @@ export class PlayerDocRepository extends CosmosDbSqlRepository<PlayerDoc> implem
     }
 
     /**
-     * Upsert player document (idempotent)
-     * Uses last-write-wins semantics for concurrent updates
+     * Upsert player document (idempotent, merge-safe with auth/identity fields)
      */
     async upsertPlayer(playerDoc: PlayerDoc): Promise<void> {
         const startTime = Date.now()
 
         try {
-            await this.upsert(playerDoc)
+            const existing = await this.getById(playerDoc.id, playerDoc.id)
+            const merged: StoredPlayerDocument = {
+                ...(existing ? stripCosmosSystemFields(existing) : { guest: true }),
+                ...stripCosmosSystemFields(playerDoc),
+                id: playerDoc.id
+            }
+            await this.upsert(merged)
 
             this.telemetryService.trackGameEventStrict('PlayerDoc.Upsert', {
                 playerId: playerDoc.id,
@@ -147,13 +158,13 @@ export class PlayerDocRepository extends CosmosDbSqlRepository<PlayerDoc> implem
         const query = `SELECT c.id FROM c WHERE ${conditions.join(' OR ')}`
         const parameters = prefixes.map((p, i) => ({ name: `@p${i}`, value: p }))
         const { items } = await this.query(query, parameters, maxResults)
-        return items.map((doc: { id: unknown }) => doc.id).filter((id: unknown): id is string => typeof id === 'string')
+        return items.map((doc) => doc.id).filter((id: unknown): id is string => typeof id === 'string')
     }
 
     async listPlayersAtLocation(locationId: string, maxResults: number = 20): Promise<PlayerDoc[]> {
         const queryText = 'SELECT * FROM c WHERE c.currentLocationId = @locationId'
         const parameters = [{ name: '@locationId', value: locationId }]
         const { items } = await this.query(queryText, parameters, maxResults)
-        return items
+        return items.map((item) => projectPlayerDoc(item))
     }
 }

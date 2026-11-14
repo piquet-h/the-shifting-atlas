@@ -10,6 +10,24 @@
     },
     "routes": [
         {
+            "route": "/api/location/link-rooms",
+            "allowedRoles": [
+                "admin"
+            ]
+        },
+        {
+            "route": "/api/world/generate-area",
+            "allowedRoles": [
+                "admin"
+            ]
+        },
+        {
+            "route": "/api/agent/propose",
+            "allowedRoles": [
+                "admin"
+            ]
+        },
+        {
             "route": "/api/ping",
             "allowedRoles": [
                 "anonymous",

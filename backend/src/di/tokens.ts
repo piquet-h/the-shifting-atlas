@@ -52,6 +52,7 @@ export const TOKENS = {
     LocationAnchorSyncPublisher: 'ILocationAnchorSyncPublisher',
 
     // Cosmos container names / config bits
+    CosmosContainerPlayers: 'CosmosContainer:Players',
     CosmosContainerLayers: 'CosmosContainer:Layers',
     CosmosContainerEvents: 'CosmosContainer:Events',
     CosmosContainerDeadLetters: 'CosmosContainer:DeadLetters',

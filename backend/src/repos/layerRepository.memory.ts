@@ -214,6 +214,37 @@ export class MemoryLayerRepository implements ILayerRepository {
     }
 
     /**
+     * Return all stored layers across scopes (for integrity hash verification & shared description adapters).
+     */
+    getAllStoredLayers(): DescriptionLayer[] {
+        return Array.from(this.layers.values()).map((layer) => ({ ...layer }))
+    }
+
+    /**
+     * Find a stored layer by ID across scopes.
+     */
+    getStoredLayerById(layerId: string): DescriptionLayer | undefined {
+        const found = this.layers.get(layerId)
+        return found ? { ...found } : undefined
+    }
+
+    /**
+     * Merge metadata updates into an existing stored layer.
+     */
+    patchLayerMetadata(layerId: string, metadataPatch: Record<string, unknown>): boolean {
+        const existing = this.layers.get(layerId)
+        if (!existing) return false
+        this.layers.set(layerId, {
+            ...existing,
+            metadata: {
+                ...(existing.metadata ?? {}),
+                ...metadataPatch
+            }
+        })
+        return true
+    }
+
+    /**
      * Clear all layers (test utility)
      */
     clear(): void {

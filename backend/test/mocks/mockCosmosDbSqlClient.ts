@@ -117,16 +117,20 @@ export function createMockCosmosDbSqlClient<T extends { id: string }>(
                             statusCode: 200
                         }
                     },
-                    query: () => ({
-                        fetchNext: async () => {
-                            const resources = Array.from(containerData.values())
-                            return {
-                                resources,
-                                requestCharge: Math.max(1.0, resources.length * 2.0)
-                            }
-                        },
-                        hasMoreResults: () => false
-                    })
+                    query: () => {
+                        let fetched = false
+                        return {
+                            fetchNext: async () => {
+                                fetched = true
+                                const resources = Array.from(containerData.values())
+                                return {
+                                    resources,
+                                    requestCharge: Math.max(1.0, resources.length * 2.0)
+                                }
+                            },
+                            hasMoreResults: () => !fetched
+                        }
+                    }
                 }
             } as unknown as Container
         }

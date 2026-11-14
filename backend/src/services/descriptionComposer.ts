@@ -190,7 +190,11 @@ export class DescriptionComposer {
      */
     private filterActiveLayers(layers: DescriptionLayer[], context: ViewContext): DescriptionLayer[] {
         return layers.filter((layer) => {
-            const attrs = layer.attributes || {}
+            if (layer.metadata?.archived === true) {
+                return false
+            }
+
+            const attrs = layer.attributes || (layer.metadata as Record<string, unknown> | undefined) || {}
 
             // Dynamic (structural) layers are always active
             if (layer.layerType === 'dynamic') {
@@ -236,7 +240,7 @@ export class DescriptionComposer {
         const supersedes: string[] = []
         for (const layer of activeLayers) {
             if (layer.layerType === 'dynamic') {
-                const attrs = layer.attributes || {}
+                const attrs = layer.attributes || (layer.metadata as Record<string, unknown> | undefined) || {}
                 if (attrs.supersedes && Array.isArray(attrs.supersedes)) {
                     supersedes.push(...attrs.supersedes)
                 }
