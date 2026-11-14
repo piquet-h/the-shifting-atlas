@@ -3,15 +3,15 @@ import { TelemetryService } from '../telemetry/TelemetryService.js'
 import type { DescriptionLayer, IDescriptionRepository } from './descriptionRepository.js'
 
 /**
- * Cosmos (SQL API) implementation of IDescriptionRepository.
+ * Legacy compatibility implementation of IDescriptionRepository.
  *
- * STATUS: Stub implementation for future M4 milestone.
- * Currently delegates to in-memory implementation.
- * Will be replaced with Azure Cosmos SQL API integration.
+ * Authoritative Cosmos SQL layer persistence lives in CosmosLayerRepository
+ * (`backend/src/repos/layerRepository.cosmos.ts`); this adapter keeps an
+ * in-memory map for legacy IDescriptionRepository consumers (`EnvironmentChangeHandler`
+ * and `timerComputeIntegrityHashes`).
  */
 @injectable()
 export class CosmosDescriptionRepository implements IDescriptionRepository {
-    // TODO(#520): Inject Cosmos SQL client when implementing
     private fallback = new Map<string, DescriptionLayer>()
 
     constructor(@inject(TelemetryService) protected telemetryService: TelemetryService) {}
