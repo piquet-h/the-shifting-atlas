@@ -7,6 +7,12 @@ interface ContinuityRouteLike {
     localAnchors?: string[]
 }
 
+interface MacroAreaNodeLike {
+    id?: string
+    nodeClass?: string
+    localAnchors?: string[]
+}
+
 interface MacroAtlasLike {
     settlement?: {
         placement?: {
@@ -17,9 +23,12 @@ interface MacroAtlasLike {
         }
     }
     macroGraph?: {
+        nodes?: MacroAreaNodeLike[]
         continuityRoutes?: ContinuityRouteLike[]
     }
 }
+
+const DEFAULT_MOSSWELL_LOCAL_AREA = 'mw-area-fjord-sound-head'
 
 function normalizeName(value: string): string {
     return value.trim().toLowerCase()
@@ -44,11 +53,22 @@ function buildRouteAnchorMap(routes: ContinuityRouteLike[] | undefined): Map<str
     return byAnchor
 }
 
+function buildLocalAreaAnchorMap(nodes: MacroAreaNodeLike[] | undefined): Map<string, string> {
+    const byAnchor = new Map<string, string>()
+    for (const node of nodes || []) {
+        if (!node.id || node.nodeClass !== 'area') continue
+        for (const anchor of node.localAnchors || []) {
+            byAnchor.set(normalizeName(anchor), node.id)
+        }
+    }
+    return byAnchor
+}
+
 /**
- * Applies deterministic macro-atlas tags to local seed locations.
+ * Applies deterministic two-tier macro-atlas tags to local seed locations.
  *
  * Goals:
- * - Reduce recurring hand-authoring by deriving macro context from atlas files.
+ * - Stamp both local walkable settlement sub-areas (`mw-area-*`) and landmass basin (`lr-area-*`) lineage.
  * - Keep local nodes aligned to Mosswell's fjord/sound placement and route continuity.
  */
 export function applyMacroAtlasBindings(locations: Location[]): Location[] {
@@ -58,17 +78,33 @@ export function applyMacroAtlasBindings(locations: Location[]): Location[] {
     const macroAreaRef = mosswellAtlas.settlement?.placement?.macroAreaRef
     const primaryWaterContext = mosswellAtlas.settlement?.placement?.waterContext?.primary
 
+    const localAreaAnchors = buildLocalAreaAnchorMap(mosswellAtlas.macroGraph?.nodes)
     const mosswellRouteAnchors = buildRouteAnchorMap(mosswellAtlas.macroGraph?.continuityRoutes)
     const longReachRouteAnchors = buildRouteAnchorMap(longReachAtlas.macroGraph?.continuityRoutes)
+
+    // Pre-index structure -> local sub-area so interior rooms inherit their exterior structure's sub-zone
+    // even if a future interior room is added without editing mosswellMacroAtlas.json.
+    const structureAreaByTag = new Map<string, string>()
+    for (const loc of locations) {
+        const structTag = (loc.tags || []).find((tag) => tag.startsWith('structure:'))
+        const directSubArea = localAreaAnchors.get(normalizeName(loc.name))
+        if (structTag && directSubArea && !structureAreaByTag.has(structTag)) {
+            structureAreaByTag.set(structTag, directSubArea)
+        }
+    }
 
     return locations.map((location) => {
         const nextTags = [...(location.tags || [])]
         const normalizedName = normalizeName(location.name)
         const inMosswellSettlement = nextTags.includes('settlement:mosswell')
 
-        // Settlement-level context inheritance: all Mosswell local nodes inherit the
-        // fjord/sound-head area + water context tags.
         if (inMosswellSettlement) {
+            const structTag = nextTags.find((tag) => tag.startsWith('structure:'))
+            const localSubArea =
+                localAreaAnchors.get(normalizedName) ??
+                (structTag ? structureAreaByTag.get(structTag) : undefined) ??
+                DEFAULT_MOSSWELL_LOCAL_AREA
+            addUnique(nextTags, `macro:area:${localSubArea}`)
             addUnique(nextTags, macroAreaRef ? `macro:area:${macroAreaRef}` : undefined)
             addUnique(nextTags, primaryWaterContext ? `macro:water:${primaryWaterContext}` : undefined)
         }

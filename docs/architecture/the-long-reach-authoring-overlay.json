@@ -11,7 +11,7 @@
             "geometry": {
                 "type": "marker",
                 "anchor": [0.19, 0.562],
-                "radius": 0.0012,
+                "radius": 0.0005,
                 "labelAnchor": [0.115, 0.558]
             },
             "authoringState": "authored",
@@ -19,28 +19,29 @@
             "authoringReadiness": "ready",
             "areaRefs": ["lr-area-mosswell-fiordhead"],
             "entryAnchorId": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21",
-            "notes": "35 hand-authored Mosswell settlement locations anchored at Mosswell River Jetty on the Cleddau-like river mouth at the head of Milford Sound."
+            "notes": "35 hand-authored Mosswell settlement locations (~300m hamlet footprint) anchored at Mosswell River Jetty on the Cleddau-like river mouth at the head of Milford Sound; local street/sub-area structure lives in mosswellMacroAtlas.json."
         },
         {
-            "id": "lr-overlay-mosswell-harbor-road",
-            "label": "Mosswell Harbor Road",
-            "kind": "corridor",
+            "id": "lr-overlay-mosswell-fiordhead-basin",
+            "label": "Mosswell Fiordhead Basin",
+            "kind": "region",
             "geometry": {
-                "type": "line",
+                "type": "polygon",
                 "points": [
-                    [0.1885, 0.5635],
-                    [0.19, 0.562],
-                    [0.1945, 0.5565]
+                    [0.1836, 0.5554],
+                    [0.1985, 0.5554],
+                    [0.1985, 0.5678],
+                    [0.1836, 0.5678]
                 ],
                 "labelAnchor": [0.214, 0.551]
             },
-            "authoringState": "authored",
-            "coverage": "complete",
-            "authoringReadiness": "ready",
+            "authoringState": "transition-ready",
+            "coverage": "partial",
+            "authoringReadiness": "partial",
             "areaRefs": ["lr-area-mosswell-fiordhead"],
-            "corridorRefs": ["lr-corridor-mosswell-harbor-road"],
+            "entrySegmentRef": "lr-corridor-northgate-valley",
             "entryAnchorId": "d0b2a7ea-9f4c-41d5-9b2d-7b4a0e6f1c3a",
-            "notes": "Seeded local harbor-to-gate spine linking Lower Jetty Landing, Mosswell River Jetty, North Road, and North Gate."
+            "notes": "~10.4x10.4 km Milford/Cleddau glacial fiordhead district (1:50,000 mosswellMacroAtlas.json frame); Mosswell hamlet is hand-authored inside its river-mouth flats while outer 1-4 km basin reaches await exploration or authoring."
         },
         {
             "id": "lr-overlay-northgate-valley",

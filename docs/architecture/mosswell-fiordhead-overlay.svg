@@ -1,0 +1,260 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2400 1536" width="2400" height="1536" role="img" aria-labelledby="title description">
+<title id="title">Mosswell Fiordhead 1:50,000 district authoring and user-expansion overlay</title>
+<desc id="description">Calibrated 1:50,000 LINZ NZTopo50 CB08 Milford Sound district view showing true ~300m Mosswell hamlet scale, walkable local sub-areas, and player-expanded world-graph coverage.</desc>
+<style>
+text{font-family:Arial,Helvetica,sans-serif;font-weight:700;fill:#0f172a}
+.zone-label{font-size:19px;paint-order:stroke;stroke:#ffffff;stroke-width:4.5px;stroke-linejoin:round}
+.street-label{font-size:3.3px;paint-order:stroke;stroke:#ffffff;stroke-width:0.9px;stroke-linejoin:round}
+.panel-h1{font-size:26px;fill:#0f172a}
+.panel-sub{font-size:16px;font-weight:600;fill:#334155}
+.metric{font-size:18px;fill:#0f172a}
+.metric-sub{font-size:14.5px;font-weight:600;fill:#334155}
+</style>
+<rect x="0" y="0" width="2400" height="1536" fill="#eef2f6"/>
+<g aria-label="Milford Sound 1:50,000 district map">
+<image href="mosswell-fiordhead-topo50.jpg" x="0" y="0" width="1536" height="1536" preserveAspectRatio="none"/>
+<polygon data-subarea="mw-area-fjord-sound-head" points="622.1,775.7 718.8,775.7 718.8,857.1 622.1,857.1" fill="#1b8a3d" fill-opacity=".12" stroke="#1b8a3d" stroke-width="3.5" stroke-dasharray="18 10"/>
+<text class="zone-label" x="670.5" y="816.4" text-anchor="middle">Fjord/Sound Head (Core)</text>
+<polygon data-subarea="mw-area-river-delta-edge" points="571.4,768.0 648.2,768.0 652.8,867.8 571.4,867.8" fill="#1565c0" fill-opacity=".12" stroke="#1565c0" stroke-width="3.5" stroke-dasharray="18 10"/>
+<text class="zone-label" x="610.9" y="817.9" text-anchor="middle">River Delta Edge</text>
+<polygon data-subarea="mw-area-north-valley-mouth" points="637.4,522.2 837.1,368.6 906.2,476.2 714.2,775.7 629.8,775.7" fill="#1565c0" fill-opacity=".12" stroke="#1565c0" stroke-width="3.5" stroke-dasharray="18 10"/>
+<text class="zone-label" x="745.0" y="583.7" text-anchor="middle">North Valley Mouth</text>
+<polygon data-subarea="mw-area-south-farm-flats" points="632.8,857.1 749.6,857.1 829.4,1105.9 683.5,1136.6" fill="#1565c0" fill-opacity=".12" stroke="#1565c0" stroke-width="3.5" stroke-dasharray="18 10"/>
+<text class="zone-label" x="723.8" y="989.2" text-anchor="middle">South Farm &amp; Valley Flats</text>
+<polygon data-subarea="mw-area-east-shelf-foots" points="718.8,760.3 990.7,729.6 1036.8,1006.1 752.6,960.0" fill="#e09100" fill-opacity=".12" stroke="#e09100" stroke-width="3.5" stroke-dasharray="18 10"/>
+<text class="zone-label" x="874.8" y="864.0" text-anchor="middle">East Shelf Foots</text>
+<polygon data-subarea="mw-area-west-fiord-wall" points="307.2,691.2 560.6,706.6 606.7,1013.8 337.9,1105.9" fill="#c62828" fill-opacity=".12" stroke="#c62828" stroke-width="3.5" stroke-dasharray="14 10"/>
+<text class="zone-label" x="453.1" y="879.4" text-anchor="middle">West Fiord Wall (Blocked)</text>
+<line x1="657.4" y1="817.1" x2="657.4" y2="808.0" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="817.1" x2="664.0" y2="810.5" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="817.1" x2="666.5" y2="817.1" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="817.1" x2="664.0" y2="823.7" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="817.1" x2="657.4" y2="826.2" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="817.1" x2="650.8" y2="823.7" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="817.1" x2="648.3" y2="817.1" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="817.1" x2="650.8" y2="810.5" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="817.1" x2="656.5" y2="816.3" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="808.0" x2="657.4" y2="798.8" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="808.0" x2="648.3" y2="808.0" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="798.8" x2="648.3" y2="808.0" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="650.8" y1="810.5" x2="650.8" y2="801.4" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="650.8" y1="810.5" x2="650.9" y2="810.6" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="650.8" y1="801.4" x2="664.0" y2="801.4" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="664.0" y1="801.4" x2="664.0" y2="810.5" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="648.3" y1="817.1" x2="650.8" y2="814.5" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="650.8" y1="814.5" x2="650.8" y2="823.7" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="664.0" y1="810.5" x2="666.5" y2="817.1" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="664.0" y1="810.5" x2="663.1" y2="809.7" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="666.5" y1="817.1" x2="675.6" y2="817.1" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="666.5" y1="817.1" x2="666.5" y2="826.2" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="666.5" y1="826.2" x2="673.1" y2="823.7" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="673.1" y1="823.7" x2="675.6" y2="826.2" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="673.1" y1="823.7" x2="664.0" y2="823.7" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="664.0" y1="823.7" x2="657.4" y2="826.2" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="664.0" y1="823.7" x2="654.8" y2="823.7" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="664.0" y1="823.7" x2="664.1" y2="823.7" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="664.1" y1="823.7" x2="664.2" y2="823.7" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="654.8" y1="823.7" x2="650.8" y2="832.8" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="826.2" x2="657.4" y2="835.4" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="826.2" x2="650.8" y2="823.7" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="835.4" x2="650.8" y2="842.0" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="650.8" y1="823.7" x2="657.4" y2="830.3" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="650.8" y1="823.7" x2="650.8" y2="832.8" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="650.8" y1="823.7" x2="644.3" y2="830.3" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="650.8" y1="823.7" x2="644.3" y2="817.1" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="650.8" y1="832.8" x2="641.7" y2="832.8" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="675.6" y1="817.1" x2="675.6" y2="826.2" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="675.6" y1="826.2" x2="675.6" y2="835.4" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="656.5" y1="816.3" x2="665.7" y2="816.3" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="656.5" y1="816.3" x2="656.5" y2="825.4" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="656.5" y1="816.3" x2="647.4" y2="816.3" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="798.8" x2="657.4" y2="780.8" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="657.4" y1="798.8" x2="670.1" y2="786.1" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="657.4" y1="798.8" x2="644.7" y2="786.1" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="666.5" y1="817.1" x2="679.3" y2="804.4" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="657.4" y1="835.4" x2="657.4" y2="853.4" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="657.4" y1="835.4" x2="670.1" y2="848.1" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="657.4" y1="835.4" x2="675.4" y2="835.4" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="650.8" y1="823.7" x2="632.8" y2="823.7" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="650.8" y1="842.0" x2="650.8" y2="860.0" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="650.8" y1="842.0" x2="638.1" y2="854.7" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="650.8" y1="842.0" x2="632.8" y2="842.0" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="656.5" y1="825.4" x2="674.5" y2="825.4" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="656.5" y1="825.4" x2="669.3" y2="838.1" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="665.7" y1="816.3" x2="665.7" y2="798.3" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="665.7" y1="816.3" x2="678.4" y2="803.5" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="647.4" y1="816.3" x2="647.4" y2="798.3" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="647.4" y1="816.3" x2="660.2" y2="803.5" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<circle cx="657.4" cy="817.1" r="2.8" fill="#16a34a" stroke="#ffffff" stroke-width="1.1"><title>Mosswell River Jetty / Lower Jetty Landing</title></circle>
+<circle cx="657.4" cy="808.0" r="2.8" fill="#16a34a" stroke="#ffffff" stroke-width="1.1"><title>North Road</title></circle>
+<circle cx="657.4" cy="798.8" r="2.8" fill="#16a34a" stroke="#ffffff" stroke-width="1.1"><title>North Gate</title></circle>
+<circle cx="648.3" cy="808.0" r="2.8" fill="#16a34a" stroke="#ffffff" stroke-width="1.1"><title>Stone Circle Shrine</title></circle>
+<circle cx="650.8" cy="810.5" r="2.8" fill="#16a34a" stroke="#ffffff" stroke-width="1.1"><title>Herb Garden Wall / Herbalist Cottage</title></circle>
+<circle cx="650.8" cy="801.4" r="2.8" fill="#16a34a" stroke="#ffffff" stroke-width="1.1"><title>North Cottage West</title></circle>
+<circle cx="664.0" cy="801.4" r="2.8" fill="#16a34a" stroke="#ffffff" stroke-width="1.1"><title>North Cottage East</title></circle>
+<circle cx="648.3" cy="817.1" r="2.8" fill="#16a34a" stroke="#ffffff" stroke-width="1.1"><title>Smithy / Fish Market Wharf</title></circle>
+<circle cx="650.8" cy="814.5" r="2.8" fill="#16a34a" stroke="#ffffff" stroke-width="1.1"><title>Carpenter &amp; Fletcher</title></circle>
+<circle cx="664.0" cy="810.5" r="2.8" fill="#16a34a" stroke="#ffffff" stroke-width="1.1"><title>Manor Overlook / Manor Office</title></circle>
+<circle cx="666.5" cy="817.1" r="2.8" fill="#16a34a" stroke="#ffffff" stroke-width="1.1"><title>Market Row / Harbor Warehouse</title></circle>
+<circle cx="666.5" cy="826.2" r="2.8" fill="#16a34a" stroke="#ffffff" stroke-width="1.1"><title>General Goods Store</title></circle>
+<circle cx="673.1" cy="823.7" r="2.8" fill="#16a34a" stroke="#ffffff" stroke-width="1.1"><title>Tailor &amp; Weaver</title></circle>
+<circle cx="664.0" cy="823.7" r="2.8" fill="#16a34a" stroke="#ffffff" stroke-width="1.1"><title>The Lantern &amp; Ladle / The Lantern &amp; Ladle — Common Room / The Lantern &amp; Ladle — Guest Rooms</title></circle>
+<circle cx="654.8" cy="823.7" r="2.8" fill="#16a34a" stroke="#ffffff" stroke-width="1.1"><title>Stables Courtyard</title></circle>
+<circle cx="657.4" cy="826.2" r="2.8" fill="#16a34a" stroke="#ffffff" stroke-width="1.1"><title>South Road / River Mouth Dunes</title></circle>
+<circle cx="657.4" cy="835.4" r="2.8" fill="#16a34a" stroke="#ffffff" stroke-width="1.1"><title>South Farms</title></circle>
+<circle cx="650.8" cy="823.7" r="2.8" fill="#16a34a" stroke="#ffffff" stroke-width="1.1"><title>Southwest Path Junction</title></circle>
+<circle cx="650.8" cy="832.8" r="2.8" fill="#16a34a" stroke="#ffffff" stroke-width="1.1"><title>Granary</title></circle>
+<circle cx="641.7" cy="832.8" r="2.8" fill="#16a34a" stroke="#ffffff" stroke-width="1.1"><title>Drying Shed</title></circle>
+<circle cx="644.3" cy="830.3" r="2.8" fill="#16a34a" stroke="#ffffff" stroke-width="1.1"><title>SW Cottage West</title></circle>
+<circle cx="644.3" cy="817.1" r="2.8" fill="#16a34a" stroke="#ffffff" stroke-width="1.1"><title>SW Cottage North</title></circle>
+<circle cx="657.4" cy="830.3" r="2.8" fill="#16a34a" stroke="#ffffff" stroke-width="1.1"><title>SW Cottage South</title></circle>
+<circle cx="675.6" cy="817.1" r="2.8" fill="#16a34a" stroke="#ffffff" stroke-width="1.1"><title>East Cottage North</title></circle>
+<circle cx="675.6" cy="826.2" r="2.8" fill="#16a34a" stroke="#ffffff" stroke-width="1.1"><title>East Cottage Middle</title></circle>
+<circle cx="675.6" cy="835.4" r="2.8" fill="#16a34a" stroke="#ffffff" stroke-width="1.1"><title>East Cottage South</title></circle>
+<circle cx="650.8" cy="842.0" r="2.8" fill="#16a34a" stroke="#ffffff" stroke-width="1.1"><title>Field Edge Track</title></circle>
+<rect x="604.0" y="763.7" width="116" height="116" fill="none" stroke="#0f172a" stroke-width="2.5" stroke-dasharray="6 4" rx="4"/>
+<text class="zone-label" x="662.0" y="755.7" text-anchor="middle">Mosswell (~300m hamlet) →</text>
+<g transform="translate(36 1456)" aria-label="District scale bar">
+<rect x="-12" y="-30" width="330" height="54" rx="8" fill="#ffffff" fill-opacity=".92" stroke="#1e293b" stroke-width="2"/>
+<line x1="6" y1="8" x2="300.6" y2="8" stroke="#0f172a" stroke-width="4"/>
+<line x1="6" y1="-2" x2="6" y2="16" stroke="#0f172a" stroke-width="3"/>
+<line x1="153.3" y1="0" x2="153.3" y2="16" stroke="#0f172a" stroke-width="2.5"/>
+<line x1="300.6" y1="-2" x2="300.6" y2="16" stroke="#0f172a" stroke-width="3"/>
+<text class="metric-sub" x="153" y="-7" text-anchor="middle">2.0 km (LINZ NZTopo50 1:50,000 · CC BY 4.0)</text>
+</g>
+</g>
+<line x1="1536" y1="0" x2="1536" y2="1536" stroke="#1e293b" stroke-width="4"/>
+<g aria-label="Mosswell hamlet street inset">
+<text class="panel-h1" x="1576" y="46">Mosswell Hamlet Street Graph (6.8× Inset)</text>
+<text class="panel-sub" x="1576" y="72">~17 buildings, jetty &amp; Market Row spanning ~230m × 290m at river mouth</text>
+<rect x="1574" y="88" width="792" height="724" rx="12" fill="#ffffff" stroke="#1e293b" stroke-width="3"/>
+<svg x="1578" y="92" width="784" height="716" viewBox="604.0 763.7 116 116">
+<image href="mosswell-fiordhead-topo50.jpg" x="0" y="0" width="1536" height="1536" preserveAspectRatio="none"/>
+<line x1="657.4" y1="817.1" x2="657.4" y2="808.0" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="817.1" x2="664.0" y2="810.5" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="817.1" x2="666.5" y2="817.1" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="817.1" x2="664.0" y2="823.7" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="817.1" x2="657.4" y2="826.2" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="817.1" x2="650.8" y2="823.7" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="817.1" x2="648.3" y2="817.1" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="817.1" x2="650.8" y2="810.5" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="817.1" x2="656.5" y2="816.3" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="808.0" x2="657.4" y2="798.8" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="808.0" x2="648.3" y2="808.0" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="798.8" x2="648.3" y2="808.0" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="650.8" y1="810.5" x2="650.8" y2="801.4" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="650.8" y1="810.5" x2="650.9" y2="810.6" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="650.8" y1="801.4" x2="664.0" y2="801.4" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="664.0" y1="801.4" x2="664.0" y2="810.5" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="648.3" y1="817.1" x2="650.8" y2="814.5" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="650.8" y1="814.5" x2="650.8" y2="823.7" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="664.0" y1="810.5" x2="666.5" y2="817.1" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="664.0" y1="810.5" x2="663.1" y2="809.7" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="666.5" y1="817.1" x2="675.6" y2="817.1" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="666.5" y1="817.1" x2="666.5" y2="826.2" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="666.5" y1="826.2" x2="673.1" y2="823.7" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="673.1" y1="823.7" x2="675.6" y2="826.2" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="673.1" y1="823.7" x2="664.0" y2="823.7" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="664.0" y1="823.7" x2="657.4" y2="826.2" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="664.0" y1="823.7" x2="654.8" y2="823.7" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="664.0" y1="823.7" x2="664.1" y2="823.7" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="664.1" y1="823.7" x2="664.2" y2="823.7" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="654.8" y1="823.7" x2="650.8" y2="832.8" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="826.2" x2="657.4" y2="835.4" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="826.2" x2="650.8" y2="823.7" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="835.4" x2="650.8" y2="842.0" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="650.8" y1="823.7" x2="657.4" y2="830.3" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="650.8" y1="823.7" x2="650.8" y2="832.8" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="650.8" y1="823.7" x2="644.3" y2="830.3" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="650.8" y1="823.7" x2="644.3" y2="817.1" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="650.8" y1="832.8" x2="641.7" y2="832.8" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="675.6" y1="817.1" x2="675.6" y2="826.2" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="675.6" y1="826.2" x2="675.6" y2="835.4" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="656.5" y1="816.3" x2="665.7" y2="816.3" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="656.5" y1="816.3" x2="656.5" y2="825.4" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="656.5" y1="816.3" x2="647.4" y2="816.3" stroke="#15803d" stroke-width="1.9" stroke-linecap="round"/>
+<line x1="657.4" y1="798.8" x2="657.4" y2="780.8" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="657.4" y1="798.8" x2="670.1" y2="786.1" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="657.4" y1="798.8" x2="644.7" y2="786.1" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="666.5" y1="817.1" x2="679.3" y2="804.4" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="657.4" y1="835.4" x2="657.4" y2="853.4" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="657.4" y1="835.4" x2="670.1" y2="848.1" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="657.4" y1="835.4" x2="675.4" y2="835.4" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="650.8" y1="823.7" x2="632.8" y2="823.7" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="650.8" y1="842.0" x2="650.8" y2="860.0" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="650.8" y1="842.0" x2="638.1" y2="854.7" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="650.8" y1="842.0" x2="632.8" y2="842.0" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="656.5" y1="825.4" x2="674.5" y2="825.4" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="656.5" y1="825.4" x2="669.3" y2="838.1" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="665.7" y1="816.3" x2="665.7" y2="798.3" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="665.7" y1="816.3" x2="678.4" y2="803.5" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="647.4" y1="816.3" x2="647.4" y2="798.3" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<line x1="647.4" y1="816.3" x2="660.2" y2="803.5" stroke="#d97706" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+<circle cx="657.4" cy="817.1" r="2.1" fill="#16a34a" stroke="#ffffff" stroke-width="0.8"/>
+<circle cx="657.4" cy="808.0" r="2.1" fill="#16a34a" stroke="#ffffff" stroke-width="0.8"/>
+<circle cx="657.4" cy="798.8" r="2.1" fill="#16a34a" stroke="#ffffff" stroke-width="0.8"/>
+<circle cx="648.3" cy="808.0" r="2.1" fill="#16a34a" stroke="#ffffff" stroke-width="0.8"/>
+<circle cx="650.8" cy="810.5" r="2.1" fill="#16a34a" stroke="#ffffff" stroke-width="0.8"/>
+<circle cx="650.8" cy="801.4" r="2.1" fill="#16a34a" stroke="#ffffff" stroke-width="0.8"/>
+<circle cx="664.0" cy="801.4" r="2.1" fill="#16a34a" stroke="#ffffff" stroke-width="0.8"/>
+<circle cx="648.3" cy="817.1" r="2.1" fill="#16a34a" stroke="#ffffff" stroke-width="0.8"/>
+<circle cx="650.8" cy="814.5" r="2.1" fill="#16a34a" stroke="#ffffff" stroke-width="0.8"/>
+<circle cx="664.0" cy="810.5" r="2.1" fill="#16a34a" stroke="#ffffff" stroke-width="0.8"/>
+<circle cx="666.5" cy="817.1" r="2.1" fill="#16a34a" stroke="#ffffff" stroke-width="0.8"/>
+<circle cx="666.5" cy="826.2" r="2.1" fill="#16a34a" stroke="#ffffff" stroke-width="0.8"/>
+<circle cx="673.1" cy="823.7" r="2.1" fill="#16a34a" stroke="#ffffff" stroke-width="0.8"/>
+<circle cx="664.0" cy="823.7" r="2.1" fill="#16a34a" stroke="#ffffff" stroke-width="0.8"/>
+<circle cx="654.8" cy="823.7" r="2.1" fill="#16a34a" stroke="#ffffff" stroke-width="0.8"/>
+<circle cx="657.4" cy="826.2" r="2.1" fill="#16a34a" stroke="#ffffff" stroke-width="0.8"/>
+<circle cx="657.4" cy="835.4" r="2.1" fill="#16a34a" stroke="#ffffff" stroke-width="0.8"/>
+<circle cx="650.8" cy="823.7" r="2.1" fill="#16a34a" stroke="#ffffff" stroke-width="0.8"/>
+<circle cx="650.8" cy="832.8" r="2.1" fill="#16a34a" stroke="#ffffff" stroke-width="0.8"/>
+<circle cx="641.7" cy="832.8" r="2.1" fill="#16a34a" stroke="#ffffff" stroke-width="0.8"/>
+<circle cx="644.3" cy="830.3" r="2.1" fill="#16a34a" stroke="#ffffff" stroke-width="0.8"/>
+<circle cx="644.3" cy="817.1" r="2.1" fill="#16a34a" stroke="#ffffff" stroke-width="0.8"/>
+<circle cx="657.4" cy="830.3" r="2.1" fill="#16a34a" stroke="#ffffff" stroke-width="0.8"/>
+<circle cx="675.6" cy="817.1" r="2.1" fill="#16a34a" stroke="#ffffff" stroke-width="0.8"/>
+<circle cx="675.6" cy="826.2" r="2.1" fill="#16a34a" stroke="#ffffff" stroke-width="0.8"/>
+<circle cx="675.6" cy="835.4" r="2.1" fill="#16a34a" stroke="#ffffff" stroke-width="0.8"/>
+<circle cx="650.8" cy="842.0" r="2.1" fill="#16a34a" stroke="#ffffff" stroke-width="0.8"/>
+<text class="street-label" x="660.6" y="818.3">Mosswell River Jetty (×2)</text>
+<text class="street-label" x="660.6" y="800.0">North Gate</text>
+<text class="street-label" x="651.5" y="809.2">Stone Circle Shrine</text>
+<text class="street-label" x="651.5" y="818.3">Smithy (×2)</text>
+<text class="street-label" x="667.2" y="811.7">Manor Overlook (×2)</text>
+<text class="street-label" x="669.7" y="818.3">Market Row (×2)</text>
+<text class="street-label" x="667.2" y="824.9">The Lantern &amp; Ladle (×3)</text>
+<text class="street-label" x="660.6" y="836.6">South Farms</text>
+<text class="street-label" x="678.8" y="818.3">East Cottage North</text>
+<text class="street-label" x="654.0" y="843.2">Field Edge Track</text>
+<g transform="translate(610.0 871.7)">
+<rect x="-2" y="-5.5" width="36" height="8.5" rx="1.2" fill="#ffffff" fill-opacity=".9" stroke="#334155" stroke-width="0.4"/>
+<line x1="1" y1="0.8" x2="30.5" y2="0.8" stroke="#0f172a" stroke-width="0.8"/>
+<text class="street-label" x="15.7" y="-1.2" text-anchor="middle">200 m</text>
+</g>
+</svg>
+</g>
+<g aria-label="User exploration coverage summary">
+<rect x="1574" y="836" width="792" height="672" rx="12" fill="#ffffff" stroke="#1e293b" stroke-width="3"/>
+<text class="panel-h1" x="1600" y="878">Exploration &amp; Authoring Coverage</text>
+<circle cx="1612" cy="914" r="8" fill="#16a34a"/><text class="metric-sub" x="1628" y="919">Hand-authored seed</text>
+<circle cx="1798" cy="914" r="8" fill="#7c3aed"/><text class="metric-sub" x="1814" y="919">Player-expanded</text>
+<line x1="1965" y1="914" x2="1992" y2="914" stroke="#d97706" stroke-width="4" stroke-dasharray="6 4"/><text class="metric-sub" x="2002" y="919">Pending frontier hook</text>
+<line x1="1600" y1="938" x2="2340" y2="938" stroke="#cbd5e1" stroke-width="2"/>
+<text class="metric" x="1605" y="974">Hand-authored rooms: 35</text>
+<text class="metric" x="1975" y="974">Player-expanded rooms: 0</text>
+<text class="metric" x="1605" y="1014">Pending frontier hooks: 20</text>
+<text class="metric" x="1975" y="1014">Max reach from jetty: 0.18 km</text>
+<text class="metric" x="1605" y="1058">Milford district walkable land explored: 0.11% (4 / 3568 cells)</text>
+<text class="metric" x="1605" y="1098">Long Reach landmass explored: 0.047% (1 / 2106 cells)</text>
+<line x1="1600" y1="1124" x2="2340" y2="1124" stroke="#cbd5e1" stroke-width="2"/>
+<text class="metric" x="1605" y="1160">Mosswell District Sub-Areas (mosswellMacroAtlas.json)</text>
+<text class="metric-sub" x="1605" y="1192">Pass --world-graph=snapshot.json to overlay live or test player journeys</text>
+<text class="metric-sub" x="1605" y="1235">• Mosswell Fjord/Sound Head: 0 seed, 0 player-expanded (readiness: ready)</text>
+<text class="metric-sub" x="1605" y="1277">• River Delta Edge: 0 seed, 0 player-expanded (readiness: partial)</text>
+<text class="metric-sub" x="1605" y="1319">• North Valley Mouth: 0 seed, 0 player-expanded (readiness: ready)</text>
+<text class="metric-sub" x="1605" y="1361">• South Farm &amp; Valley Flats: 0 seed, 0 player-expanded (readiness: ready)</text>
+<text class="metric-sub" x="1605" y="1403">• West Fiord Wall: 0 seed, 0 player-expanded (readiness: blocked)</text>
+<text class="metric-sub" x="1605" y="1445">• East Shelf Foots: 0 seed, 0 player-expanded (readiness: ready)</text>
+</g>
+</svg>

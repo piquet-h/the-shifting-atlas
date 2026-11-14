@@ -73,14 +73,15 @@
                 "nodeClass": "area",
                 "areaType": "basin",
                 "terrainIdentity": [
-                    "fiord-head flats",
-                    "river-mouth silt",
-                    "sheltered harbor edge"
+                    "15km glacial fiord-head basin",
+                    "river-mouth silt flats",
+                    "sheltered inner-sound approaches"
                 ],
                 "tags": [
                     "mosswell-region",
                     "settlement-anchor"
-                ]
+                ],
+                "authoringReadiness": "partial"
             },
             {
                 "id": "lr-area-rainward-escarpments",
@@ -249,20 +250,6 @@
                 ]
             },
             {
-                "id": "lr-corridor-mosswell-harbor-road",
-                "name": "Mosswell Harbor Road",
-                "nodeClass": "corridor",
-                "corridorType": "shelf-road",
-                "terrainIdentity": [
-                    "fiordhead road shelf",
-                    "settlement access line"
-                ],
-                "tags": [
-                    "mosswell-primary-route",
-                    "route-continuity"
-                ]
-            },
-            {
                 "id": "lr-corridor-northgate-valley",
                 "name": "Northgate Valley Route",
                 "nodeClass": "corridor",
@@ -422,12 +409,6 @@
         "edges": [
             {
                 "from": "lr-area-mosswell-fiordhead",
-                "to": "lr-corridor-mosswell-harbor-road",
-                "relation": "connects-to",
-                "traversal": "open"
-            },
-            {
-                "from": "lr-corridor-mosswell-harbor-road",
                 "to": "lr-corridor-northgate-valley",
                 "relation": "continues-into",
                 "traversal": "open",
@@ -694,7 +675,6 @@
                 "kind": "route-continuity",
                 "macroSegments": [
                     "lr-area-mosswell-fiordhead",
-                    "lr-corridor-mosswell-harbor-road",
                     "lr-corridor-northgate-valley",
                     "lr-area-northwatch-ranges"
                 ],
@@ -758,7 +738,6 @@
         "placementSummary": "Mosswell sits at the head of a fjord/sound system where inland valley routes meet sheltered harbor ground.",
         "adjacentMacroRefs": [
             "lr-area-fiordmarch-west",
-            "lr-corridor-mosswell-harbor-road",
             "lr-corridor-northgate-valley",
             "lr-area-rainward-escarpments"
         ],

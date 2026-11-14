@@ -28,12 +28,50 @@ export interface LocationExit {
 /** Default travel duration for exits within urban/settlement areas (5 minutes). */
 export const URBAN_TRAVEL_DURATION_MS = 300_000
 
+/**
+ * Ground-distance scale of `the-long-reach.jpg` (`7040x8480` at 1:1,000,000, 100 m/px).
+ * Used to convert between normalized `[0, 1]` Long Reach coordinates and ground meters.
+ */
+export const LONG_REACH_WIDTH_METERS = 704_000
+export const LONG_REACH_HEIGHT_METERS = 848_000
+
+/**
+ * Normalized `[0, 1]` map coordinates on The Long Reach frame (`0,0` = top-left/NW, `1,1` = bottom-right/SE).
+ */
+export interface MapPosition {
+    x: number
+    y: number
+}
+
+export function isValidMapPosition(value: unknown): value is MapPosition {
+    if (!value || typeof value !== 'object') return false
+    const candidate = value as Record<string, unknown>
+    return (
+        typeof candidate.x === 'number' &&
+        Number.isFinite(candidate.x) &&
+        candidate.x >= 0 &&
+        candidate.x <= 1 &&
+        typeof candidate.y === 'number' &&
+        Number.isFinite(candidate.y) &&
+        candidate.y >= 0 &&
+        candidate.y <= 1
+    )
+}
+
+export function distanceBetweenMapPositionsMeters(a: MapPosition, b: MapPosition): number {
+    const dxMeters = (b.x - a.x) * LONG_REACH_WIDTH_METERS
+    const dyMeters = (b.y - a.y) * LONG_REACH_HEIGHT_METERS
+    return Math.hypot(dxMeters, dyMeters)
+}
+
 export interface Location {
     id: string
     name: string
     description: string
     /** Terrain type for spatial generation guidance (optional for backward compatibility) */
     terrain?: TerrainType
+    /** Optional normalized `[0, 1]` Long Reach map coordinates for authoring overlays and terrain-guided expansion. */
+    mapPosition?: MapPosition
     exits?: LocationExit[]
     /** Optional semantic / facet tags (e.g., 'settlement:mosswell', 'shop:smithy'). */
     tags?: string[]

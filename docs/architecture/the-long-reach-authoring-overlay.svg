@@ -19,6 +19,9 @@ text{font-family:Arial,Helvetica,sans-serif;font-weight:700;fill:#13202c}
 <g aria-label="Full Long Reach overview">
 <image href="../../the-long-reach.jpg" x="0" y="0" width="7040" height="8480" preserveAspectRatio="none"/>
 <g aria-label="Authoring segments">
+<g class="region runtime-blocked" data-ref="lr-overlay-mosswell-fiordhead-basin" data-status="transition-ready" data-readiness="partial"><title>Mosswell Fiordhead Basin: coverage partial; readiness snapshot partial; ~10.4x10.4 km Milford/Cleddau glacial fiordhead district (1:50,000 mosswellMacroAtlas.json frame); Mosswell hamlet is hand-authored inside its river-mouth flats while outer 1-4 km basin reaches await exploration or authoring.</title>
+<polygon points="1292.5,4709.8 1397.4,4709.8 1397.4,4814.9 1292.5,4814.9" fill="#1565c0" fill-opacity=".24" stroke="#c62828" stroke-width="22"/>
+</g>
 <g class="region runtime-blocked" data-ref="lr-overlay-northwatch-ranges" data-status="transition-ready" data-readiness="partial"><title>Northwatch Ranges: coverage partial; readiness snapshot partial; Northern approach highlands reached via Northgate Valley; transition metadata is wired, awaiting hand-authored mountain saddles and landmarks.</title>
 <polygon points="1351.7,4426.6 1703.7,3968.6 2196.5,3883.8 2076.8,4426.6 1562.9,4562.2" fill="#1565c0" fill-opacity=".24" stroke="#c62828" stroke-width="22"/>
 </g>
@@ -61,9 +64,6 @@ text{font-family:Arial,Helvetica,sans-serif;font-weight:700;fill:#13202c}
 <g class="region" data-ref="lr-overlay-unmapped-southern-isle" data-status="inspiration-only" data-readiness="unspecified"><title>Unmapped Southern Isle: coverage none; readiness snapshot unspecified; Offshore southern island (Stewart Island inspiration); no macro-atlas area assigned yet.</title>
 <polygon points="1056.0,6936.6 1745.9,6936.6 1703.7,7699.8 1056.0,7699.8" fill="#607d8b" fill-opacity=".15" stroke="#607d8b" stroke-width="14" stroke-dasharray="36 26"/>
 </g>
-<g class="corridor" data-ref="lr-overlay-mosswell-harbor-road" data-status="authored" data-readiness="ready"><title>Mosswell Harbor Road: coverage complete; readiness snapshot ready; Seeded local harbor-to-gate spine linking Lower Jetty Landing, Mosswell River Jetty, North Road, and North Gate.</title>
-<polyline class="corridor-line" points="1327.0,4778.5 1337.6,4765.8 1369.3,4719.1" stroke="#1b8a3d" fill="none"/>
-</g>
 <g class="corridor runtime-blocked" data-ref="lr-overlay-northgate-valley" data-status="transition-ready" data-readiness="partial"><title>Northgate Valley: coverage partial; readiness snapshot partial; North/northeast valley route departing Mosswell North Gate along the Hollyford-like valley floor; atlas route continuity is ready while broader Northwatch highland content remains partial.</title>
 <polyline points="1369.3,4719.1 1443.2,4604.6 1520.6,4418.1 1675.5,4197.6" stroke="#c62828" style="stroke-width:58" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
 <polyline class="corridor-line" points="1369.3,4719.1 1443.2,4604.6 1520.6,4418.1 1675.5,4197.6" stroke="#1565c0" fill="none"/>
@@ -89,8 +89,8 @@ text{font-family:Arial,Helvetica,sans-serif;font-weight:700;fill:#13202c}
 <g class="barrier runtime-blocked" data-ref="lr-overlay-crownspine-ridge" data-status="blocked" data-readiness="blocked"><title>Crownspine Knifeback: coverage none; readiness snapshot blocked; Main Southern Alps crestline dividing western rainforest/fiords from eastern interior basins; pass-limited crossing only.</title>
 <polyline class="barrier-line" points="1605.1,4706.4 2076.8,4112.8 2780.8,3349.6 3625.6,2501.6 4329.6,1823.2" stroke="#c62828" fill="none"/>
 </g>
-<g class="region" data-ref="lr-overlay-mosswell-village" data-status="authored" data-readiness="ready"><title>Mosswell Village: coverage complete; readiness snapshot ready; 35 hand-authored Mosswell settlement locations anchored at Mosswell River Jetty on the Cleddau-like river mouth at the head of Milford Sound.</title>
-<circle cx="1337.6" cy="4765.8" r="8.4" fill="#1b8a3d" fill-opacity=".88" stroke="#ffffff" stroke-width="2.4"/>
+<g class="region" data-ref="lr-overlay-mosswell-village" data-status="authored" data-readiness="ready"><title>Mosswell Village: coverage complete; readiness snapshot ready; 35 hand-authored Mosswell settlement locations (~300m hamlet footprint) anchored at Mosswell River Jetty on the Cleddau-like river mouth at the head of Milford Sound; local street/sub-area structure lives in mosswellMacroAtlas.json.</title>
+<circle cx="1337.6" cy="4765.8" r="3.5" fill="#1b8a3d" fill-opacity=".88" stroke="#ffffff" stroke-width="2.0"/>
 </g>
 </g>
 <g aria-label="Overview labels">
@@ -127,13 +127,13 @@ text{font-family:Arial,Helvetica,sans-serif;font-weight:700;fill:#13202c}
 <image href="../../the-long-reach.jpg" x="0" y="0" width="7040" height="8480" preserveAspectRatio="none"/>
 <polyline data-feature="mosswell-river-trace" points="1415.0,4859.0 1376.3,4816.6 1337.6,4765.8" stroke="#ffffff" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
 <polyline points="1415.0,4859.0 1376.3,4816.6 1337.6,4765.8" stroke="#0288d1" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<polygon points="1292.5,4709.8 1397.4,4709.8 1397.4,4814.9 1292.5,4814.9" fill="#1565c0" fill-opacity=".07" stroke="#c62828" stroke-width="2.6" stroke-opacity=".55" stroke-dasharray="10 7"/>
 <polygon points="1351.7,4426.6 1703.7,3968.6 2196.5,3883.8 2076.8,4426.6 1562.9,4562.2" fill="#1565c0" fill-opacity=".07" stroke="#c62828" stroke-width="2.6" stroke-opacity=".55" stroke-dasharray="10 7"/>
 <polygon points="1591.0,4562.2 2217.6,4392.6 2295.0,5223.7 1661.4,5325.4" fill="#e09100" fill-opacity=".07" stroke="#c62828" stroke-width="2.6" stroke-opacity=".55" stroke-dasharray="10 7"/>
 <polygon points="1217.9,4647.0 1323.5,4816.6 1140.5,5384.8 809.6,6148.0 387.2,6232.8 598.4,5427.2 971.5,4876.0" fill="#e09100" fill-opacity=".07" stroke="#c62828" stroke-width="2.6" stroke-opacity=".55" stroke-dasharray="10 7"/>
 <polygon points="1232.0,5554.4 2147.2,5469.6 2252.8,6232.8 1232.0,6232.8" fill="#e09100" fill-opacity=".07" stroke="#c62828" stroke-width="2.6" stroke-opacity=".55" stroke-dasharray="10 7"/>
 <polygon points="1323.5,4536.8 1584.0,4494.4 1584.0,5300.0 1161.6,5384.8 1232.0,4876.0" fill="#c62828" fill-opacity=".07" stroke="#c62828" stroke-width="2.6" stroke-opacity=".55" stroke-dasharray="10 7"/>
 <polygon points="1724.8,4282.4 4118.4,1823.2 4470.4,1992.8 2006.4,4452.0" fill="#607d8b" fill-opacity=".07" stroke="#607d8b" stroke-width="2.6" stroke-opacity=".55" stroke-dasharray="10 7"/>
-<polyline points="1327.0,4778.5 1337.6,4765.8 1369.3,4719.1" stroke="#1b8a3d" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
 <polyline points="1369.3,4719.1 1443.2,4604.6 1520.6,4418.1 1675.5,4197.6" stroke="#c62828" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
 <polyline points="1369.3,4719.1 1443.2,4604.6 1520.6,4418.1 1675.5,4197.6" stroke="#1565c0" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
 <polyline points="1351.7,4799.7 1422.1,4986.2 1351.7,5300.0 1295.4,5613.8 1450.2,5893.6" stroke="#c62828" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
@@ -145,10 +145,10 @@ text{font-family:Arial,Helvetica,sans-serif;font-weight:700;fill:#13202c}
 <polyline points="1337.6,4765.8 1274.2,4706.4 1203.8,4647.0" stroke="#c62828" stroke-width="7.5" stroke-dasharray="14 9" stroke-linecap="round" fill="none"/>
 <polyline points="1386.9,4579.2 1386.9,4731.8 1295.4,4918.4 1210.9,5155.8" stroke="#c62828" stroke-width="7.5" stroke-dasharray="14 9" stroke-linecap="round" fill="none"/>
 <polyline points="1605.1,4706.4 2076.8,4112.8 2780.8,3349.6 3625.6,2501.6 4329.6,1823.2" stroke="#c62828" stroke-width="7.5" stroke-dasharray="14 9" stroke-linecap="round" fill="none"/>
-<circle cx="1337.6" cy="4765.8" r="8.4" fill="#1b8a3d" fill-opacity=".9" stroke="#ffffff" stroke-width="2.4"/>
-<circle cx="1337.6" cy="4765.8" r="17.7" fill="none" stroke="#1b8a3d" stroke-width="2.2" stroke-dasharray="5 4"/>
+<circle cx="1337.6" cy="4765.8" r="3.5" fill="#1b8a3d" fill-opacity=".9" stroke="#ffffff" stroke-width="2.4"/>
+<circle cx="1337.6" cy="4765.8" r="7.4" fill="none" stroke="#1b8a3d" stroke-width="2.2" stroke-dasharray="5 4"/>
+<text class="inset-label" x="1506.6" y="4672.5" text-anchor="middle">Mosswell Fiordhead Basin</text>
 <text class="inset-label" x="1492.5" y="4562.2" text-anchor="middle">Rainward Escarpments</text>
-<text class="inset-label" x="1506.6" y="4672.5" text-anchor="middle">Mosswell Harbor Road</text>
 <text class="inset-label" x="1569.9" y="4435.0" text-anchor="middle">Northgate Valley</text>
 <text class="inset-label" x="1548.8" y="5232.2" text-anchor="middle">Southfork Vale</text>
 <text class="inset-label" x="1569.9" y="4977.8" text-anchor="middle">Lantern Notch &amp; Ashen Step</text>
@@ -156,7 +156,7 @@ text{font-family:Arial,Helvetica,sans-serif;font-weight:700;fill:#13202c}
 <text class="inset-label" x="1154.6" y="4596.2" text-anchor="middle">Fiord Deeps</text>
 <text class="inset-label" x="1232.0" y="4842.1" text-anchor="middle">Rainward Cliffwall</text>
 <text class="inset-label" x="1661.4" y="4426.6" text-anchor="middle">Crownspine Knifeback</text>
-<text class="inset-label inset-village" x="1359.6" y="4769.8" text-anchor="start">Mosswell Village (authored)</text>
+<text class="inset-label inset-village" x="1346.8" y="4769.8" text-anchor="start">Mosswell Village (authored)</text>
 <g transform="translate(943.2 5258.0)" aria-label="Inset scale bar">
 <rect x="-10" y="-22" width="215" height="44" rx="6" fill="#ffffff" fill-opacity=".9" stroke="#334155" stroke-width="1.8"/>
 <line x1="6" y1="8" x2="186" y2="8" stroke="#0f172a" stroke-width="3.5"/>
@@ -185,7 +185,7 @@ text{font-family:Arial,Helvetica,sans-serif;font-weight:700;fill:#13202c}
 <line x1="1930" y1="381" x2="1978" y2="381" stroke="#0288d1" stroke-width="11" stroke-linecap="round"/>
 <text class="legend" x="2002" y="395">river feeding fiordhead (inset)</text>
 <line x1="60" y1="640" x2="3740" y2="640" stroke="#cbd5e1" stroke-width="4"/>
-<text class="legend-note" x="60" y="735">Counts — authored: 2 | transition-ready: 2 | next-to-author: 5 | blocked: 5 | inspiration-only: 9</text>
+<text class="legend-note" x="60" y="735">Counts — authored: 1 | transition-ready: 3 | next-to-author: 5 | blocked: 5 | inspiration-only: 9</text>
 <text class="legend-note" x="60" y="830">• Approximate footprints — not surveyed GIS boundaries.</text>
 <text class="legend-note" x="60" y="920">• transition-ready = partial readiness snapshot, not automatic runtime permission.</text>
 <text class="legend-note" x="60" y="1010">• Only Mosswell Fiordhead (35 local locations) is hand-authored; rest is frontier or inspiration.</text>

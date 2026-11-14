@@ -15,7 +15,7 @@
  */
 
 import type { InvocationContext } from '@azure/functions'
-import type { Direction, TerrainType } from '@piquet-h/shared'
+import type { Direction, MapPosition, TerrainType } from '@piquet-h/shared'
 import { DIRECTIONS, TERRAIN_TYPES, getOppositeDirection } from '@piquet-h/shared'
 import type { WorldEventEnvelope } from '@piquet-h/shared/events'
 import { inject, injectable, optional } from 'inversify'
@@ -200,6 +200,7 @@ interface StubLocation {
     direction: Direction
     terrain: TerrainType
     tags: string[]
+    mapPosition?: MapPosition
 }
 
 @injectable()
@@ -407,6 +408,8 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
                 payload.terrain,
                 payload.realmKey,
                 rootLocation?.tags,
+                rootLocation?.mapPosition,
+                stepMs,
                 event.correlationId,
                 context
             )
@@ -614,6 +617,8 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
         terrain: TerrainType,
         realmKey: string | undefined,
         rootTags: string[] | undefined,
+        rootMapPosition: MapPosition | undefined,
+        stepMs: number,
         correlationId: string,
         context: InvocationContext
     ): Promise<StubLocation[]> {
@@ -621,7 +626,10 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
 
         for (const direction of directions) {
             const id = uuidv4()
-            const futureLocationPlan = planAtlasAwareFutureLocation(terrain, direction, rootTags, realmKey)
+            const futureLocationPlan = planAtlasAwareFutureLocation(terrain, direction, rootTags, realmKey, {
+                originMapPosition: rootMapPosition,
+                travelDurationMs: stepMs
+            })
 
             // Create location entity
             await this.locationRepo.upsert({
@@ -629,13 +637,21 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
                 name: futureLocationPlan.name,
                 description: futureLocationPlan.description,
                 terrain: futureLocationPlan.terrain,
+                ...(futureLocationPlan.mapPosition ? { mapPosition: futureLocationPlan.mapPosition } : {}),
                 tags: futureLocationPlan.tags,
                 exits: [], // Will be populated by ExitCreateHandler
                 exitAvailability: futureLocationPlan.exitAvailability,
                 version: 1
             })
 
-            stubs.push({ id, name: futureLocationPlan.name, direction, terrain: futureLocationPlan.terrain, tags: futureLocationPlan.tags })
+            stubs.push({
+                id,
+                name: futureLocationPlan.name,
+                direction,
+                terrain: futureLocationPlan.terrain,
+                tags: futureLocationPlan.tags,
+                ...(futureLocationPlan.mapPosition ? { mapPosition: futureLocationPlan.mapPosition } : {})
+            })
 
             context.log('Created stub location', { id, direction, terrain })
 
@@ -699,7 +715,7 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
                 // If the stub is reached by travelling `north` from root, the player arrives at the stub from `south`.
                 arrivalDirection: getOppositeDirection(stub.direction),
                 neighbors: [], // Onward exits TBD (future: exit inference)
-                macroContext: resolveMacroGenerationContext(stub.tags, stub.direction)
+                macroContext: resolveMacroGenerationContext(stub.tags, stub.direction, stub.mapPosition)
             })),
             style: 'atmospheric'
         }

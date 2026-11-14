@@ -98,7 +98,10 @@ while preserving:
 The design-time sidecar contract is [long-reach-authoring-overlay.schema.json](long-reach-authoring-overlay.schema.json)
 (JSON Schema Draft 7, `schemaVersion: 1`), populated in [the-long-reach-authoring-overlay.json](the-long-reach-authoring-overlay.json).
 The [renderer and queue workflow](../../scripts/README.md#long-reach-authoringmjs) consumes this single contract directly via
-`npm run map:long-reach` (regenerating both the two-panel `.svg` and `.png` preview) and `npm run report:long-reach`.
+`npm run map:long-reach` (regenerating the `1:1,000,000` landmass `.svg` and `.png` preview), `npm run map:mosswell`
+(regenerating the `1:50,000` Milford Sound / Mosswell Fiordhead district [mosswell-fiordhead-overlay.png](mosswell-fiordhead-overlay.png) over the CC-BY 4.0 LINZ NZTopo50 CB08 base map [mosswell-fiordhead-topo50.jpg](mosswell-fiordhead-topo50.jpg) calibrated in [mosswell-fiordhead-topo50.calibration.json](mosswell-fiordhead-topo50.calibration.json)), and `npm run report:long-reach`.
+
+At `1:50,000` district scale (`mosswellMacroAtlas.json`), Mosswell's 35 seed locations carry normalized `Location.mapPosition` coordinates spanning a realistic `~230 m × 290 m` hamlet footprint on the river mouth (`[0.1900, 0.5620]`), mediated by 1–4 km walkable `mw-area-*` sub-zones before landmass-tier `lr-area-*` transitions fire. Frontier expansion projects `mapPosition` from exit direction + `travelDurationMs` and samples bundled offline relief/hydrography (`backend/src/data/longReachLandformGrid.json`) so LLM prose follows real valleys, fiord waters, and alpine ridges without Earth place names, while `npm run map:mosswell -- --world-graph=<snapshot.json>` overlays player-expanded rooms and reports district/landmass exploration percentages.
 
 The sidecar is the canonical source for **overlay annotations and editorial ordering**; [the-long-reach.jpg](../../the-long-reach.jpg) is only a
 rendered/inspiration view. The [macro atlas](../../backend/src/data/theLongReachMacroAtlas.json) remains authoritative
