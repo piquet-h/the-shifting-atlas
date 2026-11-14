@@ -270,19 +270,35 @@ node scripts/verify-deployable.mjs
 
 ---
 
-### `verify-shared-version-bump.mjs`
+### `package-backend-function.mjs`
 
-Guards the **two-stage shared→backend workflow** by failing when:
-
-1. `shared/package.json` version changes **and**
-2. `shared/src/` changes **and**
-3. `backend/src/` changes **and**
-4. `backend/package.json` is **not** updated.
-
-**Usage:**
+Stages a standalone Azure Functions archive at `backend/.deploy` with production-only dependencies, non-symlinked `@piquet-h/shared`, and compiled-test leak assertions.
 
 ```bash
-node scripts/verify-shared-version-bump.mjs
+npm run package:backend
+```
+
+---
+
+### CI & CD scope / handoff scripts
+
+- `pr-validation-scope.mjs` — computes affected PR validation lanes (`--base` / `--head`) or deploy-unit scope since `deployed-<unit>` (`--deploy-unit <backend|frontend|infrastructure>`).
+- `pr-validation-bicep.mjs` — compiles Bicep templates offline with zero Azure credentials and runs advisory workbook drift checks.
+- `release-handoff.mjs` — advances `deployed-<unit>` tags after green production deploys and transitions referenced `#NNN` issues to `state:testing`.
+
+---
+
+### `milestone-board.mjs` & `board-pulse.mjs`
+
+GitHub-native milestone Kanban flow (`state:new` → `state:ready` → `state:in-progress` → `state:testing` → closed):
+
+```bash
+npm run board:snapshot
+node scripts/milestone-board.mjs refine --max 2 --apply
+node scripts/milestone-board.mjs dispatch-ready --max 1 --worker 1 --apply
+node scripts/milestone-board.mjs release-claims --run-id <id> --attempt <n> --apply
+node scripts/board-pulse.mjs prove --offset 24h --apply
+node scripts/board-pulse.mjs sense --offset 24h --apply --create-bugs
 ```
 
 ---

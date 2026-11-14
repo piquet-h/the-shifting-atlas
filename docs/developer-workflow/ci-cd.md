@@ -95,6 +95,20 @@ CI/CD workflows enforce:
 
 ---
 
+### 6. Milestone Delivery Sweep, Claim Cleanup & Board Pulse
+
+**Files**:
+- [`.github/workflows/milestone-sweep.yml`](../../.github/workflows/milestone-sweep.yml)
+- [`.github/workflows/milestone-sweep-cleanup.yml`](../../.github/workflows/milestone-sweep-cleanup.yml)
+- [`.github/workflows/board-pulse.yml`](../../.github/workflows/board-pulse.yml)
+
+**Purpose**: Closed-loop GitHub-native milestone delivery across `state:new` → `state:ready` → `state:in-progress` → `state:testing` → closed:
+1. **Sweep (`snapshot` / `refine` / `sweep`)**: Orders open milestones semantically (`M4e` → `M5a` → `M5b` → `M6*` → `M7`) and topological delivery slices, promotes atomic issues with `## Verifier` JSON to `state:ready`, and claims/dispatches unblocked `state:ready` items within WIP limits (`In Progress <= 3`, `Ready <= 5`).
+2. **Claim Cleanup (`workflow_run: [completed]`)**: Releases stopped/timed-out `state:in-progress` claims that did not open a PR back to `state:ready`.
+3. **Board Pulse (`prove` + `sense`)**: Runs after green production deployments and nightly (`22:30 UTC`) to evaluate `state:testing` verifiers against live health + Application Insights (`--offset` lookback), close proven issues (triggering milestone slice reanalysis), hold UI items with `needs-operator`, and optionally file deduplicated `bug` issues from recurring exception clusters.
+
+---
+
 ### 6. E2E Integration Tests
 
 **File**: [`.github/workflows/e2e-integration.yml`](../../.github/workflows/e2e-integration.yml)

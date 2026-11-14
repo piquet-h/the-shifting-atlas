@@ -1,0 +1,37 @@
+name: Milestone Delivery Sweep Cleanup
+
+on:
+  workflow_run:
+    workflows: [Milestone Delivery Sweep]
+    types: [completed]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  release-stopped-claims:
+    name: Release Stopped Execution Claims
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Release verified stopped execution claims without open PRs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SWEEP_RUN_ID: ${{ github.event.workflow_run.id }}
+          SWEEP_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: |
+          set -euo pipefail
+          node scripts/milestone-board.mjs release-claims \
+            --run-id "$SWEEP_RUN_ID" \
+            --attempt "$SWEEP_RUN_ATTEMPT" \
+            --apply
