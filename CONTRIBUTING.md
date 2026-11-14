@@ -1,79 +1,34 @@
 # Contributing to The Shifting Atlas
 
-## Development Requirements
+## 1. TDD-First Workflow (Mandatory for Runtime Code)
 
-### TDD-First Development (Mandatory)
+All runtime features, bug fixes, API changes, and refactors MUST follow **Red → Green → Refactor** before implementation code is written. Full ceremony and test-layer decision matrix:
 
-All contributions **must** follow Test-Driven Development:
+- [TDD-First Workflow Skill](.github/skills/tdd-first-workflow/SKILL.md)
+- [Backend Test Fixture Guide](backend/test/TEST_FIXTURE_GUIDE.md)
 
-```
-1. Write failing test(s) first
-2. Run tests → confirm RED (failure)
-3. Write minimal implementation to pass
-4. Run tests → confirm GREEN (passing)
-5. Refactor if needed → tests stay GREEN
-```
+Pure documentation, static configuration, and scripts under `scripts/**` are exempt from test-first ceremony (scripts must still be executed to verify behavior).
 
-**No PR will be accepted with implementation code that was written before its tests.**
-
-### When TDD Applies
-
-- ✅ New features (handlers, services, utilities)
-- ✅ Bug fixes (reproduce bug as failing test first)
-- ✅ API contract changes
-- ✅ Refactors affecting behavior
-
-### Exceptions
-
-- Documentation-only changes
-- Configuration without runtime logic
-- Exploratory spikes (but spike code never merges without tests)
-
-## Code Standards
-
-- **TypeScript**: Strict mode, no `any` without justification
-- **Formatting**: Prettier (run `npm run format`)
-- **Linting**: ESLint (run `npm run lint`)
-- **Tests**: Node.js test runner for backend, Vitest for frontend
-
-## Before Submitting a PR
+## 2. Pre-PR Verification Gates (Run from Repo Root)
 
 ```bash
-# Backend
-cd backend && npm run build && npm run lint && npm test
-
-# Frontend
-cd frontend && npm run build && npm run lint && npm test
-
-# Shared
-cd shared && npm run build && npm run lint && npm test
+npm ci
+npm run build        # shared (with prompt bundle) -> backend -> frontend
+npm run format:check # Prettier check (auto-fix with: npm run format)
+npm run lint         # ESLint + runtime/atlas invariants
+npm run typecheck    # TypeScript strict check across all workspaces
+npm test             # shared + backend + frontend unit & integration suites
 ```
 
-## Copilot Agents
+For runtime changes (`backend/`, `frontend/`, `infrastructure/`), reference issues with `Refs #NNN` or `Delivers #NNN` (not `Fixes #NNN`) so post-deploy verification controls closure.
 
-If you're a Copilot agent (VS Code, GitHub cloud, or Copilot Workspace):
+## 3. Documentation & Copilot Guidance
 
-1. Read `.github/copilot-instructions.md` for full workflow
-2. **TDD is mandatory** — write tests before implementation
-3. Follow Section 10.1 for the complete TDD workflow
-4. Use the test fixtures documented in `backend/test/TEST_FIXTURE_GUIDE.md`
-
-## Documentation
-
-Follow the MECE documentation hierarchy (authoritative portal: `docs/README.md`):
-
-| Layer        | Location                     | Purpose               |
-| ------------ | ---------------------------- | --------------------- |
-| Vision       | README.md                    | Strategic direction   |
-| Tenets       | docs/tenets.md               | Decision rules        |
-| Concepts     | docs/concept/                | Immutable semantics   |
-| Design       | docs/design-modules/         | Gameplay systems      |
-| Architecture | docs/architecture/           | Technical design      |
-| Workflows    | docs/workflows/              | Runtime orchestration |
-| Roadmap      | docs/roadmap.md              | Milestone progression |
-| Examples     | docs/examples/               | Code walkthroughs     |
-| Code         | backend/, frontend/, shared/ | Implementation        |
+- **MECE Documentation Portal** (single source of truth for altitude layers from Vision to Code): [`docs/README.md`](docs/README.md)
+- **Core Tenets**: [`docs/tenets.md`](docs/tenets.md)
+- **Issue & Milestone Taxonomy**: [`docs/developer-workflow/issue-taxonomy.md`](docs/developer-workflow/issue-taxonomy.md)
+- **Copilot Operating Guide**: [`.github/copilot-instructions.md`](.github/copilot-instructions.md)
 
 ## Questions?
 
-Open an issue with the `question` label.
+Open an issue using the taxonomy in [`docs/developer-workflow/issue-taxonomy.md`](docs/developer-workflow/issue-taxonomy.md).

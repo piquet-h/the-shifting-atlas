@@ -81,10 +81,10 @@ Examples are organized by:
 
 | Example                    | Category       | Complexity   | Prerequisites                           |
 | -------------------------- | -------------- | ------------ | --------------------------------------- |
-| Function Endpoint (Player) | Backend        | Beginner     | Node.js 20+, Azure Functions Core Tools |
+| Function Endpoint (Player) | Backend        | Beginner     | Node.js 22+, Azure Functions Core Tools |
 | Gremlin Traversal Query    | Backend        | Intermediate | Cosmos DB provisioned                   |
-| Seed Script Usage          | Infrastructure | Beginner     | Node.js 20+                             |
-| Accessibility Test Run     | Testing        | Beginner     | Frontend dependencies                   |
+| Seed Script Usage          | Infrastructure | Beginner     | Node.js 22+                             |
+| Accessibility Test Run     | Testing        | Beginner     | Workspace dependencies (`npm ci`)       |
 
 ---
 
@@ -161,18 +161,9 @@ Stale examples are worse than no examples—delete if unmaintainable.
 
 ---
 
-## Related Documentation Layers
+## Related Documentation
 
-| Layer                       | Altitude   | Document                                    |
-| --------------------------- | ---------- | ------------------------------------------- |
-| Vision                      | 60k ft     | Root `README.md` (Vision section)           |
-| Tenets                      | 50k ft     | `../tenets.md`                              |
-| Design Modules              | 40k ft     | `../design-modules/README.md`               |
-| Architecture                | 30k ft     | `../architecture/mvp-azure-architecture.md` |
-| Workflows                   | 25k ft     | `../workflows/README.md`                    |
-| Roadmap                     | 20k ft     | `../roadmap.md`                             |
-| **Examples (You Are Here)** | **10k ft** | **(This file)**                             |
-| Code                        | Ground     | `../../backend/`, `../../frontend/`         |
+See the [Documentation Portal](../README.md) for the complete MECE altitude hierarchy (Vision → Tenets → Concepts → Design Modules → Architecture → Workflows → Roadmap → Examples → Code).
 
 ---
 

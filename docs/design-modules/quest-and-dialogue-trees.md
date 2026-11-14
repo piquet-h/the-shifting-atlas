@@ -8,17 +8,9 @@ Concept vocabulary used by this module:
 - `../concept/npc-disposition-and-dialogue-collapsing.md`
 - `../concept/memory-stratification.md`
 
-## 🎯 Vision:
+## Scope
 
-Similar to the early Legend of Zelda series of text adventures, this game will leverage the Dungeons & Dragons game mechanics and combine it with a free form generative AI based open world adventure, allowing players to drop into the game at any point and leave at any time.
-
-There will be an overlaying historical concept (think Lord of the Rings or Dragonlance Chronicles) along with multiple side quests and distinct adventure locations.
-
-It is a completely immersive text world with its own currency, different fiefdoms and governing bodies, competing religions and beliefs and secret organisations with their own agenda.
-
-Players will be free to create their own guilds and operate in this world in their own way.
-
-Extension points will allow developers to create extensions to the world like unique quests, dungeons, or craft unique items.
+Defines branching conversation rules, persuasion/tone modifiers, quest chaining, and NPC relationship memory within the overarching [Vision](../../README.md#vision-60000-ft) and [Core Tenets](../tenets.md).
 
 ## 🧩 Quest & Dialogue Trees Module Design
 

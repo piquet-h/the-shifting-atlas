@@ -12,7 +12,10 @@ Keep long‑term truths (invariants, tone, normalization rules, dungeon run inte
 | -------------------------------------------- | ---------------------------------------------------------- |
 | `interaction-modes-and-canonicality.md`      | Canonical vs non-canonical boundary + interaction modes    |
 | `exits.md`                                   | Exit edge invariants & traversal expectations              |
+| `exit-intent-capture.md`                     | Capturing frontier / unauthored exit exploration intent    |
 | `direction-resolution-rules.md`              | Canonical direction normalization rules                    |
+| `explorer-creation.md`                       | Player explorer persona & onboarding framing               |
+| `parameterized-action-flow.md`               | Interpret → parameterize → narrate turn invariant          |
 | `player-interaction-profile.md`              | Aggregate player behavior profile (non-canonical)          |
 | `npc-disposition-and-dialogue-collapsing.md` | NPC interpretation traits + when to collapse dialogue      |
 | `memory-stratification.md`                   | World state vs NPC micro-memory vs ephemeral scene context |
@@ -68,15 +71,6 @@ Add string `<!-- concept-automation:ignore -->` to a changed line to suppress de
 
 ---
 
-## Related Documentation
+See the [Documentation Portal](../README.md) for the full MECE altitude hierarchy linking Vision → Tenets → Concepts → Design Modules → Architecture → Workflows → Roadmap → Code.
 
-| Layer        | Document           | Purpose                                  |
-| ------------ | ------------------ | ---------------------------------------- |
-| Vision       | Root `README.md`   | High-level vision and narrative          |
-| Tenets       | `../tenets.md`     | Non-negotiable decision principles       |
-| Architecture | `../architecture/` | Technical persistence, integration       |
-| Roadmap      | `../roadmap.md`    | Milestone planning and progress tracking |
-
----
-
-_Created: 2025-10-31 • Automation section added 2025-10-31_
+_Created: 2025-10-31 • Updated: 2026-11-14_

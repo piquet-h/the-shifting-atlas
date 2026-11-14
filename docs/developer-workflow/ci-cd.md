@@ -287,28 +287,16 @@ Runs linting for multiple packages in parallel.
 
 ---
 
-### GitHub Packages Authentication
-
-```yaml
-env:
-  NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```
-
-Automatically scoped to repository. No manual token creation required.
-
----
-
 ## Troubleshooting
 
-### Issue: "Package not found" (`@piquet-h/shared`)
+### Issue: Standalone Function package missing `@piquet-h/shared` exports
 
-**Cause**: Shared package version not published yet
+**Cause**: `shared/` was modified without rebuilding `shared/dist` before packaging `backend`.
 
 **Fix**:
-1. Merge shared changes first
-2. Wait for `publish-shared.yml` workflow to complete
-3. Verify version exists: `npm view @piquet-h/shared@<version>`
-4. Re-run backend deployment
+1. Run `npm run build:shared` from the repository root
+2. Run `npm run build:backend && npm run package:backend`
+3. Verify `backend/.deploy/node_modules/@piquet-h/shared/dist/index.js` exists
 
 ---
 
@@ -363,13 +351,13 @@ Automatically scoped to repository. No manual token creation required.
 
 ## Related Documentation
 
-| Topic                       | Document                                           |
-| --------------------------- | -------------------------------------------------- |
-| Local Development Setup     | `../developer-workflow/local-dev-setup.md`         |
-| Infrastructure (Bicep)      | `../../infrastructure/README.md`                   |
-| Shared Package Versioning   | `../developer-workflow/shared-versioning.md`       |
-| E2E Test Gating Policy      | `../developer-workflow/e2e-ci-gating-policy.md`    |
-| Architecture Overview       | `../architecture/mvp-azure-architecture.md`        |
+| Topic                           | Document                                           |
+| ------------------------------- | -------------------------------------------------- |
+| Local Development Setup         | `../developer-workflow/local-dev-setup.md`         |
+| Infrastructure (Bicep)          | `../../infrastructure/README.md`                   |
+| Cross-Package Workspace Policy  | `../developer-workflow/shared-versioning.md`       |
+| E2E Test Gating Policy          | `../developer-workflow/e2e-ci-gating-policy.md`    |
+| Architecture Overview           | `../architecture/mvp-azure-architecture.md`        |
 
 ---
 

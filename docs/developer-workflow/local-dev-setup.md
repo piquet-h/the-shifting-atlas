@@ -7,50 +7,28 @@ This guide shows how to run the frontend SPA and the unified backend Azure Funct
 -   Node.js >= 22 (Functions runtime currently supports 22.x; 24.x not yet available)
 -   (Optional) Azure Functions Core Tools v4 (the SWA CLI will auto‑install if missing)
 
-## Install Dependencies (Per Package)
+## Install Dependencies (npm Workspaces)
 
-The repository previously used a single root workspaces install. That indirection has been removed to make dependency graphs explicit and speed up cold boot.
+`shared/`, `backend/`, and `frontend/` are managed as **npm workspaces** from the repository root with a single `package-lock.json`. No GitHub Packages token or registry authentication is required.
 
-Install each package directly (order does not matter):
+Install once from the repository root and build `@piquet-h/shared` (types + prompt bundle):
 
 ```bash
-cd frontend && npm install
-cd ../backend && npm install
+npm ci
+npm run build:shared
 ```
-
-Why: keeping installs scoped prevents stale transitive locks from masking missing peer deps and reduces accidental cross‑package coupling. The root `package.json` now only carries shared scripts/metadata (no aggregate install step required).
-
-### Accessing Internal GitHub Packages
-
-The project consumes the `@piquet-h/shared` package from GitHub Packages. The committed root `.npmrc` only declares registry mappings; **it does not include credentials**.
-
-Authentication paths:
-
-1. CI / GitHub Actions: `actions/setup-node` injects auth automatically via `NODE_AUTH_TOKEN` (no action required).
-2. Local (recommended): create or update your user-level `~/.npmrc`:
-
-    ```bash
-    @piquet-h:registry=https://npm.pkg.github.com
-    //npm.pkg.github.com/:_authToken=<YOUR_GH_PAT_WITH_read:packages>
-    ```
-
-3. Local (ephemeral): export an environment variable for this shell session:
-
-    ```bash
-    export NODE_AUTH_TOKEN=<YOUR_GH_PAT_WITH_read:packages>
-    ```
-
-PAT Scope Requirements: `read:packages` (and `write:packages` only if you intend to publish). Avoid committing any auth line to the repository `.npmrc`—it’s intentionally absent for security.
-
-If you see `401 Unauthorized` while installing, verify the token scope and that you’re not behind a proxy stripping headers.
 
 ## Run Frontend & Backend (Recommended)
 
-Use two terminals (after installing each package):
+From the repository root, use either the combined in-memory dev script or two terminals:
 
 ```bash
-cd frontend && npm run dev        # Vite dev server → http://localhost:5173
-cd backend  && npm start          # Functions host → http://localhost:7071
+# Single command (in-memory backend + SWA frontend emulator)
+npm run dev:fullstack:memory
+
+# Or separate terminals from repository root:
+npm run dev:frontend   # Vite dev server → http://localhost:5173
+npm run dev:backend    # Functions host → http://localhost:7071
 ```
 
 Test an API route (implemented `ping`):
@@ -116,39 +94,15 @@ Returns Gremlin (Cosmos DB graph) persistence health:
 
 If you require same‑origin local auth flows, configure a Vite proxy that forwards `/api` → `http://localhost:7071` instead of relying on the SWA emulator.
 
-## Frontend Only
+## Type Checking, Linting & Builds
+
+Run workspace gates from the repository root:
 
 ```bash
-cd frontend
-npm run dev
-```
-
-## Backend
-
-Queue/world logic (Service Bus, timers) will incrementally land here; HTTP endpoints already reside in this package.
-
-```bash
-cd backend
-npm install
-npm run build
-npm start
-```
-
-## Type Checking & Builds
-
-Run type checks in each package:
-
-```bash
-cd frontend && npm run typecheck
-cd backend && npm run typecheck
-cd shared && npm run typecheck
-```
-
-Build production frontend bundle:
-
-```bash
-cd frontend
-npm run build
+npm run build        # shared (with prompt bundle) -> backend -> frontend
+npm run lint         # ESLint + runtime invariants across all workspaces
+npm run typecheck    # tsc --noEmit across all workspaces
+npm test             # shared + backend + frontend unit/integration suites
 ```
 
 ## Code Style
@@ -191,7 +145,7 @@ npx tsx scripts/seed-production.ts
 
 ### Prerequisites
 
--   Backend dependencies must be installed: `cd backend && npm install`
+-   Workspace dependencies installed (`npm ci` and `npm run build:shared` at repository root)
 -   For Cosmos mode: Azure CLI authentication (`az login`) and appropriate Cosmos DB environment variables configured in `local.settings.json`
 -   `PERSISTENCE_MODE=cosmos` must be set (or use `npm run use:cosmos` to switch)
 
@@ -322,15 +276,6 @@ E2E tests validate:
 -   ✓ Cosmos throttling tolerance (429 retry handling)
 -   ✓ Partition key strategy (per ADR-002)
 
-## Next Steps
-
--   Add Service Bus + Cosmos integration (see architecture docs) once APIs are stable.
-<!-- Removed forward-looking note about introducing GitHub Actions automation (workflows already exist; YAML is source of truth). -->
-
-See also: `branching-strategy.md` for workflow guidance.
-
 ---
 
-Changelog (doc only):
-
--   2025-10-19: Converted from root workspaces install to per‑package explicit installs; removed `--workspaces` examples; clarified rationale.
+_Last updated: 2026-11-14 (aligned with root npm workspaces and zero-auth public setup)_

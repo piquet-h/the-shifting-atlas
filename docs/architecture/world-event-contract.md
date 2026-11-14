@@ -1050,7 +1050,7 @@ customEvents
 - [Event Classification Matrix](./event-classification-matrix.md) – **DECISION TREE: Which player actions enqueue async world events vs return immediately**
 - [Architecture Overview](./overview.md) – High-level architecture context and implementation mapping
 - [Agentic AI & Model Context Protocol](./agentic-ai-and-mcp.md) – AI integration using MCP tooling with world events
-- [M0 Closure Summary](../milestones/M0-closure-summary.md) – M0 Foundation milestone completion (world event infrastructure)
+- [Architecture Overview](./overview.md) – System architecture & event-driven progression
 - [ADR-001: Mosswell Persistence & Layering](../adr/ADR-001-mosswell-persistence-layering.md) – Base persistence model
 - [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) – Dual persistence (graph vs SQL)
 - [Observability](../observability.md) – Telemetry framework and event tracking

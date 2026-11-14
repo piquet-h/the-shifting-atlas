@@ -30,6 +30,8 @@ Automation:
 - `scripts/sync-open-milestones-delivery-slices.mjs` re-syncs open milestone descriptions when issue membership or titles change.
 - `scripts/reanalyze-milestone.mjs` is the follow-up tool after milestone CRUD (issues added/removed/reordered/split); it regenerates dependency-first slices and can run in bulk via `--all --state <open|closed|all>`.
 - `scripts/lib/milestone-delivery-description.mjs` is the shared engine (issue classification, dependency graph, parsing helpers, rendering) consumed by the milestone scripts.
+- `scripts/milestone-board.mjs` (`npm run board:snapshot` / `refine` / `dispatch-ready`) ranks open milestones semantically (`M4e` → `M5a` → `M5b` → `M6*` → `M7`) and advances unblocked slice items across `state:new` → `state:ready` → `state:in-progress`.
+- `scripts/release-handoff.mjs` transitions referenced `#NNN` issues to `state:testing` on production deploy, and `scripts/board-pulse.mjs` closes proven `state:testing` issues so milestone delivery slices advance automatically.
 
 ## How to answer common questions
 

@@ -15,9 +15,10 @@ function findRepoRoot(startDir) {
     }
 }
 
-const ROOT = findRepoRoot(process.cwd())
+const ROOT = process.env.VERIFY_DOCS_POLICY_ROOT ? resolve(process.env.VERIFY_DOCS_POLICY_ROOT) : findRepoRoot(process.cwd())
 const DOCS_INSTRUCTIONS = resolve(ROOT, '.github/instructions/docs.instructions.md')
 const TARGET_PATH_PREFIXES = ['docs/design-modules/', 'docs/concept/']
+const IGNORED_DIRS = new Set(['node_modules', '.git', 'dist', 'coverage', 'playwright-report', '.deploy'])
 
 const ARCHITECTURE_DETAIL_PATTERNS = [
     /\bcosmos\s*db\b/i,
@@ -48,12 +49,12 @@ function parsePlanningTermsFromInstructions(content) {
         .filter(Boolean)
 }
 
-function listMarkdownFilesUnderDocs() {
-    const docsDir = resolve(ROOT, 'docs')
+function listAllRepoMarkdownFiles() {
     const files = []
 
     function walk(dir) {
         for (const entry of readdirSync(dir)) {
+            if (IGNORED_DIRS.has(entry)) continue
             const full = join(dir, entry)
             const st = statSync(full)
             if (st.isDirectory()) {
@@ -64,8 +65,48 @@ function listMarkdownFilesUnderDocs() {
         }
     }
 
-    walk(docsDir)
+    walk(ROOT)
     return files
+}
+
+function analyzeBrokenLinks(absPath, relPath, content) {
+    const issues = []
+    const lines = content.split(/\r?\n/)
+    let inCodeFence = false
+    const linkRx = /(?<!!)\[[^\]]+\]\(([^)]+)\)/g
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]
+        const trimmed = line.trim()
+        if (trimmed.startsWith('```')) {
+            inCodeFence = !inCodeFence
+            continue
+        }
+        if (inCodeFence) continue
+
+        // Ignore inline backtick code spans on the line so prose examples like `[foo](./bar.md)` don't false-positive
+        const withoutInlineCode = line.replace(/`[^`]*`/g, '')
+        for (const match of withoutInlineCode.matchAll(linkRx)) {
+            const rawTarget = match[1].trim()
+            if (!rawTarget || rawTarget.startsWith('#') || /^[a-z]+:/i.test(rawTarget) || rawTarget.startsWith('/')) {
+                continue
+            }
+            const cleanTarget = rawTarget.split('#')[0].split('?')[0].trim()
+            if (!cleanTarget) continue
+            const resolvedTarget = resolve(dirname(absPath), cleanTarget)
+            if (!existsSync(resolvedTarget)) {
+                issues.push({
+                    type: 'broken-link',
+                    file: relPath,
+                    line: i + 1,
+                    term: rawTarget,
+                    excerpt: trimmed.slice(0, 180)
+                })
+            }
+        }
+    }
+
+    return issues
 }
 
 function isTargetDoc(relPath) {
@@ -154,6 +195,7 @@ function main() {
     const args = new Set(process.argv.slice(2))
     const jsonMode = args.has('--json') || process.env.VERIFY_DOCS_POLICY_JSON === '1'
     const strictMode = args.has('--strict') || process.env.VERIFY_DOCS_POLICY_STRICT === '1'
+    const checkLinks = args.has('--check-links') || process.env.VERIFY_DOCS_POLICY_LINKS === '1'
 
     const instructions = readFileSync(DOCS_INSTRUCTIONS, 'utf8')
     const planningTerms = parsePlanningTermsFromInstructions(instructions)
@@ -163,24 +205,28 @@ function main() {
         process.exit(1)
     }
 
-    const files = listMarkdownFilesUnderDocs()
+    const files = listAllRepoMarkdownFiles()
     const issues = []
 
     for (const absPath of files) {
         const relPath = relative(ROOT, absPath).replace(/\\/g, '/')
-        if (!isTargetDoc(relPath)) continue
-
         const content = readFileSync(absPath, 'utf8')
-        issues.push(...analyzeFile(relPath, content, planningTerms))
+        if (isTargetDoc(relPath)) {
+            issues.push(...analyzeFile(relPath, content, planningTerms))
+        }
+        if (checkLinks) {
+            issues.push(...analyzeBrokenLinks(absPath, relPath, content))
+        }
     }
 
     const counts = groupCounts(issues)
+    const status = issues.length === 0 ? 'pass' : strictMode ? 'fail' : 'warn'
     const result = {
-        status: strictMode && issues.length > 0 ? 'fail' : 'warn',
+        status,
         mode: strictMode ? 'strict' : 'warn',
         issues,
         counts,
-        scannedTargets: TARGET_PATH_PREFIXES,
+        scannedTargets: checkLinks ? [...TARGET_PATH_PREFIXES, '**/*.md (links)'] : TARGET_PATH_PREFIXES,
         timestamp: new Date().toISOString()
     }
 
@@ -197,9 +243,7 @@ function main() {
         const maxPrint = 80
         const toPrint = issues.slice(0, maxPrint)
         for (const issue of toPrint) {
-            process.stderr.write(
-                `[verify-docs-policy] WARN ${issue.type} ${issue.file}:${issue.line} :: ${issue.excerpt || issue.term}\n`
-            )
+            process.stderr.write(`[verify-docs-policy] WARN ${issue.type} ${issue.file}:${issue.line} :: ${issue.excerpt || issue.term}\n`)
         }
         if (issues.length > maxPrint) {
             process.stderr.write(
@@ -215,7 +259,7 @@ function main() {
         process.exit(1)
     }
 
-    process.stdout.write('[verify-docs-policy] WARN-ONLY mode complete.\n')
+    process.stdout.write(`[verify-docs-policy] ${strictMode ? 'STRICT' : 'WARN-ONLY'} mode complete.\n`)
     process.exit(0)
 }
 

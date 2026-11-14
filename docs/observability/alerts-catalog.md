@@ -190,7 +190,7 @@ Detect abnormal Cosmos DB Gremlin throttling (HTTP 429 responses) below expected
 | `highThreshold429Count`      | 10      | 429s to trigger high severity | Should be ~2x normal threshold                                |
 | `evaluationFrequencyMinutes` | 5       | Evaluation window size        | Match to typical incident response time                       |
 
-See [Threshold Tuning Report](./threshold-tuning.md) for baseline metrics and tuning methodology.
+See [Issue #297: Post-Baseline Threshold Tuning](https://github.com/piquet-h/the-shifting-atlas/issues/297) for baseline metrics and tuning methodology.
 
 **Edge Cases Handled:**
 
@@ -602,7 +602,7 @@ Fires when one or more agent steps exceed the per-step cost budget (`AGENT_STEP_
 
 - [Telemetry Event Catalog](./telemetry-catalog.md) — Event definitions and dimensions
 - [Agent Failure Taxonomy & DLQ/Replay Runbook](./agent-failure-taxonomy.md) — Agent sandbox triage steps
-- [Threshold Tuning Report](./threshold-tuning.md) — Baseline metrics and threshold calibration methodology (Issue #297)
+- [Issue #297: Post-Baseline Threshold Tuning](https://github.com/piquet-h/the-shifting-atlas/issues/297) — Baseline metrics and threshold calibration methodology
 - [Infrastructure README](../../infrastructure/README.md) — Bicep deployment parameters
 - [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) — Partition thresholds
 - [Observability Overview](../observability.md) — High-level monitoring strategy

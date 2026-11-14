@@ -4,7 +4,7 @@ description: Consolidated dependency injection (InversifyJS) architecture patter
 
 # Dependency Injection Architecture (InversifyJS)
 
-> Replaces deprecated `.github/instructions/inversify-di-patterns.md`. This is an architecture reference (not a generation instruction file). Keep focused on patterns & rationale; implementation details belong in code and tests.
+> Authoritative architecture reference for backend dependency injection. Keep focused on patterns & rationale; implementation details belong in `backend/src/inversify.config.ts` and tests.
 
 ## Goals
 

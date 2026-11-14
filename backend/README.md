@@ -38,9 +38,12 @@ Design constraints:
 
 ## Minimal Dev Loop
 
-```
-npm install
-npm start   # builds then starts the Functions host
+From repository root:
+
+```bash
+npm ci
+npm run build:shared
+npm run dev:backend   # or: cd backend && npm start
 ```
 
 ## Running Tests
@@ -155,21 +158,8 @@ For local development with a real Service Bus namespace:
 1. Add `ServiceBusAtlas__fullyQualifiedNamespace` to `local.settings.json` and run `az login`.
 2. Grant your developer identity the **Azure Service Bus Data Sender** role on the namespace.
 
-## Deployment
+## Deployment & Standalone Packaging
 
-Deployment details live exclusively in the workflow YAML under `.github/workflows/backend-functions-deploy.yml`. Read that file for triggers, required permissions, and steps. Required Azure resources are provisioned via Bicep in `infrastructure/`. No duplicated narrative here to avoid drift.
+Deployment details live in [`.github/workflows/backend-functions-deploy.yml`](../.github/workflows/backend-functions-deploy.yml). Before zip deployment, `npm run package:backend` ([`scripts/package-backend-function.mjs`](../scripts/package-backend-function.mjs)) stages `backend/.deploy` with production-only dependencies and non-symlinked `@piquet-h/shared/dist`.
 
-## Roadmap Snapshot (High Level)
-
-| Area                 | Status      | Notes                                                                                       |
-| -------------------- | ----------- | ------------------------------------------------------------------------------------------- |
-| HTTP player/actions  | Implemented | Unified here (migrated from SWA API)                                                        |
-| Queue world events   | Implemented | Service Bus publisher wired; `world-events` queue consumed by `serviceBusProcessWorldEvent` |
-| Cosmos integration   | Pending     | Graph (Gremlin) + SQL repositories                                                          |
-| Telemetry enrichment | Ongoing     | Add world event emission instrumentation + span enrichment (Epic #310)                      |
-| Auth propagation     | Pending     | Enforce claims / roles on sensitive ops                                                     |
-
-## Notes
-
-Until one of the above lands this package deploys an almost empty artifact (negligible cost / risk). Keeping the scaffold explicit avoids surprise architectural shifts later.
-Refer to `.github/copilot-instructions.md` Section 12.1 for dependency policy: never use `file:` references to `@piquet-h/shared`; always consume registry version (validated by `scripts/verify-deployable.mjs`).
+Refer to [`.github/copilot-instructions.md`](../.github/copilot-instructions.md) Section 12.1 and [`docs/architecture/overview.md`](../docs/architecture/overview.md) for current implementation status and cross-package workspace rules.

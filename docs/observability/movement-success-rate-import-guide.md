@@ -286,7 +286,7 @@ customEvents
 
 - [Telemetry Catalog](./telemetry-catalog.md) - Full event specifications
 - [Observability Overview](../observability.md) - Overall monitoring strategy
-- [ADR-002](../../architecture/adr/ADR-002-graph-partition-strategy.md) - Related partition monitoring
+- [ADR-002](../adr/ADR-002-graph-partition-strategy.md) - Related partition monitoring
 
 ## Milestone
 

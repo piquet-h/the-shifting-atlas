@@ -238,7 +238,7 @@ If alerts fire frequently:
 ## Related Documentation
 
 -   [Azure Monitor Scheduled Query Alerts](https://learn.microsoft.com/en-us/azure/azure-monitor/alerts/alerts-types#log-alerts)
--   [Threshold Tuning Report](./threshold-tuning.md) - Baseline metrics and threshold calibration (Issue #297)
+-   [Issue #297: Post-Baseline Threshold Tuning](https://github.com/piquet-h/the-shifting-atlas/issues/297) - Baseline metrics and threshold calibration
 -   [Telemetry Catalog](./telemetry-catalog.md) - Graph.Query.Executed event
 -   ADR-002 - Graph partition strategy and latency guidance
 -   Issue #295 - M2 Observability milestone

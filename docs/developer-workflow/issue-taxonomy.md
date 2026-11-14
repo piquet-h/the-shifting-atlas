@@ -7,16 +7,16 @@ This project uses a **minimal, opinionated label + milestone scheme** to keep bo
 | Axis  | Label Prefix         | Allowed Values                                                                                                                                                     | Purpose                              |
 | ----- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------ |
 | Scope | `scope:`             | `core`, `world`, `traversal`, `ai`, `mcp`, `systems`, `observability`, `devx`, `security`                                                                          | High-level functional grouping (≤9). |
-| Type  | (none)               | `feature`, `enhancement`, `refactor`, `infra`, `docs`, `spike`, `test`, `bug`                                                                                      | Nature of work & WIP policy.         |
-| Stage | Milestone (no label) | `M0 Foundation`, `M1 Traversal`, `M2 Data Foundations`, `M3 Core Loop`, `M4a/b/c (AI Read split)`, `M5 Quality & Depth`, `M6 Systems`, `M7 Post-MVP Extensibility` | Delivery sequence narrative.         |
+| Type  | (none)               | Atomic issues: `feature`, `enhancement`, `refactor`, `infra`, `docs`, `spike`, `test`, `bug` • Epics: `epic`                                                       | Nature of work & WIP policy.         |
+| State | `state:` (optional)  | `state:new`, `state:ready`, `state:in-progress`, `state:testing` (plus operational holds `needs-discussion`, `needs-operator`)                                     | Automated milestone Kanban flow.     |
+| Stage | Milestone (no label) | Active milestones in GitHub (see `../roadmap.md`)                                                                                                                  | Delivery sequence narrative.         |
 
 Guidelines:
 
-- Exactly one `scope:` and one `type` label per issue.
-- `bug` is allowed but should be used only for defects in existing behavior (regressions or incorrect results) – NOT for missing planned features (use `feature` or `enhancement` instead).
-- (Removed) Implementation Order numeric field — use milestone + dependency + scope impact instead.
-- Stages are GitHub Milestones, not labels.
-- No `phase:` / `area:` / `status:` / `priority:` labels; use Project field instead of priority.
+- Atomic issues carry **exactly one `scope:`** and **one `type`** label (plus at most one `state:*` execution label managed by `scripts/milestone-board.mjs`, `scripts/release-handoff.mjs`, and `scripts/board-pulse.mjs`).
+- Coordinator epics carry **exactly one `scope:`** label plus **`epic`** (no atomic `type` or `state:*` label).
+- `bug` is allowed only for defects in existing behavior (regressions or incorrect results) – NOT for missing planned features (use `feature` or `enhancement` instead).
+- Stages and delivery slice ordering live in GitHub Milestones (see `../roadmap.md`), not `phase:*`, `area:*`, or `priority:*` labels.
 
 ## Examples
 

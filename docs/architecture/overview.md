@@ -23,31 +23,23 @@ This overview provides a concise narrative bridge between the high‑level visio
 
 ## Current Slice (MVP Stage)
 
-Implemented (thin slice – see repo for exact handlers):
+Implemented (active runtime slice — see codebase for exact handlers):
 
-- Static Web App (frontend only)
-- Backend `backend/` Functions App (HTTP endpoints + world event queue processors)
-- World event queue processor with envelope validation (see [world-event-contract.md](world-event-contract.md))
-- Repository abstraction (memory adapters) for Rooms & Players
-- Persistent traversal via Cosmos DB Gremlin (locations, exits, movement)
-- Guest GUID bootstrap with canonical telemetry events (`Onboarding.GuestGuid.Started/Created`)
-- Canonical telemetry framework (`trackGameEventStrict`, event name governance)
-- Direction normalization (shortcuts, typos, relative directions)
-- **Description composition** via `DescriptionComposer` service – unified location endpoint returns compiled descriptions with layers, HTML, and provenance metadata (ADR-005)
-- Read-only MCP tools for agent context (implemented): `WorldContext-*` and `Lore-*` via Azure Functions `app.mcpTool(...)` (not called directly by the website; intended for agent runtimes behind the external gateway)
+- Static Web App (`frontend/` SPA only; no embedded SWA API)
+- Unified Backend (`backend/` Azure Functions v4 on Flex Consumption: HTTP endpoints + Service Bus queue processors + MCP tools)
+- Service Bus queue processing (`world-events`, `exit-generation-hints`, `location-anchor-sync`) with in-memory autodrain parity for local dev/tests (see [world-event-contract.md](world-event-contract.md))
+- Dual persistence via Azure AD Managed Identity (`DefaultAzureCredential`): Cosmos DB Gremlin for immutable world graph + Cosmos DB SQL API authoritative for players, inventory, description layers, and events ([ADR-004](../adr/ADR-004-player-store-cutover-completion.md))
+- Guest GUID bootstrap + Entra EasyAuth session support (`Onboarding.GuestGuid.Started/Created`)
+- Canonical telemetry governance (`trackGameEventStrict`, ESLint-enforced registry in `shared/src/telemetryEvents.ts`)
+- Direction normalization (shortcuts, typos, relative directions) and macro-geography frontier context ([ADR-010](../adr/ADR-010-macro-geography-persistence-strategy.md))
+- **Description composition** via `DescriptionComposer` service – unified location endpoint returns compiled descriptions with layers, HTML, and provenance metadata ([ADR-005](../adr/ADR-005-unified-location-description-endpoint.md))
+- Read-only MCP tools (`WorldContext-*`, `Lore-*`, narrative helpers) via Azure Functions `app.mcpTool(...)` wired to Azure AI Foundry
 
-Still evolving:
+Planned (later milestones — see [roadmap.md](../roadmap.md)):
 
-- Service Bus is integrated for queue-triggered Functions (bindings exist via `app.serviceBusQueue(...)`), but local dev/prod wiring can vary by environment and requires the configured connection setting.
-- Key Vault is provisioned for non-Cosmos secrets; Cosmos access is intended to remain Managed Identity-first.
-
-Not yet implemented (planned):
-
-- Service Bus queue integration (processor currently triggered via HTTP)
-- Managed identity graph access (replace key‑based secret)
-- Broader AI prompt integration & dynamic content beyond the current first-look prose and bounded world generation flows
-- External narrative access gateway (Entra ID/APIM) for VS Code/Teams/agent runners
-- D&D 5e agent integration: Azure AI Foundry agents with hybrid HTTP (read-only) + MCP (stateful) tool architecture for combat, spells, and NPC behaviors (see [D&D 5e API Integration](../design-modules/dnd5e-foundry-agent-architecture.md))
+- Full D&D 5e mechanics resolution & episodic dungeon subgraphs (see [D&D 5e API Integration](../design-modules/dnd5e-foundry-agent-architecture.md) and [Dungeons](../concept/dungeons.md))
+- Validated AI write/proposal surfaces (`world-mutation-mcp`) gated by deterministic ratchets
+- Multi-player quests, factions, and economy loops
 
 ## Evolution Path
 
@@ -167,7 +159,7 @@ Queued evolution relies on a `WorldEvent` envelope processed by queue-triggered 
 - Queue processor at [`backend/src/functions/queueProcessWorldEvent.ts`](../../backend/src/functions/queueProcessWorldEvent.ts)
 - Zod schema validation at [`shared/src/events/worldEventSchema.ts`](../../shared/src/events/worldEventSchema.ts)
 - Idempotency enforcement and telemetry (`World.Event.Processed`, `World.Event.Duplicate`)
-- Full test coverage at [`backend/test/worldEventProcessor.test.ts`](../../backend/test/worldEventProcessor.test.ts)
+- Unit and integration test coverage at [`backend/test/unit/worldEventProcessor.test.ts`](../../backend/test/unit/worldEventProcessor.test.ts) and [`backend/test/integration/worldEventProcessing.test.ts`](../../backend/test/integration/worldEventProcessing.test.ts)
 
 See the contract doc for envelope structure, type namespace, validation flow, and cutover checklist for transitioning HTTP handlers to event-based processing.
 
@@ -179,14 +171,14 @@ Other documents (like `mvp-azure-architecture.md`) dive into concrete resource d
 
 | Implementation File                               | Design Documentation                                                                                                                                                                                                    | Notes                            |
 | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| `backend/src/functions/ping.ts`                   | [M0 Closure Summary](../milestones/M0-closure-summary.md#ping-service-liveness)                                                                                                                                         | Service liveness health check    |
-| `backend/src/functions/bootstrapPlayer.ts`        | [M0 Closure Summary](../milestones/M0-closure-summary.md#guest-guid-bootstrap)                                                                                                                                          | Idempotent player creation       |
+| `backend/src/functions/ping.ts`                   | [Local Dev Setup](../developer-workflow/local-dev-setup.md#health-check-endpoints)                                                                                                                                      | Service liveness health check    |
+| `backend/src/functions/bootstrapPlayer.ts`        | [Player Bootstrap Flow](../developer-workflow/player-bootstrap-flow.md)                                                                                                                                                 | Idempotent player creation       |
 | `backend/src/functions/queueProcessWorldEvent.ts` | [World Event Contract](./world-event-contract.md)                                                                                                                                                                       | Queue-triggered event processor  |
 | `backend/src/functions/playerMove.ts`             | [Navigation & Traversal](../design-modules/navigation-and-traversal.md)                                                                                                                                                 | Movement command handler         |
 | `backend/src/functions/locationLook.ts`           | [Exits](../concept/exits.md), [Direction Resolution](../concept/direction-resolution-rules.md)                                                                                                                          | Location inspection command      |
 | `backend/src/functions/linkRooms.ts`              | [Exit Edge Management](../developer-workflow/edge-management.md)                                                                                                                                                        | Room connection utility          |
 | `backend/src/functions/getExits.ts`               | [Exits](../concept/exits.md)                                                                                                                                                                                            | Exit retrieval endpoint          |
-| `shared/src/telemetry.ts`                         | [Observability](../observability.md), [M0 Closure](../milestones/M0-closure-summary.md#telemetry-scaffold)                                                                                                              | Canonical telemetry framework    |
+| `shared/src/telemetry.ts`                         | [Observability](../observability.md)                                                                                                                                                                                    | Canonical telemetry framework    |
 | `backend/src/repos/locationRepository.ts`         | [ADR-001](../adr/ADR-001-mosswell-persistence-layering.md), [Location Version Policy](./location-version-policy.md), [Repository Interfaces](../developer-workflow/mosswell-repository-interfaces.md)                   | Location persistence abstraction |
 | `backend/src/repos/playerRepository.ts`           | [ADR-004](../adr/ADR-004-player-store-cutover-completion.md), [Repository Interfaces](../developer-workflow/mosswell-repository-interfaces.md), [Player Bootstrap Flow](../developer-workflow/player-bootstrap-flow.md) | Player persistence abstraction   |
 | `backend/src/repos/exitRepository.ts`             | [Exits](../concept/exits.md), [Edge Management](../developer-workflow/edge-management.md), [Repository Interfaces](../developer-workflow/mosswell-repository-interfaces.md)                                             | Exit edge persistence            |
@@ -225,8 +217,8 @@ Other documents (like `mvp-azure-architecture.md`) dive into concrete resource d
 - `../adr/ADR-002-graph-partition-strategy.md` – Detailed partition key decision & migration plan
 - `../adr/ADR-003-player-location-edge-groundwork.md` – Historical player edge groundwork (superseded; see ADR-004 note)
 - `../adr/ADR-004-player-store-cutover-completion.md` – Player storage cutover complete (SQL-only authoritative model)
-- `../milestones/M0-closure-summary.md` – M0 Foundation milestone completion
+- `../adr/ADR-010-macro-geography-persistence-strategy.md` – Macro geography persistence strategy
 
 ---
 
-_Last updated: 2026-03-11 (status audit: clarify current world generation AI coverage)_
+_Last updated: 2026-11-14_

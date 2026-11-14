@@ -95,7 +95,7 @@ Improve code quality, remove duplication, optimize—but keep all tests passing 
 
 ## Test Layer Decision Matrix
 
-Choose the right layer for each test. Use [TEST_FIXTURE_GUIDE.md](../../backend/test/TEST_FIXTURE_GUIDE.md) for detailed anti-patterns.
+Choose the right layer for each test. Use [TEST_FIXTURE_GUIDE.md](../../../backend/test/TEST_FIXTURE_GUIDE.md) for detailed anti-patterns.
 
 | What You're Testing                       | Fixture                  | Directory           | Persistence      | When to Use                        |
 | ----------------------------------------- | ------------------------ | ------------------- | ---------------- | ---------------------------------- |
@@ -278,10 +278,10 @@ Self QA: Build PASS | Lint PASS | Typecheck PASS | Tests 8/8 passed | Edge Cases
 
 ## References
 
-- [TEST_FIXTURE_GUIDE.md](../../backend/test/TEST_FIXTURE_GUIDE.md) — Decision matrix, fixture anti-patterns
-- [copilot-instructions.md](../../.github/copilot-instructions.md) Section 10.1 — TDD-First Development (mandatory)
-- [backend/AGENTS.md](../../backend/AGENTS.md) — Backend-specific patterns
+- [TEST_FIXTURE_GUIDE.md](../../../backend/test/TEST_FIXTURE_GUIDE.md) — Decision matrix, fixture anti-patterns
+- [copilot-instructions.md](../../copilot-instructions.md) Section 10.1 — TDD-First Development (mandatory)
+- [backend/AGENTS.md](../../../backend/AGENTS.md) — Backend-specific patterns
 
 ---
 
-Last reviewed: 2026-03-20
+Last reviewed: 2026-11-14

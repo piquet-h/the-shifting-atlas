@@ -385,7 +385,7 @@ If deployment introduces regressions:
 ## Related Documentation
 
 - [Alerts Catalog](./alerts-catalog.md) — Alert definitions and configuration
-- [Threshold Tuning Report](./threshold-tuning.md) — Parameter tuning methodology
+- [Issue #297: Post-Baseline Threshold Tuning](https://github.com/piquet-h/the-shifting-atlas/issues/297) — Parameter tuning methodology
 - [Composite Partition Pressure Alert](./alert-composite-partition-pressure.md) — Multi-signal alert details
 - [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) — Partition pressure thresholds
 
