@@ -29,34 +29,26 @@ jobs:
       formatter_json: ${{ steps.scope.outputs['formatter-json'] }}
       has_legs: ${{ steps.scope.outputs['has-legs'] }}
       base_sha: ${{ steps.candidate.outputs.base_sha }}
-      head_sha: ${{ steps.candidate.outputs.head_sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Resolve merge candidate
+      - name: Resolve comparison base SHA
         id: candidate
         run: |
           set -euo pipefail
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            base_ref="${{ github.event.pull_request.base.ref }}"
-            head_sha="${{ github.event.pull_request.head.sha }}"
-            git fetch --no-tags origin "+refs/heads/${base_ref}:refs/remotes/origin/${base_ref}" "${head_sha}"
-            base_sha="$(git rev-parse "origin/${base_ref}")"
-            git checkout --detach "${head_sha}"
-            git -c user.name="Shifting Atlas CI" -c user.email="ci@the-shifting-atlas.invalid" merge --no-edit "${base_sha}"
+            # actions/checkout@v4 on pull_request already checks out refs/pull/<N>/merge
+            # (HEAD^1 = target base branch tip, HEAD^2 = PR head commit).
+            base_sha="$(git rev-parse HEAD^1)"
+          elif [ "${{ github.event_name }}" = "push" ] && [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            base_sha="${{ github.event.before }}"
           else
-            head_sha="$(git rev-parse HEAD)"
-            if [ "${{ github.event_name }}" = "push" ] && [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
-              base_sha="${{ github.event.before }}"
-            else
-              base_sha="$(git rev-parse HEAD~1 2>/dev/null || echo "")"
-            fi
+            base_sha="$(git rev-parse HEAD~1 2>/dev/null || echo "")"
           fi
           echo "base_sha=${base_sha}" >> "$GITHUB_OUTPUT"
-          echo "head_sha=${head_sha}" >> "$GITHUB_OUTPUT"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -85,17 +77,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Check out merged candidate on pull requests
-        if: github.event_name == 'pull_request'
-        env:
-          BASE_SHA: ${{ needs.scope.outputs.base_sha }}
-          HEAD_SHA: ${{ needs.scope.outputs.head_sha }}
-        run: |
-          set -euo pipefail
-          git fetch --no-tags origin "${BASE_SHA}" "${HEAD_SHA}"
-          git checkout --detach "${HEAD_SHA}"
-          git -c user.name="Shifting Atlas CI" -c user.email="ci@the-shifting-atlas.invalid" merge --no-edit "${BASE_SHA}"
 
       - name: Setup Node & install workspaces
         uses: ./.github/actions/setup-node-install
@@ -276,7 +257,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          EXPECTED_HEAD_SHA: ${{ needs.scope.outputs.head_sha }}
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
           pr_json="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}")"
