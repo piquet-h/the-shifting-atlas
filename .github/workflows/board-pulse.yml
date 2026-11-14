@@ -61,7 +61,7 @@ jobs:
 
       - name: Prove state:testing issues & sense telemetry regressions
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.COPILOT_AGENT_TOKEN || secrets.GITHUB_TOKEN }}
           APP_INSIGHTS_APP: ${{ vars.APP_INSIGHTS_APP }}
           APP_INSIGHTS_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP || 'rg-atlas-game' }}
           BACKEND_HEALTH_URL: ${{ vars.BACKEND_HEALTH_URL }}
