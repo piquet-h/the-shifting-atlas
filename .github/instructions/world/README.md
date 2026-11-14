@@ -11,4 +11,4 @@ For detailed, on-demand guidance (lore, locations, NPCs, factions, quests), use 
 
 - `.github/skills/world-content-generation/SKILL.md`
 
-Last reviewed: 2026-01-15
+Last reviewed: 2026-11-14

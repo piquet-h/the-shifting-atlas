@@ -1,37 +1,28 @@
 name: 'Setup Node and Install'
-description: 'Sets up Node.js with GitHub Packages auth & installs dependencies in the given working directory (low‑risk consolidation of repeated steps).'
+description: 'Sets up Node.js from .nvmrc and installs npm workspaces dependencies from root package-lock.json (zero registry auth required).'
 inputs:
   working-directory:
-    description: 'Directory (package root) in which to run npm ci'
-    required: true
-  node-version:
-    description: 'Node.js version'
+    description: 'Directory in which to run npm ci (defaults to repository root)'
     required: false
-    default: '20'
+    default: '.'
+  node-version-file:
+    description: 'Path to Node version file'
+    required: false
+    default: '.nvmrc'
   cache-dependency-path:
-    description: 'Path(s) to lockfile(s) for caching (newline or comma separated).'
-    required: true
-  registry-url:
-    description: 'Registry URL (defaults to GitHub Packages)'
+    description: 'Path to lockfile for caching'
     required: false
-    default: 'https://npm.pkg.github.com'
-  scope:
-    description: 'Package scope for auth (scoped registry)'
-    required: false
-    default: '@piquet-h'
+    default: 'package-lock.json'
 runs:
   using: composite
   steps:
     - name: Setup Node
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ inputs.node-version }}
+        node-version-file: ${{ inputs.node-version-file }}
         cache: npm
         cache-dependency-path: ${{ inputs.cache-dependency-path }}
-        always-auth: true
-        registry-url: ${{ inputs.registry-url }}
-        scope: ${{ inputs.scope }}
-    - name: Install dependencies
+    - name: Install workspace dependencies
       shell: bash
       working-directory: ${{ inputs.working-directory }}
-      run: npm ci
+      run: npm ci --no-audit --no-fund

@@ -1,7 +1,7 @@
 {
     "name": "@piquet-h/shared",
-    "version": "0.3.158",
-    "private": false,
+    "version": "0.3.159",
+    "private": true,
     "description": "Shared domain models, persistence helpers, telemetry, and utilities for The Shifting Atlas backend & tooling.",
     "license": "MIT",
     "keywords": [
@@ -101,10 +101,9 @@
         "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
         "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
         "test": "node --test --import=tsx test/*.test.ts",
-        "test:cov": "c8 --reporter=text --reporter=lcov node --test --import=tsx test/*.test.ts || true",
+        "test:cov": "c8 --reporter=text --reporter=lcov node --test --import=tsx test/*.test.ts",
         "smoke:traversal": "node --import=tsx scripts/smoke-traversal.ts",
-        "verify:ai-cost-payload": "node ../scripts/verify-ai-cost-payload.mjs",
-        "prepublishOnly": "npm run build && npm run test"
+        "verify:ai-cost-payload": "node ../scripts/verify-ai-cost-payload.mjs"
     },
     "dependencies": {
         "zod": "^4.6.7"
@@ -124,8 +123,5 @@
         "type": "git",
         "url": "git+https://github.com/piquet-h/the-shifting-atlas.git",
         "directory": "shared"
-    },
-    "publishConfig": {
-        "registry": "https://npm.pkg.github.com"
     }
 }

@@ -572,3 +572,20 @@ test('verify-runtime-invariants: accepts macro-transition with cross-file destin
         await rm(root, { recursive: true, force: true })
     }
 })
+
+test('verify-runtime-invariants: accepts npm workspace "*" dependency range for @piquet-h/shared', async () => {
+    const root = await createFixtureRepo({
+        backendDependency: '*',
+        frontendDependency: '*',
+        dataFiles: buildValidAtlasData()
+    })
+
+    try {
+        const result = await runVerifier(root, ['--strict', '--json'])
+        assert.equal(result.exitCode, 0)
+        const payload = JSON.parse(result.stdout)
+        assert.equal(payload.counts['shared-file-reference'], 0)
+    } finally {
+        await rm(root, { recursive: true, force: true })
+    }
+})

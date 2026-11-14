@@ -500,22 +500,13 @@ Any retained `setTimeout` or `setInterval` in production code with TTL > 1 minut
 
 ---
 
-## 12.1. Cross-Package Changes Constraint (GitHub.com agents)
+## 12.1. Cross-Package Workspace Changes & Issue Closure Policy
 
-**When working from GitHub.com (not local environment):**
+`shared/`, `backend/`, and `frontend/` are managed as **npm workspaces** from the root `package.json` with a single `package-lock.json`:
 
-If a task requires modifying BOTH `shared/` AND (`backend/` OR `frontend/`):
-
-1. **Stop** — You cannot complete this task from GitHub.com
-2. **Create an issue** describing the required changes:
-    - Title: "Shared package update needed for [feature]"
-    - Body: List what needs to change in shared/ and what needs to change in backend/frontend
-    - Label: `scope:shared` + affected scope
-3. **Respond to user**: "This requires sequential PRs (shared must publish first). Created issue #[number] for local coordination."
-
-**Why:** Shared package must publish to GitHub Packages registry before backend/frontend can consume it. GitHub.com agents cannot execute multi-stage sequential PRs.
-
-**Local agents:** Can use `file:../shared` temporarily during development, but must restore a published registry reference before committing; `verify:invariants` warns if this slips through.
+1. **Single-PR delivery**: Changes spanning `shared/` + `backend/` + `frontend/` SHOULD ship together in one atomic PR. Run `npm run build:shared` first so updated `.d.ts` exports and bundled prompts are available to downstream workspaces.
+2. **Never use `file:../shared`**: Keep `"@piquet-h/shared": "*"` in `backend/package.json` and `frontend/package.json` (`verify:invariants` rejects `file:` overrides). At deploy time, `npm run package:backend` (`scripts/package-backend-function.mjs`) materializes a standalone Function archive with non-symlinked `@piquet-h/shared`.
+3. **PR issue references (`Refs #NNN`, not `Fixes #NNN`)**: For runtime changes (`backend/`, `frontend/`, `infrastructure/`), write `Refs #NNN` or `Delivers #NNN` in PR bodies rather than `Fixes #NNN` so issues transition to `state:testing` on deploy (`scripts/release-handoff.mjs`) and close only after post-deploy verification passes.
 
 ---
 
@@ -833,7 +824,7 @@ Each child then receives its atomic template.
 
 ---
 
-Last reviewed: 2026-01-15
+Last reviewed: 2026-11-14
 
 ---
 

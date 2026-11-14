@@ -5,6 +5,11 @@ on:
     branches: [main]
     paths:
       - 'backend/**'
+      - 'shared/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'scripts/package-backend-function.mjs'
+      - 'scripts/bundle-prompts.mjs'
       - '.github/workflows/backend-functions-deploy.yml'
   workflow_dispatch:
     inputs:
@@ -13,128 +18,56 @@ on:
         required: false
 
 permissions:
-  id-token: write # OIDC for azure/login
-  contents: read
-  packages: read
+  id-token: write
+  contents: write
+  issues: write
 
 concurrency:
-  group: backend-functions-${{ github.ref }}
-  cancel-in-progress: true
+  group: backend-functions-prod
+  cancel-in-progress: false
 
 env:
-  NODE_VERSION: '22'
   AZURE_FUNCTIONAPP_NAME: 'func-atlas'
 
 jobs:
   build-and-deploy:
     name: Build & Deploy Functions
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: 'backend/package-lock.json'
+          fetch-depth: 0
 
-      - name: Install JavaScript dependencies
-        run: npm ci
+      - name: Setup Node & install workspaces
+        uses: ./.github/actions/setup-node-install
 
-      - name: Build backend (tsc)
-        run: npm run build
+      - name: Check deploy scope since deployed-backend
+        id: scope
+        env:
+          GITHUB_EVENT_BEFORE: ${{ github.event.before }}
+          FORCE_DEPLOY: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
+        run: node scripts/pr-validation-scope.mjs --deploy-unit backend
+
+      - name: Build shared & backend
+        if: steps.scope.outputs.affected == 'true'
+        run: |
+          npm run build:shared
+          npm run build:backend
 
       - name: Run backend tests
-        id: run-tests
+        if: steps.scope.outputs.affected == 'true'
+        run: npm run test:backend
+
+      - name: Package standalone Function archive
+        if: steps.scope.outputs.affected == 'true'
         run: |
-          set +e  # Don't exit immediately on failure
-          npm test 2>&1 | tee test-output.log
-          TEST_EXIT_CODE=${PIPESTATUS[0]}
-
-          echo "Test exit code: $TEST_EXIT_CODE"
-
-          # Parse test output for failures and create annotations
-          if [ $TEST_EXIT_CODE -ne 0 ]; then
-            echo "::error title=Backend Tests Failed::Tests failed with exit code $TEST_EXIT_CODE"
-            
-            # Extract and annotate failed tests
-            echo "## ❌ Test Failures" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            
-            # Count total failures
-            fail_count=$(grep "^# fail " test-output.log | tail -1 | awk '{print $3}')
-            pass_count=$(grep "^# pass " test-output.log | tail -1 | awk '{print $3}')
-            total_count=$(grep "^# tests " test-output.log | tail -1 | awk '{print $3}')
-            
-            echo "**Summary:** $fail_count of $total_count tests failed ($pass_count passed)" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### Failed Tests" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            
-            # Parse TAP format for failed test names (lines with "not ok")
-            grep "^[[:space:]]*not ok [0-9]* -" test-output.log | while IFS= read -r line; do
-              # Extract test name (remove "not ok N - " prefix)
-              test_name=$(echo "$line" | sed -E 's/^[[:space:]]*not ok [0-9]* - //' | sed 's/[[:space:]]*$//')
-              if [ ! -z "$test_name" ]; then
-                echo "::error::Test failed: $test_name"
-                echo "- \`$test_name\`" >> $GITHUB_STEP_SUMMARY
-              fi
-            done
-            
-            # Also look for spec format failures (lines with ✖) in case TAP parsing misses some
-            grep "✖" test-output.log 2>/dev/null | while IFS= read -r line; do
-              test_name=$(echo "$line" | sed 's/^[[:space:]]*✖[[:space:]]*//' | sed 's/([0-9.]*ms)$//' | sed 's/[[:space:]]*$//')
-              if [ ! -z "$test_name" ]; then
-                echo "::error::Test failed: $test_name"
-              fi
-            done
-            
-            # Add error context section
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### Error Details" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "For complete error details with stack traces, see the test output above." >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            
-            # Show last part of test output with summary
-            echo "<details>" >> $GITHUB_STEP_SUMMARY
-            echo "<summary>Test Summary (last 50 lines)</summary>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            tail -50 test-output.log >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "</details>" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "## ✅ All Tests Passed" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            # Count successful tests
-            pass_count=$(grep "^# pass " test-output.log | tail -1 | awk '{print $3}')
-            total_count=$(grep "^# tests " test-output.log | tail -1 | awk '{print $3}')
-            echo "Successfully ran $total_count tests ($pass_count passed)." >> $GITHUB_STEP_SUMMARY
-          fi
-
-          exit $TEST_EXIT_CODE
-
-      - name: Prepare modules
-        run: npm ci --omit=dev
-
-      - name: Copy and zip for deployment
-        run: |
-          mkdir -p temp
-          cp -r dist node_modules host.json package.json temp/
-          cd temp
-          zip -r ../dist.zip ./*
-          cd ..
+          npm run package:backend
+          cd backend/.deploy
+          zip -qr ../dist.zip ./*
 
       - name: Azure Login (OIDC)
+        if: steps.scope.outputs.affected == 'true'
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -143,82 +76,78 @@ jobs:
 
       - name: Resolve Function App Name
         id: resolve
+        if: steps.scope.outputs.affected == 'true'
         run: |
-          # Try to get the actual function app name from Azure
           RESOURCE_GROUP="rg-atlas-game"
           FUNCTION_APPS=$(az functionapp list --resource-group "$RESOURCE_GROUP" --query "[?contains(name, 'func-atlas')].name" -o tsv 2>/dev/null || true)
 
           if [ -n "$FUNCTION_APPS" ]; then
             FUNCTION_APP_NAME=$(echo "$FUNCTION_APPS" | head -1)
             echo "Found function app: $FUNCTION_APP_NAME"
-            echo "FUNCTION_APP_NAME=$FUNCTION_APP_NAME" >> $GITHUB_OUTPUT
+            echo "FUNCTION_APP_NAME=$FUNCTION_APP_NAME" >> "$GITHUB_OUTPUT"
           else
             echo "Function app not found, using default: ${{ env.AZURE_FUNCTIONAPP_NAME }}"
-            echo "FUNCTION_APP_NAME=${{ env.AZURE_FUNCTIONAPP_NAME }}" >> $GITHUB_OUTPUT
+            echo "FUNCTION_APP_NAME=${{ env.AZURE_FUNCTIONAPP_NAME }}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Deploy to Azure Functions (dist artifact)
+        if: steps.scope.outputs.affected == 'true'
         uses: Azure/functions-action@v1
         with:
           app-name: ${{ steps.resolve.outputs.FUNCTION_APP_NAME }}
           package: 'backend/dist.zip'
           slot-name: 'Production'
 
-      - name: Verify deployment
+      - name: Verify deployment (cold-start bounded health gate)
+        if: steps.scope.outputs.affected == 'true'
         run: |
+          set -euo pipefail
           FUNCTION_APP_NAME="${{ steps.resolve.outputs.FUNCTION_APP_NAME }}"
-          echo "Verifying deployment for $FUNCTION_APP_NAME..."
-
-          # Get function app URL
           FUNCTION_URL=$(az functionapp show --name "$FUNCTION_APP_NAME" --resource-group "rg-atlas-game" --query "defaultHostName" -o tsv 2>/dev/null || true)
 
-          if [ -n "$FUNCTION_URL" ]; then
-            echo "Function app URL: https://$FUNCTION_URL"
-            
-            # Wait briefly for deployment to settle
-            echo "Waiting 30 seconds for function app to sync..."
-            sleep 30
-            
-            # List all functions registered in the app
-            echo "Listing registered functions..."
-            az functionapp function list --name "$FUNCTION_APP_NAME" --resource-group "rg-atlas-game" --query '[].{name:name,invokeUrlTemplate:invokeUrlTemplate}' -o table || echo "Could not list functions"
-            
-            # Test critical endpoints
-            echo ""
-            echo "Testing critical API endpoints..."
-            
-            # Test /api/player endpoint (critical for frontend bootstrap)
-            echo -n "Testing /api/player... "
-            if curl -f -s -m 10 "https://$FUNCTION_URL/api/player" > /dev/null 2>&1; then
-              echo "✅ PASS"
-            else
-              echo "❌ FAIL"
-              echo "::error title=Critical API Endpoint Failed::/api/player is not responding. Frontend will not work."
-            fi
-            
-            # Test /api/ping endpoint
-            echo -n "Testing /api/ping... "
-            if curl -f -s -m 10 "https://$FUNCTION_URL/api/ping" > /dev/null 2>&1; then
-              echo "✅ PASS"
-            else
-              echo "⚠️ FAIL (non-critical)"
-            fi
-            
-            # Test health endpoint  
-            echo -n "Testing /api/backend/health... "
-            if curl -f -s -m 10 "https://$FUNCTION_URL/api/backend/health" > /dev/null 2>&1; then
-              echo "✅ PASS"
-            else
-              echo "⚠️ FAIL (may still be starting up)"
-            fi
-          else
-            echo "⚠️  Could not retrieve function app URL"
+          if [ -z "$FUNCTION_URL" ]; then
+            echo "::error title=Missing Function URL::Could not retrieve defaultHostName for ${FUNCTION_APP_NAME}"
+            exit 1
           fi
 
+          echo "Probing https://${FUNCTION_URL}/api/player (with cold-start retry budget)..."
+          status_code="$(curl --silent --show-error \
+            --retry 12 --retry-connrefused --retry-delay 10 \
+            --max-time 15 \
+            --write-out '%{http_code}' \
+            --output /tmp/player-probe.json \
+            "https://${FUNCTION_URL}/api/player" || echo "000")"
+
+          case "$status_code" in
+            2*)
+              echo "✅ /api/player healthy (HTTP ${status_code})"
+              ;;
+            *)
+              echo "::error title=Critical API Endpoint Failed::/api/player returned HTTP ${status_code}"
+              cat /tmp/player-probe.json 2>/dev/null || true
+              exit 1
+              ;;
+          esac
+
+          curl -fsS -m 10 "https://${FUNCTION_URL}/api/backend/health" >/dev/null 2>&1 \
+            && echo "✅ /api/backend/health healthy" \
+            || echo "⚠️ /api/backend/health non-2xx (advisory)"
+
+      - name: Record deployed-backend tag & transition issues to state:testing
+        if: steps.scope.outputs.affected == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/release-handoff.mjs --unit backend --base-sha "${{ steps.scope.outputs.base_sha }}"
+
       - name: Deployment summary
+        if: always()
         run: |
-          echo '## Backend Functions Deployment' >> $GITHUB_STEP_SUMMARY
-          echo '* Function App: ${{ steps.resolve.outputs.FUNCTION_APP_NAME }}' >> $GITHUB_STEP_SUMMARY
-          echo '* Package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}' >> $GITHUB_STEP_SUMMARY
-          echo '* Node Version: ${{ env.NODE_VERSION }}' >> $GITHUB_STEP_SUMMARY
-          echo '* Deployment Status: ✅ Completed' >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Backend Functions Deployment"
+            if [ "${{ steps.scope.outputs.affected }}" != "true" ]; then
+              echo "* Skipped: no runtime backend/shared changes since \`deployed-backend\`."
+            else
+              echo "* Function App: \`${{ steps.resolve.outputs.FUNCTION_APP_NAME }}\`"
+              echo "* Base SHA: \`${{ steps.scope.outputs.base_sha }}\`"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

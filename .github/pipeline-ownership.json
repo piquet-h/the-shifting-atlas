@@ -1,0 +1,118 @@
+{
+    "version": 1,
+    "validationLanes": {
+        "shared": {
+            "include": [
+                "shared/**",
+                "package.json",
+                "package-lock.json",
+                "tsconfig.base.json",
+                "eslint.config.mjs",
+                "eslint-rules/**",
+                "scripts/bundle-prompts.mjs",
+                "scripts/validate-prompts.mjs",
+                ".github/workflows/ci.yml"
+            ],
+            "exclude": []
+        },
+        "backend": {
+            "include": [
+                "backend/**",
+                "shared/**",
+                "package.json",
+                "package-lock.json",
+                "tsconfig.base.json",
+                "eslint.config.mjs",
+                "eslint-rules/**",
+                "scripts/package-backend-function.mjs",
+                "scripts/bundle-prompts.mjs",
+                "scripts/verify-runtime-invariants.mjs",
+                ".github/workflows/ci.yml"
+            ],
+            "exclude": []
+        },
+        "frontend": {
+            "include": [
+                "frontend/**",
+                "shared/**",
+                "package.json",
+                "package-lock.json",
+                "tsconfig.base.json",
+                "eslint.config.mjs",
+                ".github/workflows/ci.yml"
+            ],
+            "exclude": []
+        },
+        "a11y": {
+            "include": [
+                "frontend/**",
+                "docs/ux/**",
+                ".github/workflows/ci.yml"
+            ],
+            "exclude": []
+        },
+        "infrastructure": {
+            "include": [
+                "infrastructure/**",
+                "scripts/pr-validation-bicep.mjs",
+                "scripts/observability/**",
+                ".github/workflows/ci.yml",
+                ".github/workflows/deploy-infrastructure.yml"
+            ],
+            "exclude": []
+        },
+        "governance": {
+            "include": [
+                "**/*"
+            ],
+            "exclude": []
+        }
+    },
+    "deployUnits": {
+        "infrastructure": {
+            "include": [
+                "infrastructure/**",
+                ".github/workflows/deploy-infrastructure.yml"
+            ],
+            "exclude": [
+                "**/*.md"
+            ]
+        },
+        "backend": {
+            "include": [
+                "backend/**",
+                "shared/**",
+                "package.json",
+                "package-lock.json",
+                "scripts/package-backend-function.mjs",
+                "scripts/bundle-prompts.mjs",
+                ".github/workflows/backend-functions-deploy.yml"
+            ],
+            "exclude": [
+                "backend/test/**",
+                "shared/test/**",
+                "**/*.test.*",
+                "**/*.md",
+                "backend/eslint.config.mjs",
+                "shared/eslint.config.mjs"
+            ]
+        },
+        "frontend": {
+            "include": [
+                "frontend/**",
+                "shared/**",
+                "package.json",
+                "package-lock.json",
+                ".github/workflows/frontend-swa-deploy.yml"
+            ],
+            "exclude": [
+                "frontend/test/**",
+                "frontend/e2e/**",
+                "shared/test/**",
+                "**/*.test.*",
+                "**/*.md",
+                "frontend/eslint.config.mjs"
+            ]
+        }
+    }
+}

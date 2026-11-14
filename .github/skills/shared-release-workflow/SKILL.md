@@ -1,29 +1,26 @@
 ---
 name: shared-release-workflow
-description: Enforces the two-stage shared→backend workflow (publish shared first, then consume from registry). Use when changing both shared/ and backend/ or when shared package versioning/publishing is involved.
+description: Guides cross-package changes across the shared, backend, and frontend npm workspaces and standalone Function packaging. Use when changing both shared/ and backend/ or frontend/.
 ---
 
-# Shared release workflow
+# Shared workspace & packaging workflow
 
 Use this skill when you are asked to:
 
-- Add new exports to `shared/` and use them in `backend/`.
-- Bump `@piquet-h/shared` and ensure backend installs from the registry.
-- Prevent “combined PR touches shared + backend and breaks CI” situations.
+- Add or modify exports in `shared/` and consume them in `backend/` or `frontend/`.
+- Verify standalone Azure Functions packaging (`npm run package:backend`).
 
 ## Rules
 
-1. Never change backend to depend on `file:../shared`.
-2. If behavior requires new shared exports, split into two PRs:
-    - PR 1: `shared/` only (bump version, publish)
-    - PR 2: backend integrates the published version
+1. Keep `"@piquet-h/shared": "*"` in `backend/package.json` and `frontend/package.json` (never `file:../shared`).
+2. Build `shared` first (`npm run build:shared`) so generated barrels, `.d.ts` declarations, and `prompts.bundle.json` are fresh before building or testing `backend` and `frontend`.
+3. Ship coordinated `shared/` + `backend/`/`frontend/` changes in **one atomic PR**.
+4. When touching `backend/` or `shared/` dependencies, run `npm run package:backend` to verify the standalone Function archive builds cleanly without workspace symlinks.
 
 ## Helper script
 
-- `scripts/detect-cross-package.mjs` — detects when the current diff touches both `shared/` and `backend/`.
-
-Use this script as an early warning. It is not a replacement for code review.
+- `scripts/detect-cross-package.mjs` — reports when the current diff touches multiple workspaces so you remember to run downstream workspace tests.
 
 ---
 
-Last reviewed: 2026-01-15
+Last reviewed: 2026-11-14

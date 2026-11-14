@@ -18,28 +18,28 @@ CI/CD workflows enforce:
 
 ## Workflow Inventory
 
-### 1. CI (Continuous Integration)
+### 1. CI (`PR validation`)
 
-**File**: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)
+**File**: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)  
+**Ownership manifest**: [`.github/pipeline-ownership.json`](../../.github/pipeline-ownership.json)
 
 **Triggers**:
-- Pull requests to `main`
+- Pull requests to `main` (checks out merged candidate `HEAD` + `origin/main`)
 - Pushes to `main`
 - Manual dispatch
 
 **Jobs**:
-1. **Detect Changed Areas**: Uses `dorny/paths-filter` to identify which packages changed
-2. **Lint & Typecheck**: Runs ESLint + TypeScript compiler for `frontend/`, `backend/`, `shared/`
-3. **Backend Tests**: Executes `npm test` in `backend/` (if backend files changed)
-4. **Shared Tests**: Executes `npm test` in `shared/` (if shared files changed)
-5. **Accessibility Scan**: Runs axe-core against frontend (if frontend/ux files changed)
-
-**Concurrency**: Cancels in-progress runs when new commits pushed to same PR/branch
-
-**Key Features**:
-- Matrix strategy for parallel linting/typechecking
-- Conditional job execution (skip unchanged packages)
-- GitHub Packages authentication (`NODE_AUTH_TOKEN`)
+1. **Resolve Candidate & Scope**: Merges `origin/main` into PR `HEAD` and computes affected validation lanes via [`scripts/pr-validation-scope.mjs`](../../scripts/pr-validation-scope.mjs)
+2. **Parallel Validation Legs** (fan-out on public `ubuntu-latest` runners):
+   - `shared`: ESLint, `tsc`, prompt validation & bundle, unit tests
+   - `backend-unit`: ESLint, `tsc`, layer isolation guard, unit tests, static invariants
+   - `backend-integration`: Integration tests, runtime behavior invariants, standalone Function packager (`npm run package:backend`)
+   - `frontend`: ESLint, `tsc`, Vite build, Vitest suite, deployable check
+   - `a11y`: Playwright + `axe-core` scan on PRs touching UI/UX
+   - `infrastructure`: Offline `az bicep build` across templates (zero Azure credentials) + workbook check
+   - `governance`: `gitleaks` secret scan, Prettier check on changed TS/TSX files, instruction freshness, docs policy
+3. **`PR validation` Summary**: Single required status check aggregating all selected legs
+4. **Auto-merge**: Merges green same-repo `copilot/*` or `automerge`-labeled PRs with `--match-head-commit`
 
 ---
 
@@ -48,34 +48,13 @@ CI/CD workflows enforce:
 **File**: [`.github/workflows/frontend-swa-deploy.yml`](../../.github/workflows/frontend-swa-deploy.yml)
 
 **Triggers**:
-- Push to `main` (when `frontend/**` changes)
-- Manual dispatch (with optional reason input)
+- Push to `main` (when `frontend/**`, `shared/**`, or root workspace lockfile changes)
+- Manual dispatch
 
-**Authentication**: Azure OIDC (federated credentials, no secrets)
-
-**Jobs**:
-1. **Build**:
-   - Install dependencies (`npm ci`)
-   - Build frontend (`npm run build`)
-   - Output: `frontend/dist/`
-
-2. **Deploy**:
-   - Login to Azure via OIDC
-   - Fetch SWA deployment token from Azure
-   - Deploy static assets using `azure/static-web-apps-deploy` action
-   - Configure Azure AD (Entra) app settings (`AAD_CLIENT_ID`, etc.)
-
-**Concurrency**: Single deployment at a time (prevents race conditions)
-
-**Required Secrets**:
-- `AZURE_CLIENT_ID`
-- `AZURE_TENANT_ID`
-- `AZURE_SUBSCRIPTION_ID`
-- `AZURE_CLIENT_SECRET` (optional, for AAD confidential flow)
-
-**Required Repository Variables**:
-- `AZURE_RESOURCE_GROUP`
-- `SWA_NAME` (optional; derived from infrastructure outputs if absent)
+**Key Behaviors**:
+- Sequential non-canceling lock (`cancel-in-progress: false`)
+- Diffs runtime changes since `deployed-frontend` tag via [`scripts/pr-validation-scope.mjs`](../../scripts/pr-validation-scope.mjs) (skips test/doc-only pushes)
+- Builds `shared` + `frontend` from root npm workspaces, deploys via `Azure/static-web-apps-deploy@v1`, probes live HTTPS endpoint, advances `deployed-frontend`, and transitions referenced `#NNN` issues to `state:testing` via [`scripts/release-handoff.mjs`](../../scripts/release-handoff.mjs)
 
 ---
 
@@ -84,27 +63,14 @@ CI/CD workflows enforce:
 **File**: [`.github/workflows/backend-functions-deploy.yml`](../../.github/workflows/backend-functions-deploy.yml)
 
 **Triggers**:
-- Push to `main` (when `backend/**` or `shared/**` changes)
+- Push to `main` (when `backend/**`, `shared/**`, packaging scripts, or root workspace lockfile changes)
 - Manual dispatch
 
-**Authentication**: Azure OIDC
-
-**Jobs**:
-1. **Build**:
-   - Install `shared/` dependencies
-   - Install `backend/` dependencies (pulls `@piquet-h/shared` from GitHub Packages)
-   - Build TypeScript (`npm run build`)
-   - Output: `backend/dist/`
-
-2. **Deploy**:
-   - Login to Azure via OIDC
-   - Fetch Function App publish profile
-   - Deploy using `azure/functions-action`
-   - App settings (connection strings, secrets) managed via Bicep/Azure Portal
-
-**Deployment Slot**: Production (no staging slot yet)
-
-**Note**: Backend deployment depends on `@piquet-h/shared` package being published (see Publish Shared workflow)
+**Key Behaviors**:
+- Sequential non-canceling lock (`cancel-in-progress: false`)
+- Diffs runtime changes since `deployed-backend` tag (skips test/doc-only pushes)
+- Builds `shared` + `backend`, runs backend unit/integration tests, and stages a standalone archive (`backend/.deploy` → `backend/dist.zip`) via [`scripts/package-backend-function.mjs`](../../scripts/package-backend-function.mjs) with non-symlinked `@piquet-h/shared`
+- Deploys via Azure OIDC + `Azure/functions-action@v1`, probes `/api/player` with bounded cold-start retries, advances `deployed-backend`, and transitions referenced `#NNN` issues to `state:testing`
 
 ---
 
@@ -114,57 +80,18 @@ CI/CD workflows enforce:
 
 **Triggers**:
 - Push to `main` (when `infrastructure/**` changes)
-- Manual dispatch (with optional reason)
+- Manual dispatch
 
-**Authentication**: Azure OIDC
-
-**Jobs**:
-1. **Validate Bicep**:
-   - Lint Bicep files (`az bicep build`)
-   - Validate ARM template syntax
-
-2. **Deploy**:
-   - Login to Azure via OIDC
-   - Create resource group (if missing)
-   - Deploy Bicep template (`az deployment group create`)
-   - Capture outputs (SWA name, Function App name, Cosmos endpoints)
-
-**Resources Provisioned**:
-- Azure Static Web Apps (frontend hosting)
-- Azure Functions (backend API + queue processors)
-- Cosmos DB (Gremlin + SQL API)
-- Key Vault (secrets management)
-- Application Insights (telemetry)
-- Service Bus (queues, future)
-
-**Deployment Mode**: Incremental (only updates changed resources)
+**Key Behaviors**:
+- Compiles Bicep templates offline first, runs `az deployment group what-if --mode Incremental`, deploys with **`--mode Incremental`**, advances `deployed-infrastructure`, and transitions referenced `#NNN` issues to `state:testing`
 
 ---
 
-### 5. Publish Shared Package
+### 5. Copilot Setup Steps
 
-**File**: [`.github/workflows/publish-shared.yml`](../../.github/workflows/publish-shared.yml)
+**File**: [`.github/workflows/copilot-setup-steps.yml`](../../.github/workflows/copilot-setup-steps.yml)
 
-**Triggers**:
-- Push to `main` (when `shared/**` changes)
-- Manual dispatch
-
-**Jobs**:
-1. **Version Check**:
-   - Read `shared/package.json` version
-   - Check if version already published to GitHub Packages
-   - Skip if version exists (idempotent)
-
-2. **Publish**:
-   - Build TypeScript (`npm run build`)
-   - Publish to GitHub Packages (`npm publish`)
-   - Tag: `@piquet-h/shared@<version>`
-
-**Scoped Registry**: `@piquet-h:registry=https://npm.pkg.github.com`
-
-**Permissions**: Requires `packages: write`
-
-**Critical**: Backend deployment fails if `shared` package version not published yet. Always merge shared changes first.
+**Purpose**: Pre-warms `ubuntu-latest` Copilot Cloud Agent sessions (`timeout-minutes: 59`, Node `.nvmrc`, workspace `npm ci`, and pre-built `shared` + prompt bundle) with zero registry auth required.
 
 ---
 

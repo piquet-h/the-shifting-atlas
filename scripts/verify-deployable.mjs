@@ -38,12 +38,12 @@ function validateBackendPackageJson() {
             violations.forEach(({ name, version }) => {
                 process.stderr.write(`  ❌ ${name}: ${version}\n`)
             })
-            process.stderr.write('  Use registry references instead (e.g., "@piquet-h/shared": "^0.3.5")\n')
+            process.stderr.write('  Use workspace references instead ("@piquet-h/shared": "*")\n')
             process.stderr.write('  See .github/copilot-instructions.md Section 12.1\n')
             return false
         }
 
-        process.stdout.write('[verify-deployable] OK: Package references use registry (no file: patterns)\n')
+        process.stdout.write('[verify-deployable] OK: Package references use npm workspaces (no file: patterns)\n')
         return true
     } catch (err) {
         process.stderr.write(`[verify-deployable] ERROR validating backend/package.json: ${err.message}\n`)
