@@ -143,4 +143,4 @@ Script (`scripts/verify-instructions.mjs`) can:
 
 ---
 
-Last reviewed: 2026-01-15
+Last reviewed: 2026-11-14

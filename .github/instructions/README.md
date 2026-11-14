@@ -45,4 +45,4 @@ For governance/notes, see `INVENTORY.md`.
 
 ---
 
-Last reviewed: 2026-01-15
+Last reviewed: 2026-11-14

@@ -9,11 +9,12 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
+  issues: write
 
 concurrency:
-  group: infra-${{ github.ref }}
+  group: infra-prod
   cancel-in-progress: false
 
 env:
@@ -21,38 +22,54 @@ env:
 
 jobs:
   validate:
-    name: Validate Bicep
+    name: Validate Bicep & What-If
     runs-on: ubuntu-latest
+    outputs:
+      affected: ${{ steps.scope.outputs.affected }}
+      base_sha: ${{ steps.scope.outputs.base_sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Check deploy scope since deployed-infrastructure
+        id: scope
+        env:
+          GITHUB_EVENT_BEFORE: ${{ github.event.before }}
+          FORCE_DEPLOY: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
+        run: node scripts/pr-validation-scope.mjs --deploy-unit infrastructure
+
+      - name: Offline Bicep compilation check
+        if: steps.scope.outputs.affected == 'true'
+        run: node scripts/pr-validation-bicep.mjs
 
       - name: Azure Login (OIDC)
+        if: steps.scope.outputs.affected == 'true'
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Compute values
-        id: compute
+      - name: Ensure resource group & run ARM What-If
+        if: steps.scope.outputs.affected == 'true'
         run: |
+          set -euo pipefail
           RG="rg-atlas-game"
-          echo "RESOURCE_GROUP_NAME=$RG" >> $GITHUB_OUTPUT
-          echo "Using resource group: $RG"
-
-      - name: Ensure resource group exists
-        run: az group create --name "${{ steps.compute.outputs.RESOURCE_GROUP_NAME }}" --location westus2
-
-      - name: What-if (Full JSON)
-        run: |
-          if ! az deployment group what-if \
-            --resource-group "${{ steps.compute.outputs.RESOURCE_GROUP_NAME }}" \
-            --template-file $BICEP_FILE > whatif.txt; then
-            echo '{}' > whatif.txt
-          fi
+          az group create --name "$RG" --location westus2 >/dev/null
+          az deployment group what-if \
+            --resource-group "$RG" \
+            --template-file "$BICEP_FILE" \
+            --mode Incremental | tee whatif.txt
 
       - name: Upload what-if artifact
+        if: steps.scope.outputs.affected == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: infra-whatif
@@ -60,12 +77,20 @@ jobs:
           if-no-files-found: error
 
   deploy:
-    name: Deploy
+    name: Deploy (Incremental)
     needs: validate
+    if: needs.validate.outputs.affected == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
 
       - name: Azure Login (OIDC)
         uses: azure/login@v2
@@ -74,30 +99,22 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Compute values
-        id: compute
+      - name: Deploy Infrastructure (Incremental)
         run: |
+          set -euo pipefail
           RG="rg-atlas-game"
-          echo "RESOURCE_GROUP_NAME=$RG" >> $GITHUB_OUTPUT
-
-      - name: Ensure resource group exists
-        run: az group create --name "${{ steps.compute.outputs.RESOURCE_GROUP_NAME }}" --location westus2
-
-      - name: Deploy (Cosmos + Static Web App)
-        run: |
+          az group create --name "$RG" --location westus2 >/dev/null
           az deployment group create \
-            --resource-group "${{ steps.compute.outputs.RESOURCE_GROUP_NAME }}" \
-            --template-file $BICEP_FILE \
-            --name infra-${{ github.run_number }} \
-            --mode Complete
-
-      - name: (Optional) Output Static Web App hostname
-        run: |
-          az resource list --resource-group ${{ steps.compute.outputs.RESOURCE_GROUP_NAME }} \
-            --resource-type Microsoft.Web/staticSites \
-            --query '[0].properties.defaultHostname' -o tsv || true
+            --resource-group "$RG" \
+            --template-file "$BICEP_FILE" \
+            --name "infra-${{ github.run_number }}" \
+            --mode Incremental
 
       - name: Show resulting resources
         run: |
-          echo 'Deployed resources:'
-          az resource list --resource-group ${{ steps.compute.outputs.RESOURCE_GROUP_NAME }} --query '[].name' -o tsv || true
+          az resource list --resource-group "rg-atlas-game" --query '[].name' -o tsv || true
+
+      - name: Record deployed-infrastructure tag & transition issues to state:testing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/release-handoff.mjs --unit infrastructure --base-sha "${{ needs.validate.outputs.base_sha }}"

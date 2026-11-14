@@ -34,6 +34,11 @@ resequence-delta.md
 infrastructure/*.json
 !infrastructure/parameters.json
 
+# Standalone Azure Functions packaging staging & archive
+backend/.deploy/
+backend/dist.zip
+pr-validation-scope.json
+
 # Historical ordering artifacts directory (no longer produced)
 artifacts/ordering/*.json
 !artifacts/ordering/.gitkeep

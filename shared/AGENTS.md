@@ -6,7 +6,7 @@ It is intended to apply when editing anything under `shared/`.
 
 ## Scope
 
-- `shared/` publishes `@piquet-h/shared` to GitHub Packages.
+- `shared/` defines the internal `@piquet-h/shared` npm workspace package.
 - This package is the **domain/core** layer used by backend, frontend, and tooling.
 - Prefer minimal changes and keep the public surface stable.
 
@@ -18,14 +18,12 @@ It is intended to apply when editing anything under `shared/`.
 
 ## Build / test / typecheck
 
-From `shared/`:
+From repo root:
 
-- Install deps: `npm install`
-- Build: `npm run build`
-- Tests: `npm test`
-- Typecheck: `npm run typecheck`
-
-Publishing is guarded by `prepublishOnly` (build + test).
+- Install deps: `npm ci`
+- Build (with prompt bundle): `npm run build:shared`
+- Tests: `npm run test:shared`
+- Typecheck: `npm run typecheck:shared`
 
 ## Boundary rules (high-signal)
 
@@ -36,10 +34,8 @@ Do not violate the shared package contract from `shared/README.md`. In particula
 
 If you need Azure dependencies or runtime behavior, it belongs in `backend/` (or tooling), not `shared/`.
 
-## Versioning + cross-package workflow
+## Cross-package workspace workflow
 
-- If you change `shared` exports or behavior consumed by `backend/` or `frontend/`, bump `shared/package.json` version.
-- Backend/frontend consumers must stay on published GitHub Packages versions; `file:` references are warn-checked by `verify:invariants`.
-- If a change requires coordinated backend/frontend updates, follow the repo’s sequential PR workflow (shared PR first, then backend/frontend once the package publishes).
-
-(See `../.github/copilot-instructions.md` for the cross-package PR split policy.)
+- `backend/` and `frontend/` consume `@piquet-h/shared` directly via npm workspaces (`"@piquet-h/shared": "*"`); `file:` references remain disallowed by `verify:invariants`.
+- Cross-package changes (`shared/` + `backend/` + `frontend/`) can and should ship in a single atomic PR after running `npm run build:shared` and downstream tests.
+- `npm run package:backend` (`scripts/package-backend-function.mjs`) bundles built `shared/dist` into `backend/.deploy` for standalone Azure Functions deployment.

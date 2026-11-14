@@ -3,6 +3,7 @@ name: CI
 on:
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
   workflow_dispatch: {}
@@ -10,127 +11,97 @@ on:
 permissions:
   contents: read
   pull-requests: read
-  packages: read
+  issues: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  changes:
-    name: Detect Changed Areas
+  scope:
+    name: Resolve Candidate & Scope
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
-      frontend_changed: ${{ steps.changed.outputs.frontend }}
-      a11y_changed: ${{ steps.changed.outputs.a11y }}
-      backend_changed: ${{ steps.changed.outputs.backend }}
-      shared_changed: ${{ steps.changed.outputs.shared }}
+      lanes_json: ${{ steps.scope.outputs['lanes-json'] }}
+      legs_json: ${{ steps.scope.outputs['legs-json'] }}
+      bicep_json: ${{ steps.scope.outputs['bicep-json'] }}
+      formatter_json: ${{ steps.scope.outputs['formatter-json'] }}
+      has_legs: ${{ steps.scope.outputs['has-legs'] }}
+      base_sha: ${{ steps.candidate.outputs.base_sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Paths filter
-        id: changed
-        uses: dorny/paths-filter@v3
         with:
-          filters: |
-            frontend:
-              - 'frontend/**'
-            a11y:
-              - 'frontend/**'
-              - 'docs/ux/**'
-            backend:
-              - 'backend/**'
-            shared:
-              - 'shared/**'
+          fetch-depth: 0
 
-  lint-typecheck:
-    name: Lint & Typecheck (matrix)
+      - name: Resolve comparison base SHA
+        id: candidate
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # actions/checkout@v4 on pull_request already checks out refs/pull/<N>/merge
+            # (HEAD^1 = target base branch tip, HEAD^2 = PR head commit).
+            base_sha="$(git rev-parse HEAD^1)"
+          elif [ "${{ github.event_name }}" = "push" ] && [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            base_sha="${{ github.event.before }}"
+          else
+            base_sha="$(git rev-parse HEAD~1 2>/dev/null || echo "")"
+          fi
+          echo "base_sha=${base_sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Compute affected lanes & matrix legs
+        id: scope
+        env:
+          PR_BASE_SHA: ${{ steps.candidate.outputs.base_sha }}
+          PR_HEAD_SHA: HEAD
+        run: node scripts/pr-validation-scope.mjs
+
+  validate:
+    name: ${{ matrix.leg.label }}
+    needs: scope
+    if: needs.scope.outputs.has_legs == 'true'
     runs-on: ubuntu-latest
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
-        pkg: [shared, backend, frontend]
+        leg: ${{ fromJson(needs.scope.outputs.legs_json) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: |
-            shared/package-lock.json
-            backend/package-lock.json
-            frontend/package-lock.json
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@piquet-h'
-          always-auth: true
+          fetch-depth: 0
 
-      - name: Install dependencies (${{ matrix.pkg }})
-        run: cd ${{ matrix.pkg }} && npm ci
+      - name: Setup Node & install workspaces
+        uses: ./.github/actions/setup-node-install
 
-      - name: Lint (${{ matrix.pkg }})
+      # --- Shared lane ---
+      - name: Shared — Lint, Typecheck, Build, Prompts & Unit Tests
+        if: matrix.leg.lane == 'shared'
         run: |
-          if [ "${{ matrix.pkg }}" = "frontend" ]; then exts=".ts,.tsx"; else exts=".ts"; fi
-          cd ${{ matrix.pkg }} && npx eslint 'src' --ext $exts
+          npm run lint:shared
+          npm run typecheck:shared
+          npm run build:shared
+          node scripts/validate-prompts.mjs
+          npm run test:shared
+          node --test scripts/test/package-backend-function.test.mjs scripts/test/pipeline-scope.test.mjs
 
-      - name: Typecheck (${{ matrix.pkg }})
-        run: cd ${{ matrix.pkg }} && npm run typecheck
-
-      - name: Upload ESLint placeholder (on failure)
-        if: failure()
-        run: echo "(placeholder)"
-
-  tests:
-    name: Unit Tests & Coverage
-    runs-on: ubuntu-latest
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    needs: lint-typecheck
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: |
-            shared/package-lock.json
-            backend/package-lock.json
-            frontend/package-lock.json
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@piquet-h'
-          always-auth: true
-
-      # Auth handled automatically by setup-node via GITHUB_TOKEN
-      - name: Install shared dependencies
-        run: cd shared && npm ci
-
-      - name: Install backend dependencies
-        run: cd backend && npm ci
-
-      - name: Install frontend dependencies
-        run: cd frontend && npm ci
-
-      - name: Build shared
-        run: cd shared && npm run build
-
-      - name: Build backend
-        run: cd backend && npm run build
-
-      - name: Build frontend
-        run: cd frontend && npm run build
-
-      - name: Validate unit tests are isolated
+      # --- Backend unit & static invariants lane ---
+      - name: Backend (Unit) — Lint, Typecheck, Layer Guard & Unit Tests
+        if: matrix.leg.lane == 'backend-unit'
         run: |
-          echo "Validating test layer separation..."
+          npm run build:shared
+          npm run lint:backend
+          npm run typecheck:backend
+          npm run build:backend
 
-          # Define exception files (tests that legitimately test configuration logic)
+          echo "Validating unit test layer isolation..."
           EXCEPTIONS=(
             "backend/test/unit/persistenceConfigStrict.test.ts"
             "backend/test/unit/appInsightsSampling.test.ts"
@@ -138,271 +109,169 @@ jobs:
             "backend/test/unit/nullTelemetryClient.test.ts"
             "backend/test/unit/inversifyProductionConfig.memoryMode.test.ts"
           )
-
-          # Build grep exclude pattern
           EXCLUDE_PATTERN=""
           for file in "${EXCEPTIONS[@]}"; do
-            EXCLUDE_PATTERN="$EXCLUDE_PATTERN --exclude=$(basename $file)"
+            EXCLUDE_PATTERN="$EXCLUDE_PATTERN --exclude=$(basename "$file")"
           done
-
-          # Check for PERSISTENCE_MODE manipulation (excluding exception files)
-          echo "Checking for PERSISTENCE_MODE manipulation..."
           if grep -r "process.env.PERSISTENCE_MODE" backend/test/unit/ $EXCLUDE_PATTERN 2>/dev/null; then
-            echo "ERROR: Unit tests must not manipulate PERSISTENCE_MODE (except configuration tests)"
-            echo "Found violations in files listed above. These tests should either:"
-            echo "  1. Use UnitTestFixture which handles config via DI, or"
-            echo "  2. Be moved to integration tests if they need specific persistence modes"
+            echo "::error::Unit tests must not manipulate PERSISTENCE_MODE directly"
             exit 1
           fi
-
-          # Check for direct repository instantiation
-          echo "Checking for direct repository instantiation..."
           if grep -r "new InMemory.*Repository\|new Cosmos.*Repository" backend/test/unit/ 2>/dev/null; then
-            echo "ERROR: Unit tests must not instantiate repository implementations directly"
-            echo "Found violations in files listed above. Use fixture.getXxxRepository() instead."
+            echo "::error::Unit tests must not instantiate concrete repositories directly"
             exit 1
           fi
-
-          # Check for setupTestContainer with explicit mode (excluding DI tests)
-          echo "Checking for setupTestContainer with explicit mode..."
           if grep -r "setupTestContainer.*'cosmos'\|setupTestContainer.*'memory'" backend/test/unit/ --exclude=nullTelemetryClient.test.ts --exclude=mockRepositories.test.ts 2>/dev/null; then
-            echo "ERROR: Unit tests must use UnitTestFixture only (not setupTestContainer with explicit mode)"
-            echo "Found violations in files listed above. Use UnitTestFixture which automatically uses 'mock' mode."
+            echo "::error::Unit tests must use UnitTestFixture only"
             exit 1
           fi
 
-          echo "✓ Test layer separation validation passed"
+          npm run test:unit --workspace the-shifting-atlas-backend
+          node --test scripts/test/verify-runtime-invariants.test.mjs
 
-      - name: Run shared tests (coverage)
-        run: cd shared && npm run test:cov
-
-      - name: Run backend tests (coverage)
-        run: cd backend && npm run test:cov
-
-      - name: Run frontend tests
-        run: cd frontend && npm test || true
-
-      - name: Collect coverage
+      # --- Backend integration, runtime behavior & standalone packager lane ---
+      - name: Backend (Integration) — Integration Tests, Runtime Invariants & Function Packager
+        if: matrix.leg.lane == 'backend-integration'
         run: |
-          mkdir -p coverage
-          if [ -d shared/coverage ]; then cp -r shared/coverage coverage/shared; fi
-          if [ -d backend/coverage ]; then cp -r backend/coverage coverage/backend; fi
-          if [ -d frontend/coverage ]; then cp -r frontend/coverage coverage/frontend; fi
-      - name: Upload coverage artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage
-          path: coverage
-          if-no-files-found: ignore
+          npm run build:shared
+          npm run build:backend
+          npm run verify:runtime-behavior
+          npm run test:integration --workspace the-shifting-atlas-backend
+          npm run package:backend
 
-  accessibility:
-    name: Accessibility (axe)
-    needs: [lint-typecheck, changes]
-    if: ${{ needs.changes.outputs.a11y_changed == 'true' && github.event_name == 'pull_request' }}
-    runs-on: ubuntu-latest
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      # --- Frontend lane ---
+      - name: Frontend — Lint, Typecheck, Build, Tests & Deployable Check
+        if: matrix.leg.lane == 'frontend'
+        run: |
+          npm run build:shared
+          npm run lint:frontend
+          npm run typecheck:frontend
+          npm run build:frontend
+          npm run test:frontend
+          node scripts/verify-deployable.mjs
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: |
-            package-lock.json
-            shared/package-lock.json
-            backend/package-lock.json
-            frontend/package-lock.json
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@piquet-h'
-          always-auth: true
-
-      # Auth handled automatically by setup-node via GITHUB_TOKEN
-
-      - name: Install shared dependencies
-        run: cd shared && npm ci
-
-      - name: Install frontend dependencies
-        run: cd frontend && npm ci
-
-      - name: Build shared
-        run: cd shared && npm run build
-
-      - name: Build frontend
-        run: cd frontend && npm run build
-
-      - name: Axe scan
-        run: cd frontend && npm run a11y
+      # --- Accessibility lane ---
+      - name: Accessibility — Axe Scan
+        if: matrix.leg.lane == 'a11y' && github.event_name == 'pull_request'
+        run: |
+          npm run build:shared
+          npm run build:frontend
+          npm run a11y --workspace the-shifting-atlas-frontend
 
       - name: Upload axe report
-        if: always()
+        if: always() && matrix.leg.lane == 'a11y' && github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: axe-report
           path: frontend/axe-report
           if-no-files-found: ignore
 
-  validate-prompts:
-    name: Validate Prompt Templates
-    runs-on: ubuntu-latest
-    needs: changes
-    if: ${{ needs.changes.outputs.shared_changed == 'true' }}
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      # --- Infrastructure lane (zero Azure credentials required) ---
+      - name: Infrastructure — Offline Bicep Compilation & Workbook Check
+        if: matrix.leg.lane == 'infrastructure'
+        env:
+          BICEP_FILES_JSON: ${{ needs.scope.outputs.bicep_json }}
+        run: node scripts/pr-validation-bicep.mjs
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: shared/package-lock.json
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@piquet-h'
-          always-auth: true
+      # --- Governance lane (Prettier on changed TS/TSX, secret scan, docs, instructions, milestone scripts) ---
+      - name: Governance — Changed-File Formatting, Secret Scan & Repo Invariants
+        if: matrix.leg.lane == 'governance'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ needs.scope.outputs.base_sha }}
+        run: |
+          set -euo pipefail
 
-      - name: Install shared dependencies
-        run: cd shared && npm ci
+          # 1. Secret scan on commit range via gitleaks binary (license-free, offline)
+          curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v8.24.2/gitleaks_8.24.2_linux_x64.tar.gz" | tar -xz -C "$RUNNER_TEMP" gitleaks
+          if [ -n "${BASE_SHA}" ]; then
+            "$RUNNER_TEMP/gitleaks" git --no-banner --redact --log-opts="${BASE_SHA}..HEAD"
+          else
+            "$RUNNER_TEMP/gitleaks" dir --no-banner --redact .
+          fi
 
-      - name: Build shared
-        run: cd shared && npm run build
+          # 2. Prettier check on changed workspace TypeScript files
+          if [ -n "${BASE_SHA}" ]; then
+            mapfile -t changed_ts < <(git diff --name-only --diff-filter=ACMR "${BASE_SHA}...HEAD" -- 'shared/src/**/*.ts' 'shared/test/**/*.ts' 'backend/src/**/*.ts' 'backend/test/**/*.ts' 'frontend/src/**/*.ts' 'frontend/src/**/*.tsx' 'frontend/test/**/*.ts' 'frontend/test/**/*.tsx' || true)
+            if [ "${#changed_ts[@]}" -gt 0 ]; then
+              npx prettier --check "${changed_ts[@]}"
+            fi
+          fi
 
-      - name: Validate prompt templates
-        run: node scripts/validate-prompts.mjs
-
-      - name: Bundle prompt templates
-        run: node scripts/bundle-prompts.mjs
-
-      - name: Upload bundle artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: prompt-bundle
-          path: shared/dist/prompts/prompts.bundle.json
-          if-no-files-found: warn
-
-  docs-policy:
-    name: Docs Policy (warn-only)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Verify docs policy (warn-only)
-        run: npm run verify:docs-policy
-
-      - name: Verify docs policy (json report)
-        run: npm run verify:docs-policy:json > docs-policy.json
-
-      - name: Check telemetry catalog ↔ code sync (warn-only)
-        run: npm run catalog:check
-        continue-on-error: true
-
-      - name: Check telemetry catalog (json report)
-        run: npm run catalog:check:json > catalog-check.json
-        continue-on-error: true
-
-      - name: Upload docs policy artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: docs-policy-report
-          path: |
-            docs-policy.json
-            catalog-check.json
-          if-no-files-found: warn
-
-  # Static/package invariant lane.
-  # This is intentionally warn-only and does NOT enforce runtime behavior regressions.
-  runtime-invariants:
-    name: Package & Static Invariants (warn-only)
-    runs-on: ubuntu-latest
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: |
-            shared/package-lock.json
-            backend/package-lock.json
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@piquet-h'
-          always-auth: true
-
-      - name: Install shared dependencies
-        run: cd shared && npm ci
-
-      - name: Install backend dependencies
-        run: cd backend && npm ci
-
-      - name: Verify package/static invariants (warn-only)
-        run: npm run verify:invariants
-
-      - name: Verify package/static invariants (json report)
-        run: npm run verify:invariants:json > runtime-invariants.json
-
-      - name: Upload runtime invariants artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: runtime-invariants-report
-          path: runtime-invariants.json
-          if-no-files-found: warn
-
-  # Focused behavioral regression lane for queue/replay/correlation/runtime guarantees.
-  runtime-behavior:
-    name: Runtime Behavior (required)
-    runs-on: ubuntu-latest
-    needs: lint-typecheck
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@piquet-h'
-          always-auth: true
-
-      - name: Install backend dependencies
-        run: cd backend && npm ci
-
-      - name: Verify runtime behavior (required)
-        run: npm run verify:runtime-behavior
+          # 3. Instruction freshness, milestone script tests & advisory docs/catalog reports
+          node scripts/verify-instructions.mjs
+          node --test scripts/reanalyze-milestone.test.mjs scripts/ensure-milestone-has-delivery-slices.test.mjs scripts/test/pipeline-scope.test.mjs scripts/test/package-backend-function.test.mjs
+          npm run verify:docs-policy
+          npm run catalog:check || true
 
   summary:
-    name: CI Summary
-    needs: [lint-typecheck, tests, accessibility, validate-prompts, docs-policy, runtime-invariants, runtime-behavior]
+    name: PR validation
+    needs: [scope, validate]
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Generate Summary
+      - name: Enforce required validation outcome
+        env:
+          SCOPE_RESULT: ${{ needs.scope.result }}
+          VALIDATE_RESULT: ${{ needs.validate.result }}
+          HAS_LEGS: ${{ needs.scope.outputs.has_legs }}
+          LANES_JSON: ${{ needs.scope.outputs.lanes_json }}
         run: |
-          echo '## CI Summary' >> $GITHUB_STEP_SUMMARY
-          echo '* Lint & Typecheck: ${{ needs.lint-typecheck.result }}' >> $GITHUB_STEP_SUMMARY
-          echo '* Tests: ${{ needs.tests.result }}' >> $GITHUB_STEP_SUMMARY
-          if [ "${{ needs.accessibility.result }}" != "" ]; then echo '* Accessibility: ${{ needs.accessibility.result }}' >> $GITHUB_STEP_SUMMARY; else echo '* Accessibility: (skipped)' >> $GITHUB_STEP_SUMMARY; fi
-          if [ "${{ needs.validate-prompts.result }}" != "" ]; then echo '* Prompt Validation: ${{ needs.validate-prompts.result }}' >> $GITHUB_STEP_SUMMARY; else echo '* Prompt Validation: (skipped)' >> $GITHUB_STEP_SUMMARY; fi
-          if [ "${{ needs.docs-policy.result }}" != "" ]; then echo '* Docs Policy (warn-only): ${{ needs.docs-policy.result }}' >> $GITHUB_STEP_SUMMARY; else echo '* Docs Policy (warn-only): (skipped)' >> $GITHUB_STEP_SUMMARY; fi
-          if [ "${{ needs.runtime-invariants.result }}" != "" ]; then echo '* Package & Static Invariants (warn-only): ${{ needs.runtime-invariants.result }}' >> $GITHUB_STEP_SUMMARY; else echo '* Package & Static Invariants (warn-only): (skipped)' >> $GITHUB_STEP_SUMMARY; fi
-          if [ "${{ needs.runtime-behavior.result }}" != "" ]; then echo '* Runtime Behavior (required): ${{ needs.runtime-behavior.result }}' >> $GITHUB_STEP_SUMMARY; else echo '* Runtime Behavior (required): (skipped)' >> $GITHUB_STEP_SUMMARY; fi
+          set -euo pipefail
+          {
+            echo "## PR Validation Summary"
+            echo ""
+            echo "| Check | Result |"
+            echo "| :--- | :--- |"
+            echo "| Candidate Scope | \`${SCOPE_RESULT}\` |"
+            echo "| Selected Lanes | \`${LANES_JSON:-[]}\` |"
+            echo "| Parallel Validation Legs | \`${VALIDATE_RESULT}\` |"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "${SCOPE_RESULT}" != "success" ]; then
+            echo "::error::Candidate scope resolution failed (${SCOPE_RESULT})"
+            exit 1
+          fi
+          if [ "${HAS_LEGS}" = "true" ] && [ "${VALIDATE_RESULT}" != "success" ]; then
+            echo "::error::One or more validation legs failed (${VALIDATE_RESULT})"
+            exit 1
+          fi
+          echo "All required validation legs passed."
+
+  automerge:
+    name: Auto-merge (Copilot / automerge label)
+    needs: [scope, summary]
+    if: >-
+      github.event_name == 'pull_request' &&
+      needs.summary.result == 'success' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      (startsWith(github.event.pull_request.head.ref, 'copilot/') ||
+       contains(github.event.pull_request.labels.*.name, 'automerge'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Auto-merge validated same-repo PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          pr_json="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}")"
+          actual_sha="$(jq -r '.head.sha' <<< "$pr_json")"
+          is_draft="$(jq -r '.draft' <<< "$pr_json")"
+          state="$(jq -r '.state' <<< "$pr_json")"
+
+          if [ "$state" != "open" ] || [ "$actual_sha" != "$EXPECTED_HEAD_SHA" ]; then
+            echo "PR state changed since validation started (state=${state}, head=${actual_sha}); skipping auto-merge."
+            exit 0
+          fi
+
+          if [ "$is_draft" = "true" ]; then
+            gh pr ready "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" || true
+          fi
+
+          gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --merge --match-head-commit "$EXPECTED_HEAD_SHA" --delete-branch || echo "Auto-merge deferred (review or branch policy pending)."

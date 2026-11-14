@@ -32,7 +32,7 @@
  */
 
 import { resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 
@@ -128,7 +128,7 @@ const FORBIDDEN_FIELDS = [
 async function loadSharedPackage() {
     try {
         const sharedPath = resolve(__dirname, '../shared/dist/index.js')
-        const shared = await import(sharedPath)
+        const shared = await import(pathToFileURL(sharedPath).href)
         return shared
     } catch (error) {
         process.stderr.write('❌ Error: Could not load @piquet-h/shared package.\n')

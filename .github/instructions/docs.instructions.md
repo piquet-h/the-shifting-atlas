@@ -56,4 +56,4 @@ Planning/leakage indicator verbs (treat as blockers in Design Modules/Concept):
 
 ---
 
-Last reviewed: 2026-01-30
+Last reviewed: 2026-11-14

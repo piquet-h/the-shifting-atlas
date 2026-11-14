@@ -27,7 +27,7 @@
     },
     "dependencies": {
         "@microsoft/applicationinsights-web": "^3.4.5",
-        "@piquet-h/shared": "^0.3.159",
+        "@piquet-h/shared": "*",
         "@tanstack/react-query": "^5.104.3",
         "@tanstack/react-query-devtools": "^5.104.3",
         "@types/cytoscape": "^3.21.9",

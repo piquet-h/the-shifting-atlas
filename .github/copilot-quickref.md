@@ -41,6 +41,6 @@ Do Not: Poll loops | duplicate labels | hardcode telemetry strings | lore walls 
 Additions: New scope/milestone → update labels + roadmap + compact guide + reference ADR.
 
 Detail: `./copilot-instructions.md` | Language/style: `./copilot-language-style.md`
-Last reviewed: 2026-01-15
+Last reviewed: 2026-11-14
 
 Commit Policy: PROPOSE ONLY (no auto stage/commit) unless user says: `stage now` / `commit now` / `open PR`.

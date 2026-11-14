@@ -16,7 +16,7 @@
 
 import { readdir, readFile, writeFile, mkdir } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -52,8 +52,8 @@ async function main() {
         }
 
         // Dynamic import
-        const { validatePromptTemplate } = await import(join(sharedPath, 'schema.js'))
-        const { computeTemplateHash } = await import(join(sharedPath, 'canonicalize.js'))
+        const { validatePromptTemplate } = await import(pathToFileURL(join(sharedPath, 'schema.js')).href)
+        const { computeTemplateHash } = await import(pathToFileURL(join(sharedPath, 'canonicalize.js')).href)
 
         const templates = {}
         const hashes = {}

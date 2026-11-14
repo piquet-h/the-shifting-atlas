@@ -115,26 +115,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: |
-            shared/package-lock.json
-            backend/package-lock.json
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@piquet-h'
-          always-auth: true
-
-      - name: Install shared dependencies
-        run: cd shared && npm ci
-
-      - name: Install backend dependencies
-        run: cd backend && npm ci
+      - name: Setup Node & install workspaces
+        uses: ./.github/actions/setup-node-install
 
       - name: Build shared
-        run: cd shared && npm run build
+        run: npm run build:shared
 
       - name: Azure Login (OIDC)
         uses: azure/login@v2
